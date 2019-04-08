@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  postgres:
+    image: postgres:11.2
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=auth
+      - POSTGRES_PASSWORD=swordfish
+      - POSTGRES_DB=authenticator_test
+  redis:
+    image: redis:5.0.4
+    ports:
+      - 6379:6379
+    command: redis-server --requirepass swordfish

@@ -1,0 +1,7 @@
+coverage.txt
+
+.DS_Store
+.idea
+
+vendor
+_vendor*

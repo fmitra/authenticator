@@ -1,0 +1,54 @@
+linters:
+  enable-all: true
+  disable:
+    - interfacer
+
+linters-settings:
+  errcheck:
+    ignore: 'github.com/go-kit/kit/log:.*,github.com/fmitra/authenticator/internal/pg:^DropTestDB'
+  govet:
+    check-shadowing: false
+  golint:
+    min-confidence: 0.8
+  gocyclo:
+    min-complexity: 12
+  maligned:
+    suggest-new: true
+  dupl:
+    threshold: 100
+  goconst:
+    min-len: 2
+    min-occurrences: 3
+  lll:
+    line-length: 150
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - scopelint
+          #  exclude-use-default: false
+  exclude:
+    # errcheck: Almost all programs ignore errors on these functions and in most cases it's ok
+    - Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*printf?|os\.(Un)?Setenv). is not checked
+
+    # govet: Common false positives
+    - (possible misuse of unsafe.Pointer|should have signature)
+
+    # staticcheck: Developers tend to write in C-style with an explicit 'break' in a 'switch', so it's ok to ignore
+    - ineffective break statement. Did you mean to break out of the outer loop
+
+    # gosec: Too many false-positives on 'unsafe' usage
+    - Use of unsafe calls should be audited
+
+    # gosec: Too many false-positives for parametrized shell calls
+    - Subprocess launch(ed with variable|ing should be audited)
+
+    # gosec: Duplicated errcheck checks
+    - G104
+
+    # gosec: Too many issues in popular repos
+    - (Expect directory permissions to be 0750 or less|Expect file permissions to be 0600 or less)
+
+    # gosec: False positive is triggered by 'src, err := ioutil.ReadFile(filename)'
+    - Potential file inclusion via variable
