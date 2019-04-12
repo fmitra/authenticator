@@ -8,12 +8,14 @@ import (
 	auth "github.com/fmitra/authenticator"
 )
 
+// LoginHistoryRepository is an implementation of auth.LoginHistoryRepository.
 type LoginHistoryRepository struct {
 	client *Client
 }
 
+// ByUserID retrieves all LoginHistory records associated with a User.
 func (r *LoginHistoryRepository) ByUserID(ctx context.Context, userID string, limit, offset int) ([]*auth.LoginHistory, error) {
-	rows, err := r.client.db.QueryContext(
+	rows, err := r.client.queryContext(
 		ctx,
 		r.client.loginHistoryQ["byUserID"],
 		userID,
@@ -44,8 +46,9 @@ func (r *LoginHistoryRepository) ByUserID(ctx context.Context, userID string, li
 	return logins, nil
 }
 
+// Create persists a new LoginHistory to storage.
 func (r *LoginHistoryRepository) Create(ctx context.Context, login *auth.LoginHistory) error {
-	row := r.client.db.QueryRowContext(
+	row := r.client.queryRowContext(
 		ctx,
 		r.client.loginHistoryQ["insert"],
 		login.UserID,
@@ -59,15 +62,12 @@ func (r *LoginHistoryRepository) Create(ctx context.Context, login *auth.LoginHi
 	)
 }
 
+// Update updates a LoginHistory in storage.
 func (r *LoginHistoryRepository) Update(ctx context.Context, login *auth.LoginHistory) error {
-	if r.client.tx == nil {
-		return fmt.Errorf("cannot update login history outside of transaction")
-	}
-
 	currentTime := time.Now().UTC()
 	login.UpdatedAt = currentTime
 
-	res, err := r.client.tx.ExecContext(
+	res, err := r.client.execContext(
 		ctx,
 		r.client.loginHistoryQ["update"],
 		login.TokenID,
@@ -88,13 +88,10 @@ func (r *LoginHistoryRepository) Update(ctx context.Context, login *auth.LoginHi
 	return nil
 }
 
+// GetForUpdate retrieves a LoginHistory to be updated.
 func (r *LoginHistoryRepository) GetForUpdate(ctx context.Context, tokenID string) (*auth.LoginHistory, error) {
-	if r.client.tx == nil {
-		return nil, fmt.Errorf("cannot retrieve user outside of transaction")
-	}
-
 	login := auth.LoginHistory{}
-	row := r.client.tx.QueryRowContext(ctx, r.client.loginHistoryQ["forUpdate"], tokenID)
+	row := r.client.queryRowContext(ctx, r.client.loginHistoryQ["forUpdate"], tokenID)
 	err := row.Scan(
 		&login.UserID, &login.TokenID, &login.IsRevoked, &login.ExpiresAt,
 		&login.CreatedAt, &login.UpdatedAt,

@@ -3,9 +3,13 @@ package pg
 import (
 	"database/sql"
 	"fmt"
+	"io"
+	"math/rand"
 	"os"
+	"time"
 
 	"github.com/go-kit/kit/log"
+	"github.com/oklog/ulid"
 )
 
 // NewTestClient returns a new Client connected to a test database.
@@ -43,8 +47,15 @@ func NewTestClient(testDBName string) (*Client, error) {
 		return nil, err
 	}
 
+	var entropy io.Reader
+	{
+		random := rand.New(rand.NewSource(time.Now().UnixNano()))
+		entropy = ulid.Monotonic(random, 0)
+	}
+
 	testClient := NewClient(
 		WithLogger(log.NewNopLogger()),
+		WithEntropy(entropy),
 	)
 	err = testClient.Open(testConnDetails)
 	if err != nil {

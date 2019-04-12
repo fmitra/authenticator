@@ -3,7 +3,7 @@ package pg
 import (
 	"context"
 	"database/sql"
-	"math/rand"
+	"io"
 
 	"github.com/go-kit/kit/log"
 	// pg driver registers itself as being available to the database/sql package.
@@ -13,12 +13,12 @@ import (
 	auth "github.com/fmitra/authenticator"
 )
 
-// Client represents a client for PostgreSQL
+// Client represents a client for PostgreSQL.
 type Client struct {
-	db     *sql.DB
-	tx     *sql.Tx
-	rand   *rand.Rand
-	logger log.Logger
+	db      *sql.DB
+	tx      *sql.Tx
+	entropy io.Reader
+	logger  log.Logger
 
 	LoginHistoryRepository *LoginHistoryRepository
 	loginHistoryQ          map[string]string
@@ -36,10 +36,10 @@ func (c *Client) Open(dataSourceName string) error {
 
 	c.logger.Log("level", "debug", "msg", "connecting to db")
 	if c.db, err = sql.Open("postgres", dataSourceName); err != nil {
-		return err
+		return errors.Wrap(err, "failed to open postgres connection")
 	}
 	if err = c.db.Ping(); err != nil {
-		return err
+		return errors.Wrap(err, "postgres connection check failed")
 	}
 	c.logger.Log("level", "debug", "msg", "connected to db")
 
@@ -156,8 +156,8 @@ func (c *Client) Close() error {
 	return c.db.Close()
 }
 
-// WithTransaction starts a transaction and returns a client
-// with the transaction set.
+// NewWithTransaction returns a new client with a transaction. All
+// repository operations using the new will default to the transaction.
 func (c *Client) NewWithTransaction(ctx context.Context) (auth.RepositoryManager, error) {
 	tx, err := c.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -179,11 +179,11 @@ func (c *Client) WithAtomic(operation func() (interface{}, error)) (interface{},
 		return nil, errors.New("cannot complete operation outside of transaction")
 	}
 
-	entity, err := operation()
-
 	defer func() {
 		c.tx = nil
 	}()
+
+	entity, err := operation()
 
 	if err == nil {
 		return entity, errors.Wrap(c.tx.Commit(), "commit failed")
@@ -196,14 +196,41 @@ func (c *Client) WithAtomic(operation func() (interface{}, error)) (interface{},
 	return nil, err
 }
 
+// Device returns a DeviceRepository.
 func (c *Client) Device() auth.DeviceRepository {
 	return c.DeviceRepository
 }
 
+// LoginHistory returns a LoginRepository.
 func (c *Client) LoginHistory() auth.LoginHistoryRepository {
 	return c.LoginHistoryRepository
 }
 
+// User returns a UserRepository.
 func (c *Client) User() auth.UserRepository {
 	return c.UserRepository
+}
+
+func (c *Client) queryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+	if c.tx != nil {
+		return c.tx.QueryRowContext(ctx, query, args...)
+	}
+
+	return c.db.QueryRowContext(ctx, query, args...)
+}
+
+func (c *Client) queryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	if c.tx != nil {
+		return c.tx.QueryContext(ctx, query, args...)
+	}
+
+	return c.db.QueryContext(ctx, query, args...)
+}
+
+func (c *Client) execContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	if c.tx != nil {
+		return c.tx.ExecContext(ctx, query, args...)
+	}
+
+	return c.db.ExecContext(ctx, query, args...)
 }

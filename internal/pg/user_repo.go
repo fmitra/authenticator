@@ -11,10 +11,12 @@ import (
 	auth "github.com/fmitra/authenticator"
 )
 
+// UserRepository is an implementation of auth.UserRepository.
 type UserRepository struct {
 	client *Client
 }
 
+// ByIdentity retrieves a User by their phone, email, or unique ID.
 func (r *UserRepository) ByIdentity(ctx context.Context, attribute, value string) (*auth.User, error) {
 	var (
 		q    string
@@ -32,7 +34,7 @@ func (r *UserRepository) ByIdentity(ctx context.Context, attribute, value string
 		return nil, fmt.Errorf("%s is not a valid query paramter", attribute)
 	}
 
-	row := r.client.db.QueryRowContext(ctx, r.client.userQ[q], value)
+	row := r.client.queryRowContext(ctx, r.client.userQ[q], value)
 	err := row.Scan(
 		&user.ID, &user.Phone, &user.Email, &user.Password, &user.TFASecret,
 		&user.AuthReq, &user.IsVerified, &user.CreatedAt, &user.UpdatedAt,
@@ -44,16 +46,17 @@ func (r *UserRepository) ByIdentity(ctx context.Context, attribute, value string
 	return &user, nil
 }
 
+// Create persists a new User to local storage.
 func (r *UserRepository) Create(ctx context.Context, user *auth.User) error {
-	entropy := ulid.Monotonic(r.client.rand, 0)
-	userID, err := ulid.New(ulid.Now(), entropy)
+	userID, err := ulid.New(ulid.Now(), r.client.entropy)
 	if err != nil {
 		return errors.Wrap(err, "cannot generate unique user ID")
 	}
 
-	// TODO Phone number and email validation
+	// TODO Password, phone number and email validation
+	// Bcrypt password
 	user.ID = userID.String()
-	row := r.client.db.QueryRowContext(
+	row := r.client.queryRowContext(
 		ctx,
 		r.client.userQ["insert"],
 		user.ID,
@@ -71,15 +74,12 @@ func (r *UserRepository) Create(ctx context.Context, user *auth.User) error {
 	return err
 }
 
+// Update updates a User in storage.
 func (r *UserRepository) Update(ctx context.Context, user *auth.User) error {
-	if r.client.tx == nil {
-		return fmt.Errorf("cannot update user outside of transaction")
-	}
-
 	currentTime := time.Now().UTC()
 	user.UpdatedAt = currentTime
 
-	res, err := r.client.tx.ExecContext(
+	res, err := r.client.execContext(
 		ctx,
 		r.client.userQ["update"],
 		user.ID,
@@ -104,13 +104,10 @@ func (r *UserRepository) Update(ctx context.Context, user *auth.User) error {
 	return nil
 }
 
+// GetForUpdate retrieves a User to be updated.
 func (r *UserRepository) GetForUpdate(ctx context.Context, userID string) (*auth.User, error) {
-	if r.client.tx == nil {
-		return nil, fmt.Errorf("cannot retrieve user outside of transaction")
-	}
-
 	user := auth.User{}
-	row := r.client.tx.QueryRowContext(ctx, r.client.userQ["forUpdate"], userID)
+	row := r.client.queryRowContext(ctx, r.client.userQ["forUpdate"], userID)
 	err := row.Scan(
 		&user.ID, &user.Phone, &user.Email, &user.Password, &user.TFASecret,
 		&user.AuthReq, &user.IsVerified, &user.CreatedAt, &user.UpdatedAt,

@@ -11,20 +11,24 @@ import (
 	auth "github.com/fmitra/authenticator"
 )
 
+// DeviceRepository is an implementation of auth.DeviceRepository interface.
 type DeviceRepository struct {
 	client *Client
 }
 
+// ByID retrieves a Device with a matching ID.
 func (r *DeviceRepository) ByID(ctx context.Context, deviceID string) (*auth.Device, error) {
 	return r.get(ctx, "byID", deviceID)
 }
 
+// ByClientID retrieves a Device with a matching ClientID.
 func (r *DeviceRepository) ByClientID(ctx context.Context, userID, clientID string) (*auth.Device, error) {
 	return r.get(ctx, "byClientID", userID, clientID)
 }
 
+// ByUserID retrieves all Devices associated with a User.
 func (r *DeviceRepository) ByUserID(ctx context.Context, userID string) ([]*auth.Device, error) {
-	rows, err := r.client.db.QueryContext(ctx, r.client.deviceQ["byUserID"], userID)
+	rows, err := r.client.queryContext(ctx, r.client.deviceQ["byUserID"], userID)
 	if err != nil {
 		return nil, err
 	}
@@ -49,15 +53,15 @@ func (r *DeviceRepository) ByUserID(ctx context.Context, userID string) ([]*auth
 	return devices, nil
 }
 
+// Create persists a new Device to a storage.
 func (r *DeviceRepository) Create(ctx context.Context, device *auth.Device) error {
-	entropy := ulid.Monotonic(r.client.rand, 0)
-	deviceID, err := ulid.New(ulid.Now(), entropy)
+	deviceID, err := ulid.New(ulid.Now(), r.client.entropy)
 	if err != nil {
 		return errors.Wrap(err, "cannot generate unique device ID")
 	}
 
 	device.ID = deviceID.String()
-	row := r.client.db.QueryRowContext(
+	row := r.client.queryRowContext(
 		ctx,
 		r.client.deviceQ["insert"],
 		device.ID,
@@ -73,15 +77,12 @@ func (r *DeviceRepository) Create(ctx context.Context, device *auth.Device) erro
 	return err
 }
 
+// Update updates a Device in storage.
 func (r *DeviceRepository) Update(ctx context.Context, device *auth.Device) error {
-	if r.client.tx == nil {
-		return fmt.Errorf("cannot update user outside of transaction")
-	}
-
 	currentTime := time.Now().UTC()
 	device.UpdatedAt = currentTime
 
-	res, err := r.client.tx.ExecContext(
+	res, err := r.client.execContext(
 		ctx,
 		r.client.deviceQ["update"],
 		device.ID,
@@ -104,9 +105,10 @@ func (r *DeviceRepository) Update(ctx context.Context, device *auth.Device) erro
 	return nil
 }
 
+// GetForUpdate retrieves a Device to be updated.
 func (r *DeviceRepository) GetForUpdate(ctx context.Context, deviceID string) (*auth.Device, error) {
 	device := auth.Device{}
-	row := r.client.tx.QueryRowContext(ctx, r.client.deviceQ["forUpdate"], deviceID)
+	row := r.client.queryRowContext(ctx, r.client.deviceQ["forUpdate"], deviceID)
 	err := row.Scan(
 		&device.ID, &device.UserID, &device.ClientID, &device.PublicKey, &device.Name,
 		&device.CreatedAt, &device.UpdatedAt,
@@ -120,7 +122,7 @@ func (r *DeviceRepository) GetForUpdate(ctx context.Context, deviceID string) (*
 
 func (r *DeviceRepository) get(ctx context.Context, queryKey string, values ...interface{}) (*auth.Device, error) {
 	device := auth.Device{}
-	row := r.client.db.QueryRowContext(ctx, r.client.deviceQ[queryKey], values...)
+	row := r.client.queryRowContext(ctx, r.client.deviceQ[queryKey], values...)
 	err := row.Scan(
 		&device.ID, &device.UserID, &device.ClientID, &device.PublicKey, &device.Name,
 		&device.CreatedAt, &device.UpdatedAt,

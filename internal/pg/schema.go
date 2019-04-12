@@ -2,8 +2,6 @@
 package pg
 
 // Schema contains sql commands to setup the database to work for the authenticator app.
-// Schema includes extensions and tables which must be created before working with
-// repositories.
 const Schema = `
 CREATE TABLE IF NOT EXISTS auth_user (
 	id VARCHAR(26) PRIMARY KEY,

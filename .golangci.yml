@@ -1,3 +1,6 @@
+service:
+  golang-ci-lint-version: 1.15.x
+
 linters:
   enable-all: true
   disable:
@@ -9,7 +12,7 @@ linters-settings:
   govet:
     check-shadowing: false
   golint:
-    min-confidence: 0.8
+    min-confidence: 0
   gocyclo:
     min-complexity: 12
   maligned:
@@ -27,8 +30,13 @@ issues:
     - path: _test\.go
       linters:
         - scopelint
-          #  exclude-use-default: false
+        - errcheck
+
+  exclude-use-default: false
   exclude:
+    # golint: Package comment check for every file
+    - should have a package comment, unless
+
     # errcheck: Almost all programs ignore errors on these functions and in most cases it's ok
     - Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*printf?|os\.(Un)?Setenv). is not checked
 

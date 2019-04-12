@@ -6,7 +6,11 @@ import (
 )
 
 const (
+	// ErrInternal is an internal error.
 	ErrInternal = "internal"
+	// ErrJWTRevoked is returned when a JWT token valdiation
+	// fails due to revocation.
+	ErrJWTRevoked = "jwt_revoked"
 )
 
 // Error defines a standard application error.

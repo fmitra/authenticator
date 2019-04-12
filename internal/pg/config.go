@@ -1,15 +1,15 @@
 package pg
 
 import (
-	"math/rand"
-	"time"
+	"io"
 
 	"github.com/go-kit/kit/log"
 )
 
+// NewClient returns a new Postgres client to manage repositories.
 func NewClient(options ...ConfigOption) *Client {
+
 	c := Client{
-		rand:                   rand.New(rand.NewSource(time.Now().UnixNano())),
 		logger:                 log.NewNopLogger(),
 		LoginHistoryRepository: &LoginHistoryRepository{},
 		DeviceRepository:       &DeviceRepository{},
@@ -34,5 +34,13 @@ type ConfigOption func(*Client)
 func WithLogger(l log.Logger) ConfigOption {
 	return func(c *Client) {
 		c.logger = l
+	}
+}
+
+// WithEntropy configures the client with random entropy
+// for generating ULIDs.
+func WithEntropy(entropy io.Reader) ConfigOption {
+	return func(c *Client) {
+		c.entropy = entropy
 	}
 }

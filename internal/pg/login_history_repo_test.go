@@ -2,7 +2,6 @@ package pg
 
 import (
 	"context"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -29,8 +28,7 @@ func TestLoginHistoryRepository_Create(t *testing.T) {
 		t.Fatal("failed to create user:", err)
 	}
 
-	entropy := ulid.Monotonic(rand.New(rand.NewSource(time.Now().UnixNano())), 0)
-	tokenID, err := ulid.New(ulid.Now(), entropy)
+	tokenID, err := ulid.New(ulid.Now(), c.entropy)
 	if err != nil {
 		t.Fatal("failed to generate token ID:", err)
 	}
@@ -74,8 +72,7 @@ func TestLoginHistoryRepository_ByUserID(t *testing.T) {
 	}
 
 	for i := 0; i < 19; i++ {
-		entropy := ulid.Monotonic(rand.New(rand.NewSource(time.Now().UnixNano())), 0)
-		tokenID, err := ulid.New(ulid.Now(), entropy)
+		tokenID, err := ulid.New(ulid.Now(), c.entropy)
 		if err != nil {
 			t.Fatal("failed to generate token ID:", err)
 		}
@@ -145,8 +142,7 @@ func TestLoginHistoryRepository_Update(t *testing.T) {
 		t.Fatal("failed to create user:", err)
 	}
 
-	entropy := ulid.Monotonic(rand.New(rand.NewSource(time.Now().UnixNano())), 0)
-	tokenID, err := ulid.New(ulid.Now(), entropy)
+	tokenID, err := ulid.New(ulid.Now(), c.entropy)
 	if err != nil {
 		t.Fatal("failed to generate token ID:", err)
 	}

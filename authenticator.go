@@ -5,11 +5,18 @@ import (
 	"context"
 	"database/sql"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
 )
 
 // Credential represents some sensitive value
 // to validate user authenticity.
 type Credential string
+
+const (
+	// Issuer is the issuer of a JWT token.
+	Issuer = "authenticator"
+)
 
 const (
 	// NoPassword specifies User registration and authentication
@@ -117,24 +124,15 @@ type LoginHistory struct {
 
 // Token is a token that provides proof of User authentication.
 type Token struct {
-	// Aud is the audience of the JWT token.
-	Aud string `json:"aud"`
-	// Exp is the expiry time of the token. It defaults
-	// to 20 minutes from token creation. A token is only
-	// valid within an expiry time.
-	Exp int64 `json:"exp"`
-	// Sub is the subject of the token.
-	Sub string `json:"sub"`
-	// Iss is the issuer of the token.
-	Iss string `json:"iss"`
-	// Jti is the JSON token ID.
-	JTI string `json:"jti"`
+	// jwt.StandardClaims provides standard JWT fields
+	// such as Audience, ExpiresAt, Id, Issuer.
+	jwt.StandardClaims
 	// ClientID is hash of an ID stored in the client for which
 	// the token was delivered too. A token is only valid
 	// when delivered alongside the unhashed ClientID.
 	ClientID string `json:"client_id"`
-	// Username is a User's username.
-	Username string `json:"username"`
+	// UserID is the User's ID.
+	UserID string `json:"user_id"`
 	// Email is a User's email.
 	Email string `json:"email"`
 	// Phone is a User's phone number.
@@ -184,7 +182,8 @@ type UserRepository interface {
 	Update(ctx context.Context, u *User) error
 }
 
-// RepositoryManager manages repositories.
+// RepositoryManager manages repositories stored in storages
+// with atomic properties.
 type RepositoryManager interface {
 	// NewWithTransaction returns a new manager to with a transaction
 	// enabled.
@@ -202,41 +201,57 @@ type RepositoryManager interface {
 
 // TokenService represents a service to manage tokens.
 type TokenService interface {
-	// Create creates a new token.
-	Create(ctx context.Context, token *Token) bool
-	// IsRevoked tells us if a token has been revoked.
-	IsRevoked(ctx context.Context, tokenID string) (bool, error)
-	// Revoke Revokes a token.
-	Revoke(ctx context.Context, tokenID string) error
+	// Create creates a new JWT token. On success, it returns
+	// the token and the unhashed ClientID.
+	Create(ctx context.Context, user *User) (*Token, string, error)
+	// Sign creates a signed JWT token string from a token struct.
+	Sign(ctx context.Context, token *Token) (string, error)
+	// Validate checks that a JWT token is signed by us, unexpired,
+	// and unrevoked. On success it will return the unpacked Token struct.
+	Validate(ctx context.Context, signedToken string) (*Token, error)
+	// Revoke Revokes a token for a specified duration of time.
+	Revoke(ctx context.Context, tokenID string, duration time.Duration) error
 }
 
 // LoginService represents a service to authenticate an existing User.
 type LoginService interface {
+	// BeginLogin is the initial login step to identify a User.
 	BeginLogin(ctx context.Context, user *User) error
+	// FinishLogin is the final login step to validate a User's authenticity.
 	FinishLogin(ctx context.Context, credential Credential) error
 }
 
 // SignUpService represents service to create new Users.
 type SignUpService interface {
-	SignUp(ctx context.Context, user *User) error
+	// BeginSignUp is the initial registration step to identify a User.
+	BeginSignUp(ctx context.Context, user *User) error
+	// FinishSignUp is the final registration step to validate a new
+	// User's authenticity.
 	FinishSignUp(ctx context.Context, credential Credential) error
 }
 
 // DeviceService represents a service to manage Devices for a User.
 type DeviceService interface {
+	// ValidateDevice validates ownership of a Device for a User.
 	ValidateDevice(ctx context.Context, credential Credential) error
+	// AddDevice adds a new Device for a User.
 	AddDevice(ctx context.Context, user *User) error
+	// RemoveDevice removes a Device associated with a User.
 	RemoveDevice(ctx context.Context, user *User) error
-}
-
-// Validator validates a credential.
-type Validator interface {
-	Validate(ctx context.Context, credential Credential) error
 }
 
 // UserService represents a service to configure a User.
 type UserService interface {
+	// Enforce2FA change's a User's authentication requirement.
 	Enforce2FA(ctx context.Context, user *User, authReq string) error
+	// UpdatePassword change's a User's password.
 	UpdatePassword(ctx context.Context, user *User, password string) error
+	// RevokeToken revokes a User's token for a logged in session.
 	RevokeToken(ctx context.Context, user *User, tokenID string) error
+}
+
+// Validator validates a credential.
+type Validator interface {
+	// Validate validates the authenticity of a credential.
+	Validate(ctx context.Context, credential Credential) error
 }
