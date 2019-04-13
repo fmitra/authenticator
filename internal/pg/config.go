@@ -10,18 +10,20 @@ import (
 func NewClient(options ...ConfigOption) *Client {
 	c := Client{
 		logger:                 log.NewNopLogger(),
-		LoginHistoryRepository: &LoginHistoryRepository{},
-		DeviceRepository:       &DeviceRepository{},
-		UserRepository:         &UserRepository{},
+		loginHistoryRepository: &LoginHistoryRepository{},
+		deviceRepository:       &DeviceRepository{},
+		userRepository:         &UserRepository{},
 	}
 
 	for _, opt := range options {
 		opt(&c)
 	}
 
-	c.LoginHistoryRepository.client = &c
-	c.DeviceRepository.client = &c
-	c.UserRepository.client = &c
+	// Each repository has an embedded client to ensure they
+	// use the same connection and are able to share transactions.
+	c.loginHistoryRepository.client = &c
+	c.deviceRepository.client = &c
+	c.userRepository.client = &c
 
 	return &c
 }

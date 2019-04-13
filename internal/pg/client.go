@@ -20,13 +20,13 @@ type Client struct {
 	entropy io.Reader
 	logger  log.Logger
 
-	LoginHistoryRepository *LoginHistoryRepository
+	loginHistoryRepository *LoginHistoryRepository
 	loginHistoryQ          map[string]string
 
-	DeviceRepository *DeviceRepository
+	deviceRepository *DeviceRepository
 	deviceQ          map[string]string
 
-	UserRepository *UserRepository
+	userRepository *UserRepository
 	userQ          map[string]string
 }
 
@@ -157,7 +157,7 @@ func (c *Client) Close() error {
 }
 
 // NewWithTransaction returns a new client with a transaction. All
-// repository operations using the new will default to the transaction.
+// repository operations using the new client will default to the transaction.
 func (c *Client) NewWithTransaction(ctx context.Context) (auth.RepositoryManager, error) {
 	tx, err := c.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -166,9 +166,9 @@ func (c *Client) NewWithTransaction(ctx context.Context) (auth.RepositoryManager
 
 	newClient := *c
 	newClient.tx = tx
-	newClient.LoginHistoryRepository.client = &newClient
-	newClient.UserRepository.client = &newClient
-	newClient.DeviceRepository.client = &newClient
+	newClient.loginHistoryRepository.client = &newClient
+	newClient.userRepository.client = &newClient
+	newClient.deviceRepository.client = &newClient
 	return &newClient, nil
 }
 
@@ -198,17 +198,17 @@ func (c *Client) WithAtomic(operation func() (interface{}, error)) (interface{},
 
 // Device returns a DeviceRepository.
 func (c *Client) Device() auth.DeviceRepository {
-	return c.DeviceRepository
+	return c.deviceRepository
 }
 
 // LoginHistory returns a LoginRepository.
 func (c *Client) LoginHistory() auth.LoginHistoryRepository {
-	return c.LoginHistoryRepository
+	return c.loginHistoryRepository
 }
 
 // User returns a UserRepository.
 func (c *Client) User() auth.UserRepository {
-	return c.UserRepository
+	return c.userRepository
 }
 
 func (c *Client) queryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {

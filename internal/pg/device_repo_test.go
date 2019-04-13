@@ -2,6 +2,7 @@ package pg
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 	"time"
 
@@ -29,6 +30,10 @@ func TestDeviceRepository_Create(t *testing.T) {
 		Password:  "swordfish",
 		TFASecret: "tfa_secret",
 		AuthReq:   auth.RequirePassword,
+		Email: sql.NullString{
+			String: "jane@example.com",
+			Valid:  true,
+		},
 	}
 	err = c.User().Create(ctx, &user)
 	if err != nil {
@@ -59,6 +64,48 @@ func TestDeviceRepository_Create(t *testing.T) {
 	}
 }
 
+func TestDeviceRepository_ByID(t *testing.T) {
+	c, err := NewTestClient("device_repo_byid_test")
+	if err != nil {
+		t.Fatal("failed to create test database:", err)
+	}
+	defer DropTestDB(c, "device_repo_byid_test")
+
+	ctx := context.Background()
+	user := auth.User{
+		Password:  "swordfish",
+		TFASecret: "tfa_secret",
+		AuthReq:   auth.RequirePassword,
+		Email: sql.NullString{
+			String: "jane@example.com",
+			Valid:  true,
+		},
+	}
+	err = c.User().Create(ctx, &user)
+	if err != nil {
+		t.Fatal("failed to create user:", err)
+	}
+
+	device := auth.Device{
+		UserID:    user.ID,
+		ClientID:  "client-id",
+		PublicKey: publicKey,
+		Name:      "U2F Key",
+	}
+	err = c.Device().Create(ctx, &device)
+	if err != nil {
+		t.Fatal("failed to create device:", err)
+	}
+
+	deviceB, err := c.Device().ByID(ctx, device.ID)
+	if err != nil {
+		t.Error("failed to retrieve device:", err)
+	}
+	if deviceB.ID != device.ID {
+		t.Errorf("device IDs do not match: want %s got %s", device.ID, deviceB.ID)
+	}
+}
+
 func TestDeviceRepository_ByUserID(t *testing.T) {
 	c, err := NewTestClient("device_repo_by_userid_test")
 	if err != nil {
@@ -71,6 +118,10 @@ func TestDeviceRepository_ByUserID(t *testing.T) {
 		Password:  "swordfish",
 		TFASecret: "tfa_secret",
 		AuthReq:   auth.RequirePassword,
+		Email: sql.NullString{
+			String: "jane@example.com",
+			Valid:  true,
+		},
 	}
 	err = c.User().Create(ctx, &user)
 	if err != nil {
@@ -113,6 +164,10 @@ func TestDeviceRepository_ByClientID(t *testing.T) {
 		Password:  "swordfish",
 		TFASecret: "tfa_secret",
 		AuthReq:   auth.RequirePassword,
+		Email: sql.NullString{
+			String: "jane@example.com",
+			Valid:  true,
+		},
 	}
 	err = c.User().Create(ctx, &user)
 	if err != nil {
@@ -152,6 +207,10 @@ func TestDeviceRepository_Update(t *testing.T) {
 		Password:  "swordfish",
 		TFASecret: "tfa_secret",
 		AuthReq:   auth.RequirePassword,
+		Email: sql.NullString{
+			String: "jane@example.com",
+			Valid:  true,
+		},
 	}
 	err = c.User().Create(ctx, &user)
 	if err != nil {

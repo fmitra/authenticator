@@ -7,8 +7,10 @@ import (
 )
 
 const (
-	// EInvalidToken represents an InvalidTokenError.
+	// EInvalidToken represents an invalid JWT token error.
 	EInvalidToken ErrCode = "invalid_token"
+	// EInvalidField represents an entity field error in a repository.
+	EInvalidField ErrCode = "invalid_field"
 	// EInternal represents an internal error outside of our domain.
 	EInternal ErrCode = "internal"
 )
@@ -30,8 +32,19 @@ type ErrInvalidToken string
 func (e ErrInvalidToken) Code() ErrCode { return EInvalidToken }
 func (e ErrInvalidToken) Error() string { return fmt.Sprintf("[%s] %s", e.Code(), string(e)) }
 
+// ErrInvalidField represents an error related to missing or invalid entity fields
+// in a supplied to repository.
+type ErrInvalidField string
+
+func (e ErrInvalidField) Code() ErrCode { return EInvalidField }
+func (e ErrInvalidField) Error() string { return fmt.Sprintf("[%s] %s", e.Code(), string(e)) }
+
 // DomainError returns a domain error if available.
 func DomainError(err error) Error {
+	if err == nil {
+		return nil
+	}
+
 	if e, ok := err.(Error); ok {
 		return e
 	}

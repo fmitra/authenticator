@@ -2,6 +2,7 @@ package pg
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 	"time"
 
@@ -22,6 +23,10 @@ func TestLoginHistoryRepository_Create(t *testing.T) {
 		Password:  "swordfish",
 		TFASecret: "tfa_secret",
 		AuthReq:   auth.RequirePassword,
+		Email: sql.NullString{
+			String: "jane@example.com",
+			Valid:  true,
+		},
 	}
 	err = c.User().Create(ctx, &user)
 	if err != nil {
@@ -65,6 +70,10 @@ func TestLoginHistoryRepository_ByUserID(t *testing.T) {
 		Password:  "swordfish",
 		TFASecret: "tfa_secret",
 		AuthReq:   auth.RequirePassword,
+		Email: sql.NullString{
+			String: "jane@example.com",
+			Valid:  true,
+		},
 	}
 	err = c.User().Create(ctx, &user)
 	if err != nil {
@@ -136,6 +145,10 @@ func TestLoginHistoryRepository_Update(t *testing.T) {
 		Password:  "swordfish",
 		TFASecret: "tfa_secret",
 		AuthReq:   auth.RequirePassword,
+		Email: sql.NullString{
+			String: "jane@example.com",
+			Valid:  true,
+		},
 	}
 	err = c.User().Create(ctx, &user)
 	if err != nil {

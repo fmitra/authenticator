@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oklog/ulid"
+
 	auth "github.com/fmitra/authenticator"
 )
 
@@ -16,31 +18,108 @@ func TestUserRepository_Create(t *testing.T) {
 	}
 	defer DropTestDB(c, "user_repo_create_test")
 
-	user := auth.User{
-		Password:  "swordfish",
-		TFASecret: "tfa_secret",
-		AuthReq:   auth.RequirePassword,
-		Email: sql.NullString{
-			String: "jane@example.com",
-			Valid:  true,
+	tt := []struct {
+		name      string
+		email     sql.NullString
+		phone     sql.NullString
+		password  string
+		isCreated bool
+	}{
+		{
+			name:      "No phone/email failure",
+			email:     sql.NullString{},
+			phone:     sql.NullString{},
+			password:  "swordfish",
+			isCreated: false,
+		},
+		{
+			name: "Invalid email failure",
+			email: sql.NullString{
+				String: "not-a-real-email",
+				Valid:  true,
+			},
+			phone:     sql.NullString{},
+			password:  "swordfish",
+			isCreated: false,
+		},
+		{
+			name:  "Invalid phone failure",
+			email: sql.NullString{},
+			phone: sql.NullString{
+				String: "94867353",
+				Valid:  true,
+			},
+			password:  "swordfish",
+			isCreated: false,
+		},
+		{
+			name:  "Valid phone success",
+			email: sql.NullString{},
+			phone: sql.NullString{
+				String: "+6594867353",
+				Valid:  true,
+			},
+			password:  "swordfish",
+			isCreated: true,
+		},
+		{
+			name: "Valid email success",
+			email: sql.NullString{
+				String: "jane@example.com",
+				Valid:  true,
+			},
+			phone:     sql.NullString{},
+			password:  "swordfish",
+			isCreated: true,
+		},
+		{
+			name: "Fail if password invalid",
+			email: sql.NullString{
+				String: "jane@example.com",
+				Valid:  true,
+			},
+			phone:     sql.NullString{},
+			password:  "short",
+			isCreated: false,
 		},
 	}
-	ctx := context.Background()
-	err = c.User().Create(ctx, &user)
-	if err != nil {
-		t.Fatal("failed to create user:", err)
-	}
 
-	now := time.Now()
-	if (now.Sub(user.CreatedAt)).Seconds() > 1 {
-		t.Errorf("%s is not a valid time generated for CreatedAt", user.CreatedAt)
-	}
-	if (now.Sub(user.UpdatedAt)).Seconds() > 1 {
-		t.Errorf("%s is not a valid timestamp for UpdatedAt", user.UpdatedAt)
-	}
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			user := auth.User{
+				Password:  tc.password,
+				TFASecret: "tfa_secret",
+				AuthReq:   auth.RequirePassword,
+				Email:     tc.email,
+				Phone:     tc.phone,
+			}
+			ctx := context.Background()
+			err = c.User().Create(ctx, &user)
+			if tc.isCreated && err != nil {
+				t.Fatal("failed to create user:", err)
+			}
 
-	if user.ID == "" {
-		t.Errorf("user ID not set")
+			if !tc.isCreated && auth.DomainError(err) == nil {
+				t.Error("user creation should be blocked by domain error")
+			}
+
+			if !tc.isCreated {
+				return
+			}
+
+			now := time.Now()
+			if (now.Sub(user.CreatedAt)).Seconds() > 1 {
+				t.Errorf("%s is not a valid time generated for CreatedAt", user.CreatedAt)
+			}
+			if (now.Sub(user.UpdatedAt)).Seconds() > 1 {
+				t.Errorf("%s is not a valid timestamp for UpdatedAt", user.UpdatedAt)
+			}
+
+			_, err = ulid.Parse(user.ID)
+			if err != nil {
+				t.Error("invalid ID generated for user:", err)
+			}
+		})
 	}
 }
 
