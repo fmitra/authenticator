@@ -3,52 +3,102 @@ package auth
 import (
 	"bytes"
 	"fmt"
+
+	"github.com/pkg/errors"
 )
 
 const (
-	// ErrInternal is an internal error.
-	ErrInternal = "internal"
-	// ErrJWTRevoked is returned when a JWT token valdiation
-	// fails due to revocation.
-	ErrJWTRevoked = "jwt_revoked"
+	// ECInternal represents an internal error.
+	ECInternal = "internal"
+	// ECTokenRevoked represents a token revocation error.
+	ECTokenRevoked = "token_revoked"
+	// ECTokenInvalid represents an invalid JWT token error.
+	ECTokenInvalid = "token_invalid"
 )
 
-// Error defines a standard application error.
+var (
+	// ErrTokenInvalid is returned when an invalid JWT token
+	// is submitted for validation. Invalid tokens may be
+	// improperly signed or expired.
+	ErrTokenInvalid = &Error{
+		Code:    ECTokenInvalid,
+		Message: "Token is invalid",
+	}
+	// ErrTokenRevoked is a returned when a JWT token validation
+	// fails due to revocation.
+	ErrTokenRevoked = &Error{
+		Code:    ECTokenRevoked,
+		Message: "Token has been revoked",
+	}
+)
+
+// Error represents an error within the authenticator's domain.
 type Error struct {
 	// Code is a machine-readable code.
 	Code string
-	// Message is a human-readable message.
+	// Message is a human-readable message for a public API.
 	Message string
-	// Op is the operator where the error occurred.
-	Op string
 	// Err is a nested error.
 	Err error
 }
 
-// Error returns the string representation of the error message.
+// WithError sets error context to a domain error.
+func (e *Error) WithError(err error) *Error {
+	if err == nil {
+		return e
+	}
+
+	newErr := *e
+	if newErr.Err == nil {
+		newErr.Err = err
+	} else {
+		newErr.Err = errors.Wrap(newErr.Err, err.Error())
+	}
+	return &newErr
+}
+
+// WithMessage sets a human-readable message to a domain error.
+// Messages are safe to be consumed by a public API.
+func (e *Error) WithMessage(msg string) *Error {
+	newErr := *e
+	newErr.Message = msg
+	return &newErr
+}
+
+// Error returns an error message for internal consumption.
 func (e *Error) Error() string {
 	var buf bytes.Buffer
 
-	// Print the current operation in our stack, if any.
-	if e.Op != "" {
-		fmt.Fprintf(&buf, "%s: ", e.Op)
+	if e.Code != "" {
+		fmt.Fprintf(&buf, "[%s] ", e.Code)
 	}
 
-	// If wrapping an error print its Error() message.
-	// Otherwise print the error code & message.
-	if e.Err != nil {
-		buf.WriteString(e.Err.Error())
-	} else {
-		if e.Code != "" {
-			fmt.Fprintf(&buf, "<%s> ", e.Code)
-		}
-		buf.WriteString(e.Message)
+	if e.Message != "" {
+		fmt.Fprintf(&buf, "(%s) ", e.Message)
 	}
+
+	if e.Err != nil {
+		fmt.Fprintf(&buf, "%v", e.Err)
+	}
+
 	return buf.String()
 }
 
-// ErrorCode returns the code of the root error, if available.
-// Otherwise returns ErrInternal.
+// ErrorStack returns the error stack if available.
+func ErrorStack(err error) string {
+	if err == nil {
+		return ""
+	}
+
+	if e, ok := err.(*Error); ok && e.Err != nil {
+		return fmt.Sprintf("%+v", e.Err)
+	}
+
+	return fmt.Sprintf("%+v", err)
+}
+
+// ErrorCode recursively finds the first code available.
+// If no code is available, it returns ErrInternal.
 func ErrorCode(err error) string {
 	if err == nil {
 		return ""
@@ -58,11 +108,11 @@ func ErrorCode(err error) string {
 	} else if ok && e.Err != nil {
 		return ErrorCode(e.Err)
 	}
-	return ErrInternal
+	return ECInternal
 }
 
-// ErrorMessage returns the human-readable message of the error, if available.
-// Otherwise returns a generic error message.
+// ErrorMessage recursively finds the first message available.
+// If no message is available, it returns a generic error message.
 func ErrorMessage(err error) string {
 	if err == nil {
 		return ""
@@ -71,5 +121,5 @@ func ErrorMessage(err error) string {
 	} else if ok && e.Err != nil {
 		return ErrorMessage(e.Err)
 	}
-	return "An internal error has occurred."
+	return "An internal error has occured"
 }

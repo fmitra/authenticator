@@ -96,9 +96,9 @@ func TestTokenSvc_InvalidateAfterRevocation(t *testing.T) {
 	if err == nil {
 		t.Fatal("revoked token should return error")
 	}
-	if auth.ErrorCode(err) != auth.ErrJWTRevoked {
-		t.Errorf("incorrect error code: want %s got %s",
-			auth.ErrJWTRevoked, auth.ErrorCode(err))
+	if auth.ErrorCode(err) != auth.ECTokenRevoked {
+		t.Errorf("incorrect error: want %s got %s",
+			auth.ECTokenRevoked, err)
 	}
 }
 

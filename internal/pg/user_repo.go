@@ -2,7 +2,6 @@ package pg
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/oklog/ulid"
@@ -31,7 +30,7 @@ func (r *UserRepository) ByIdentity(ctx context.Context, attribute, value string
 	case "ID":
 		q = "byID"
 	default:
-		return nil, fmt.Errorf("%s is not a valid query paramter", attribute)
+		return nil, errors.Errorf("%s is not a valid query paramter", attribute)
 	}
 
 	row := r.client.queryRowContext(ctx, r.client.userQ[q], value)
@@ -99,7 +98,7 @@ func (r *UserRepository) Update(ctx context.Context, user *auth.User) error {
 		return err
 	}
 	if updatedRows != 1 {
-		return fmt.Errorf("wrong number of users updated: %d", updatedRows)
+		return errors.Errorf("wrong number of users updated: %d", updatedRows)
 	}
 	return nil
 }

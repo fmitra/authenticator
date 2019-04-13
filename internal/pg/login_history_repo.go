@@ -2,8 +2,9 @@ package pg
 
 import (
 	"context"
-	"fmt"
 	"time"
+
+	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
 )
@@ -83,7 +84,7 @@ func (r *LoginHistoryRepository) Update(ctx context.Context, login *auth.LoginHi
 		return err
 	}
 	if updatedRows != 1 {
-		return fmt.Errorf("wrong number of devices updated: %d", updatedRows)
+		return errors.Errorf("wrong number of devices updated: %d", updatedRows)
 	}
 	return nil
 }

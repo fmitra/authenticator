@@ -5,7 +5,6 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"io"
 	"math/rand"
 	"time"
@@ -84,7 +83,7 @@ func (s *service) Sign(ctx context.Context, token *auth.Token) (string, error) {
 func (s *service) Validate(ctx context.Context, signedToken string) (*auth.Token, error) {
 	tokenParser := func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method %v", token.Header["alg"])
+			return nil, errors.Errorf("unexpected signing method %v", token.Header["alg"])
 		}
 
 		return s.secret, nil
@@ -92,37 +91,37 @@ func (s *service) Validate(ctx context.Context, signedToken string) (*auth.Token
 
 	unpackedToken, err := jwt.Parse(signedToken, tokenParser)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse JWT token")
+		return nil, auth.ErrTokenInvalid.WithError(err)
 	}
 
 	claims, ok := unpackedToken.Claims.(jwt.MapClaims)
 	if !ok || !unpackedToken.Valid {
-		return nil, fmt.Errorf("token claims not available")
+		return nil, errors.New("token claims unavailable")
 	}
 
 	var token auth.Token
 	{
 		b, err := json.Marshal(claims)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to marshal token to JSON")
+			return nil, errors.Wrap(err, "cannot marshal token to JSON")
 		}
 
 		err = json.Unmarshal(b, &token)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to unmarshal token to auth struct")
+			return nil, errors.Wrap(err, "cannot unmarshall token to struct")
 		}
 	}
 
 	err = s.db.WithContext(ctx).Get(token.Id).Err()
 	if err == nil {
-		return nil, &auth.Error{Code: auth.ErrJWTRevoked}
+		return nil, auth.ErrTokenRevoked
 	}
 
 	if err == redislib.Nil {
 		return &token, nil
 	}
 
-	return nil, errors.Wrap(err, "failed check token against redis")
+	return nil, errors.Wrap(err, "failed to check token in redis")
 }
 
 // Revoke revokes a JWT token by its ID for a specified duration.

@@ -2,7 +2,6 @@ package pg
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/oklog/ulid"
@@ -100,7 +99,7 @@ func (r *DeviceRepository) Update(ctx context.Context, device *auth.Device) erro
 		return err
 	}
 	if updatedRows != 1 {
-		return fmt.Errorf("wrong number of devices updated: %d", updatedRows)
+		return errors.Errorf("wrong number of devices updated: %d", updatedRows)
 	}
 	return nil
 }
