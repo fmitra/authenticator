@@ -62,7 +62,7 @@ func TestTokenSvc_Create(t *testing.T) {
 }
 
 func TestTokenSvc_InvalidateAfterRevocation(t *testing.T) {
-	db, err := NewTestRedisDB("1")
+	db, err := NewTestRedisDB("0")
 	if err != nil {
 		t.Fatal("faliled to create test database:", err)
 	}
@@ -105,7 +105,7 @@ func TestTokenSvc_InvalidateAfterRevocation(t *testing.T) {
 }
 
 func TestTokenSvc_InvalidateAfterExpiry(t *testing.T) {
-	db, err := NewTestRedisDB("2")
+	db, err := NewTestRedisDB("0")
 	if err != nil {
 		t.Fatal("faliled to create test database:", err)
 	}

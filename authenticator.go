@@ -41,10 +41,10 @@ const (
 )
 
 const (
-	// JWTGrant represents a JWT token type given to users
+	// JWTGrant represents a JWT token classification given to users
 	// who have completed the first step of a signup or login flow.
 	JWTGrant = "grant"
-	// JWTBearer represents a JWT token type given to users
+	// JWTBearer represents a JWT token classification given to users
 	// who have completed all steps of a signup or login flow.
 	JWTBearer = "bearer"
 )
@@ -137,6 +137,9 @@ type Token struct {
 	Email string `json:"email"`
 	// Phone is a User's phone number.
 	Phone string `json:"phone"`
+	// Class is a classification of the token. It may be
+	// a grant, or bearer.
+	Class string `json:"classification"`
 }
 
 // LoginHistoryRepository represents a local storage for LoginHistory.

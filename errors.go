@@ -26,6 +26,7 @@ type ErrCode string
 // ErrInvalidToken represents an error related to JWT token invalidation
 // such as expiry, revocation, or signing errors.
 type ErrInvalidToken string
+
 func (e ErrInvalidToken) Code() ErrCode { return EInvalidToken }
 func (e ErrInvalidToken) Error() string { return fmt.Sprintf("[%s] %s", e.Code(), string(e)) }
 

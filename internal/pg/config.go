@@ -8,7 +8,6 @@ import (
 
 // NewClient returns a new Postgres client to manage repositories.
 func NewClient(options ...ConfigOption) *Client {
-
 	c := Client{
 		logger:                 log.NewNopLogger(),
 		LoginHistoryRepository: &LoginHistoryRepository{},
