@@ -1,5 +1,5 @@
-// Package auth defines the domain model for user authentication.
-package auth
+// Package authenticator defines the domain model for user authentication.
+package authenticator
 
 import (
 	"context"

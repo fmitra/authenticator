@@ -27,6 +27,9 @@ linters-settings:
 
 issues:
   exclude-rules:
+    - path: errors.go
+      linters:
+        - golint
     - path: _test\.go
       linters:
         - scopelint

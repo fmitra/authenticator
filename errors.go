@@ -1,97 +1,59 @@
-package auth
+package authenticator
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/pkg/errors"
 )
 
 const (
-	// ErrInternal represents an internal error.
-	ErrInternal = "internal"
-	// ErrTokenInvalid represents an invalid JWT token error.
-	ErrTokenInvalid = "token_invalid"
+	// EInvalidToken represents an InvalidTokenError.
+	EInvalidToken ErrCode = "invalid_token"
+	// EInternal represents an internal error outside of our domain.
+	EInternal ErrCode = "internal"
 )
 
-// Error represents an error within the authenticator's domain.
-type Error struct {
-	// Code is a machine-readable code.
-	Code string
-	// Message is a human-readable message for a public API.
-	Message string
-	// Err is a nested error.
-	Err error
+// Error represents an error within the authenticator domain.
+type Error interface {
+	Error() string
+	Code() ErrCode
 }
 
-// Error returns an error message for internal consumption.
-func (e *Error) Error() string {
-	var buf bytes.Buffer
+// ErrCode is a machine readable code representing
+// an error within the authenticator domain.
+type ErrCode string
 
-	if e.Code != "" {
-		fmt.Fprintf(&buf, "[%s] ", e.Code)
-	}
+// ErrInvalidToken represents an error related to JWT token invalidation
+// such as expiry, revocation, or signing errors.
+type ErrInvalidToken string
+func (e ErrInvalidToken) Code() ErrCode { return EInvalidToken }
+func (e ErrInvalidToken) Error() string { return fmt.Sprintf("[%s] %s", e.Code(), string(e)) }
 
-	if e.Message != "" {
-		fmt.Fprintf(&buf, "(%s) ", e.Message)
-	}
-
-	if e.Err != nil {
-		fmt.Fprintf(&buf, "%v", e.Err)
-	}
-
-	return buf.String()
-}
-
-// ErrorStack returns the error stack if available.
-func ErrorStack(err error) string {
-	if err == nil {
-		return ""
-	}
-
-	if e, ok := err.(*Error); ok && e.Err != nil {
-		return fmt.Sprintf("%+v", e.Err)
-	}
-
-	return fmt.Sprintf("%+v", err)
-}
-
-// ErrorCode recursively finds the first code available.
-// If no code is available, it returns ErrInternal.
-func ErrorCode(err error) string {
-	if err == nil {
-		return ""
-	}
-	if e, ok := err.(*Error); ok && e.Code != "" {
-		return e.Code
-	} else if ok && e.Err != nil {
-		return ErrorCode(e.Err)
-	}
-	return ErrInternal
-}
-
-// ErrorMessage recursively finds the first message available.
-// If no message is available, it returns a generic error message.
-func ErrorMessage(err error) string {
-	if err == nil {
-		return ""
-	} else if e, ok := err.(*Error); ok && e.Message != "" {
-		return e.Message
-	} else if ok && e.Err != nil {
-		return ErrorMessage(e.Err)
-	}
-	return "An internal error has occured"
-}
-
-// DomainError returns a domain error if availabile.
-func DomainError(err error) *Error {
-	if e, ok := err.(*Error); ok {
+// DomainError returns a domain error if available.
+func DomainError(err error) Error {
+	if e, ok := err.(Error); ok {
 		return e
 	}
 
-	if e, ok := errors.Cause(err).(*Error); ok {
+	if e, ok := errors.Cause(err).(Error); ok {
 		return e
 	}
 
 	return nil
+}
+
+// ErrorCode returns the code associated with a domain error.
+// If an error is not part of the authenticator domain, it
+// returns Internal.
+func ErrorCode(err error) ErrCode {
+	if err == nil {
+		return ErrCode("")
+	}
+
+	e := DomainError(err)
+	if e == nil {
+		return EInternal
+	}
+
+	return e.Code()
 }
