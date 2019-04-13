@@ -8,28 +8,10 @@ import (
 )
 
 const (
-	// ECInternal represents an internal error.
-	ECInternal = "internal"
-	// ECTokenRevoked represents a token revocation error.
-	ECTokenRevoked = "token_revoked"
-	// ECTokenInvalid represents an invalid JWT token error.
-	ECTokenInvalid = "token_invalid"
-)
-
-var (
-	// ErrTokenInvalid is returned when an invalid JWT token
-	// is submitted for validation. Invalid tokens may be
-	// improperly signed or expired.
-	ErrTokenInvalid = &Error{
-		Code:    ECTokenInvalid,
-		Message: "Token is invalid",
-	}
-	// ErrTokenRevoked is a returned when a JWT token validation
-	// fails due to revocation.
-	ErrTokenRevoked = &Error{
-		Code:    ECTokenRevoked,
-		Message: "Token has been revoked",
-	}
+	// ErrInternal represents an internal error.
+	ErrInternal = "internal"
+	// ErrTokenInvalid represents an invalid JWT token error.
+	ErrTokenInvalid = "token_invalid"
 )
 
 // Error represents an error within the authenticator's domain.
@@ -40,29 +22,6 @@ type Error struct {
 	Message string
 	// Err is a nested error.
 	Err error
-}
-
-// WithError sets error context to a domain error.
-func (e *Error) WithError(err error) *Error {
-	if err == nil {
-		return e
-	}
-
-	newErr := *e
-	if newErr.Err == nil {
-		newErr.Err = err
-	} else {
-		newErr.Err = errors.Wrap(newErr.Err, err.Error())
-	}
-	return &newErr
-}
-
-// WithMessage sets a human-readable message to a domain error.
-// Messages are safe to be consumed by a public API.
-func (e *Error) WithMessage(msg string) *Error {
-	newErr := *e
-	newErr.Message = msg
-	return &newErr
 }
 
 // Error returns an error message for internal consumption.
@@ -108,7 +67,7 @@ func ErrorCode(err error) string {
 	} else if ok && e.Err != nil {
 		return ErrorCode(e.Err)
 	}
-	return ECInternal
+	return ErrInternal
 }
 
 // ErrorMessage recursively finds the first message available.
@@ -122,4 +81,17 @@ func ErrorMessage(err error) string {
 		return ErrorMessage(e.Err)
 	}
 	return "An internal error has occured"
+}
+
+// DomainError returns a domain error if availabile.
+func DomainError(err error) *Error {
+	if e, ok := err.(*Error); ok {
+		return e
+	}
+
+	if e, ok := errors.Cause(err).(*Error); ok {
+		return e
+	}
+
+	return nil
 }

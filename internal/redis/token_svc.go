@@ -91,7 +91,11 @@ func (s *service) Validate(ctx context.Context, signedToken string) (*auth.Token
 
 	unpackedToken, err := jwt.Parse(signedToken, tokenParser)
 	if err != nil {
-		return nil, auth.ErrTokenInvalid.WithError(err)
+		return nil, &auth.Error{
+			Code:    auth.ErrTokenInvalid,
+			Message: "token is invalid",
+			Err:     err,
+		}
 	}
 
 	claims, ok := unpackedToken.Claims.(jwt.MapClaims)
@@ -114,7 +118,7 @@ func (s *service) Validate(ctx context.Context, signedToken string) (*auth.Token
 
 	err = s.db.WithContext(ctx).Get(token.Id).Err()
 	if err == nil {
-		return nil, auth.ErrTokenRevoked
+		return nil, &auth.Error{Code: auth.ErrTokenInvalid, Message: "token is revoked"}
 	}
 
 	if err == redislib.Nil {
