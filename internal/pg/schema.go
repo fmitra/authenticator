@@ -17,8 +17,10 @@ CREATE TABLE IF NOT EXISTS auth_user (
 CREATE TABLE IF NOT EXISTS device (
 	id VARCHAR(26) PRIMARY KEY,
 	user_id VARCHAR(26) REFERENCES auth_user(id) NOT NULL,
-	client_id VARCHAR(36) NOT NULL,
-	public_key TEXT NOT NULL,
+	client_id BYTEA NOT NULL,
+	public_key BYTEA NOT NULL,
+	aaguid BYTEA NOT NULL,
+	sign_count INT DEFAULT 0,
 	name VARCHAR(30) NOT NULL,
 	created_at TIMESTAMP WITH TIME ZONE DEFAULT current_timestamp,
 	updated_at TIMESTAMP WITH TIME ZONE DEFAULT current_timestamp

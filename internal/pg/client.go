@@ -72,37 +72,34 @@ func (c *Client) Open(dataSourceName string) error {
 
 	c.deviceQ = map[string]string{
 		"forUpdate": `
-			SELECT id, user_id, client_id, public_key, name, created_at, updated_at
+			SELECT id, user_id, client_id, public_key, name, aaguid, sign_count,
+				created_at, updated_at
 			FROM device
 			WHERE id = $1
 			FOR UPDATE;
 		`,
-		"byClientID": `
-			SELECT id, user_id, client_id, public_key, name, created_at, updated_at
-			FROM device
-			WHERE user_id = $1
-			AND client_id = $2;
-		`,
 		"byUserID": `
-			SELECT id, user_id, client_id, public_key, name, created_at, updated_at
+			SELECT id, user_id, client_id, public_key, name, aaguid, sign_count,
+				created_at, updated_at
 			FROM device
 			WHERE user_id = $1;
 		`,
 		"byID": `
-			SELECT id, user_id, client_id, public_key, name, created_at, updated_at
+			SELECT id, user_id, client_id, public_key, name, aaguid, sign_count,
+				created_at, updated_at
 			FROM device
 			WHERE id = $1;
 		`,
 		"update": `
 			UPDATE device
-			SET client_id=$2, public_key=$3, name=$4, updated_at=$5
+			SET client_id=$2, public_key=$3, name=$4, sign_count=$5, updated_at=$6
 			WHERE id = $1;
 		`,
 		"insert": `
 			INSERT INTO device (
-				id, user_id, client_id, public_key, name
+				id, user_id, client_id, public_key, name, aaguid, sign_count
 			)
-			VALUES ($1, $2, $3, $4, $5)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
 			RETURNING created_at, updated_at;
 		`,
 	}

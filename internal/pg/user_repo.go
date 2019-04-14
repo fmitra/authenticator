@@ -73,11 +73,10 @@ func (r *UserRepository) Create(ctx context.Context, user *auth.User) error {
 	}
 
 	// TODO Generate user's TFA secret
-	// TODO Generate values for created_at/updated_at columns.
-	// Since we allow new users to be in a verified or unverified state
-	// the created_at value will not be accurate in scenarios where a user
-	// falls off from the signup flow and attempts to re-signup at a later
-	// time.
+	// TODO Handle users who attempt to-resign at a later time
+	// for example, users who do not verify their phone/email
+	// and attempt to create a new account. This should be an update
+	// event where we hash the password and reset the created timestamp.
 	user.Password = string(passwdHash)
 	user.ID = userID.String()
 	row := r.client.queryRowContext(

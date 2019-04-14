@@ -75,3 +75,35 @@ func WithRequestOrigin(s string) ConfigOption {
 func (w *WebAuthn) Validate(ctx context.Context, user *auth.User, passwd auth.Credential) error {
 	return nil
 }
+
+// User is a wrapper for the authenticator domain entity auth.User
+// to allow compatibilitywith duo-lab's webauthn User interface.
+type User struct {
+	auth.User
+}
+
+// WebAuthnID returns the User's ID.
+func (u *User) WebAuthnID() []byte {
+	return []byte("")
+}
+
+// WebAuthnName returns the User's name.
+func (u *User) WebAuthnName() string {
+	return ""
+}
+
+// WebAuthnDisplayName returns the User's display name.
+func (u *User) WebAuthnDisplayName() string {
+	return ""
+}
+
+// WebAuthnIcon returns an Icon for the user.
+func (u *User) WebAuthnIcon() string {
+	return ""
+}
+
+// WebAuthnCredentials returns all of the user's Devices.
+func (u *User) WebAuthnCredentials() []webauthn.Credential {
+	wcs := make([]webauthn.Credential, 0)
+	return wcs
+}

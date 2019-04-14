@@ -20,11 +20,6 @@ func (r *DeviceRepository) ByID(ctx context.Context, deviceID string) (*auth.Dev
 	return r.get(ctx, "byID", deviceID)
 }
 
-// ByClientID retrieves a Device with a matching ClientID.
-func (r *DeviceRepository) ByClientID(ctx context.Context, userID, clientID string) (*auth.Device, error) {
-	return r.get(ctx, "byClientID", userID, clientID)
-}
-
 // ByUserID retrieves all Devices associated with a User.
 func (r *DeviceRepository) ByUserID(ctx context.Context, userID string) ([]*auth.Device, error) {
 	rows, err := r.client.queryContext(ctx, r.client.deviceQ["byUserID"], userID)
@@ -38,7 +33,7 @@ func (r *DeviceRepository) ByUserID(ctx context.Context, userID string) ([]*auth
 		device := auth.Device{}
 		err := rows.Scan(
 			&device.ID, &device.UserID, &device.ClientID, &device.PublicKey, &device.Name,
-			&device.CreatedAt, &device.UpdatedAt,
+			&device.AAGUID, &device.SignCount, &device.CreatedAt, &device.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err
@@ -68,6 +63,8 @@ func (r *DeviceRepository) Create(ctx context.Context, device *auth.Device) erro
 		device.ClientID,
 		device.PublicKey,
 		device.Name,
+		device.AAGUID,
+		device.SignCount,
 	)
 	err = row.Scan(
 		&device.CreatedAt,
@@ -88,6 +85,7 @@ func (r *DeviceRepository) Update(ctx context.Context, device *auth.Device) erro
 		device.ClientID,
 		device.PublicKey,
 		device.Name,
+		device.SignCount,
 		device.UpdatedAt,
 	)
 	if err != nil {
@@ -110,7 +108,7 @@ func (r *DeviceRepository) GetForUpdate(ctx context.Context, deviceID string) (*
 	row := r.client.queryRowContext(ctx, r.client.deviceQ["forUpdate"], deviceID)
 	err := row.Scan(
 		&device.ID, &device.UserID, &device.ClientID, &device.PublicKey, &device.Name,
-		&device.CreatedAt, &device.UpdatedAt,
+		&device.AAGUID, &device.SignCount, &device.CreatedAt, &device.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -124,7 +122,7 @@ func (r *DeviceRepository) get(ctx context.Context, queryKey string, values ...i
 	row := r.client.queryRowContext(ctx, r.client.deviceQ[queryKey], values...)
 	err := row.Scan(
 		&device.ID, &device.UserID, &device.ClientID, &device.PublicKey, &device.Name,
-		&device.CreatedAt, &device.UpdatedAt,
+		&device.AAGUID, &device.SignCount, &device.CreatedAt, &device.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err

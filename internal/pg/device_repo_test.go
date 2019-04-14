@@ -42,8 +42,9 @@ func TestDeviceRepository_Create(t *testing.T) {
 
 	device := auth.Device{
 		UserID:    user.ID,
-		ClientID:  "372b0969c35944209ca7adb5e617365c",
-		PublicKey: publicKey,
+		ClientID:  []byte("372b0969c35944209ca7adb5e617365c"),
+		PublicKey: []byte(publicKey),
+		AAGUID:    []byte("2bc7fd09a3d64cdea6f038023d0fa49e"),
 		Name:      "U2F Key",
 	}
 	err = c.Device().Create(ctx, &device)
@@ -88,8 +89,9 @@ func TestDeviceRepository_ByID(t *testing.T) {
 
 	device := auth.Device{
 		UserID:    user.ID,
-		ClientID:  "client-id",
-		PublicKey: publicKey,
+		ClientID:  []byte("client-id"),
+		PublicKey: []byte(publicKey),
+		AAGUID:    []byte("2bc7fd09a3d64cdea6f038023d0fa49e"),
 		Name:      "U2F Key",
 	}
 	err = c.Device().Create(ctx, &device)
@@ -132,8 +134,9 @@ func TestDeviceRepository_ByUserID(t *testing.T) {
 	for i := 0; i < totalDevices; i++ {
 		device := auth.Device{
 			UserID:    user.ID,
-			ClientID:  "372b0969c35944209ca7adb5e617365c",
-			PublicKey: publicKey,
+			ClientID:  []byte("372b0969c35944209ca7adb5e617365c"),
+			PublicKey: []byte(publicKey),
+			AAGUID:    []byte("2bc7fd09a3d64cdea6f038023d0fa49e"),
 			Name:      "U2F Key",
 		}
 		err = c.Device().Create(ctx, &device)
@@ -149,49 +152,6 @@ func TestDeviceRepository_ByUserID(t *testing.T) {
 
 	if len(devices) != totalDevices {
 		t.Errorf("incorrect number of devices: want %v got %v", totalDevices, len(devices))
-	}
-}
-
-func TestDeviceRepository_ByClientID(t *testing.T) {
-	c, err := NewTestClient("device_repo_by_client_test")
-	if err != nil {
-		t.Fatal("failed to create test database:", err)
-	}
-	defer DropTestDB(c, "device_repo_by_client_test")
-
-	ctx := context.Background()
-	user := auth.User{
-		Password:  "swordfish",
-		TFASecret: "tfa_secret",
-		AuthReq:   auth.RequirePassword,
-		Email: sql.NullString{
-			String: "jane@example.com",
-			Valid:  true,
-		},
-	}
-	err = c.User().Create(ctx, &user)
-	if err != nil {
-		t.Fatal("failed to create user:", err)
-	}
-
-	clientID := "372b0969c35944209ca7adb5e617365c"
-	device := auth.Device{
-		UserID:    user.ID,
-		ClientID:  clientID,
-		PublicKey: publicKey,
-		Name:      "U2F Key",
-	}
-	err = c.Device().Create(ctx, &device)
-	if err != nil {
-		t.Fatal("failed to create device:", err)
-	}
-
-	deviceB, err := c.Device().ByClientID(ctx, user.ID, clientID)
-	if err != nil {
-		t.Error("failed to retrieve device:", err)
-	}
-	if deviceB.ID != device.ID {
-		t.Errorf("device IDs do not match: want %s got %s", device.ID, deviceB.ID)
 	}
 }
 
@@ -217,11 +177,12 @@ func TestDeviceRepository_Update(t *testing.T) {
 		t.Fatal("failed to create user:", err)
 	}
 
-	clientID := "372b0969c35944209ca7adb5e617365c"
+	clientID := []byte("372b0969c35944209ca7adb5e617365c")
 	device := auth.Device{
 		UserID:    user.ID,
 		ClientID:  clientID,
-		PublicKey: publicKey,
+		PublicKey: []byte(publicKey),
+		AAGUID:    []byte("2bc7fd09a3d64cdea6f038023d0fa49e"),
 		Name:      "U2F Key",
 	}
 	err = c.Device().Create(ctx, &device)
