@@ -67,12 +67,18 @@ func (r *UserRepository) Create(ctx context.Context, user *auth.User) error {
 	}
 
 	// bcrypt will manage its own salt
-	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	passwdHash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return errors.Wrap(err, "failed to hash password")
 	}
 
-	user.Password = string(hash)
+	// TODO Generate user's TFA secret
+	// TODO Generate values for created_at/updated_at columns.
+	// Since we allow new users to be in a verified or unverified state
+	// the created_at value will not be accurate in scenarios where a user
+	// falls off from the signup flow and attempts to re-signup at a later
+	// time.
+	user.Password = string(passwdHash)
 	user.ID = userID.String()
 	row := r.client.queryRowContext(
 		ctx,
@@ -137,6 +143,8 @@ func (r *UserRepository) GetForUpdate(ctx context.Context, userID string) (*auth
 	return &user, nil
 }
 
+// validateUserFields proccesses an arbitrary number of user entity
+// validator functions.
 func validateUserFields(user *auth.User, validators ...func(user *auth.User) error) error {
 	for _, validator := range validators {
 		err := validator(user)
@@ -147,6 +155,8 @@ func validateUserFields(user *auth.User, validators ...func(user *auth.User) err
 	return nil
 }
 
+// validateIdentity ensures a user's email and phone
+// cannot be blank at the same time.
 func validateIdentity(user *auth.User) error {
 	if user.Email.String == "" && user.Phone.String == "" {
 		return auth.ErrInvalidField("user must have either an email or phone")
@@ -154,6 +164,7 @@ func validateIdentity(user *auth.User) error {
 	return nil
 }
 
+// validateEmail ensure's an email address format is valid.
 func validateEmail(user *auth.User) error {
 	email := user.Email.String
 	if email == "" {
@@ -168,6 +179,7 @@ func validateEmail(user *auth.User) error {
 	return nil
 }
 
+// validatePhone ensure's a phone number is valid.
 func validatePhone(user *auth.User) error {
 	phone := user.Phone.String
 	if phone == "" {
@@ -190,6 +202,7 @@ func validatePhone(user *auth.User) error {
 	return nil
 }
 
+// validatePassword ensure's a password meets length requirements.
 func validatePassword(user *auth.User) error {
 	var (
 		minPasswordLen = 8
@@ -200,6 +213,7 @@ func validatePassword(user *auth.User) error {
 		return auth.ErrInvalidField("password must be at least 8 characters long")
 	}
 
+	// A maximum password length is enforced to help mitigate DOS attacks.
 	if len(user.Password) > maxPasswordLen {
 		return auth.ErrInvalidField("password cannot be longer than 1000 characters")
 	}

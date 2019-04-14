@@ -255,6 +255,7 @@ type UserService interface {
 
 // Validator validates a credential.
 type Validator interface {
+	// TODO Context may not be necessary in this interface
 	// Validate validates the authenticity of a credential.
-	Validate(ctx context.Context, credential Credential) error
+	Validate(ctx context.Context, user *User, credential Credential) error
 }
