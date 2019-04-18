@@ -77,9 +77,10 @@ func (w *WebAuthn) Validate(ctx context.Context, user *auth.User, passwd auth.Cr
 }
 
 // User is a wrapper for the authenticator domain entity auth.User
-// to allow compatibilitywith duo-lab's webauthn User interface.
+// to allow compatibility with duo-lab's webauthn User interface.
 type User struct {
 	auth.User
+	Devices []*auth.Device
 }
 
 // WebAuthnID returns the User's ID.
@@ -89,12 +90,16 @@ func (u *User) WebAuthnID() []byte {
 
 // WebAuthnName returns the User's name.
 func (u *User) WebAuthnName() string {
-	return ""
+	displayName := u.Email.String
+	if u.Email.String == "" {
+		displayName = u.Phone.String
+	}
+	return displayName
 }
 
 // WebAuthnDisplayName returns the User's display name.
 func (u *User) WebAuthnDisplayName() string {
-	return ""
+	return u.WebAuthnName()
 }
 
 // WebAuthnIcon returns an Icon for the user.
@@ -104,6 +109,25 @@ func (u *User) WebAuthnIcon() string {
 
 // WebAuthnCredentials returns all of the user's Devices.
 func (u *User) WebAuthnCredentials() []webauthn.Credential {
-	wcs := make([]webauthn.Credential, 0)
+	totalDevices := len(u.Devices)
+
+	var wcs []webauthn.Credential
+	{
+		wcs = make([]webauthn.Credential, totalDevices)
+
+		for idx, device := range u.Devices {
+			credential := webauthn.Credential{
+				ID: device.ClientID,
+				PublicKey: device.PublicKey,
+				Authenticator: webauthn.Authenticator{
+					AAGUID: device.AAGUID,
+					SignCount: device.SignCount,
+				},
+			}
+
+			wcs[idx] = credential
+		}
+	}
+
 	return wcs
 }

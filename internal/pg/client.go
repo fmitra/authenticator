@@ -84,6 +84,13 @@ func (c *Client) Open(dataSourceName string) error {
 			FROM device
 			WHERE user_id = $1;
 		`,
+		"byClientID": `
+			SELECT id, user_id, client_id, public_key, name, aaguid, sign_count,
+				created_at, updated_at
+			FROM device
+			WHERE user_id = $1
+			AND client_id = $2;
+		`,
 		"byID": `
 			SELECT id, user_id, client_id, public_key, name, aaguid, sign_count,
 				created_at, updated_at

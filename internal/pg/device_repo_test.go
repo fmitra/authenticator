@@ -155,6 +155,50 @@ func TestDeviceRepository_ByUserID(t *testing.T) {
 	}
 }
 
+func TestDeviceRepository_ByClientID(t *testing.T) {
+	c, err := NewTestClient("device_repo_by_client_test")
+	if err != nil {
+		t.Fatal("failed to create test database:", err)
+	}
+	defer DropTestDB(c, "device_repo_by_client_test")
+
+	ctx := context.Background()
+	user := auth.User{
+		Password:  "swordfish",
+		TFASecret: "tfa_secret",
+		AuthReq:   auth.RequirePassword,
+		Email: sql.NullString{
+			String: "jane@example.com",
+			Valid:  true,
+		},
+	}
+	err = c.User().Create(ctx, &user)
+	if err != nil {
+		t.Fatal("failed to create user:", err)
+	}
+
+	clientID := []byte("372b0969c35944209ca7adb5e617365c")
+	device := auth.Device{
+		UserID:    user.ID,
+		ClientID:  clientID,
+		PublicKey: []byte(publicKey),
+		AAGUID:    []byte("2bc7fd09a3d64cdea6f038023d0fa49e"),
+		Name:      "U2F Key",
+	}
+	err = c.Device().Create(ctx, &device)
+	if err != nil {
+		t.Fatal("failed to create device:", err)
+	}
+
+	deviceB, err := c.Device().ByClientID(ctx, user.ID, []byte(clientID))
+	if err != nil {
+		t.Fatal("failed to retrieve device:", err)
+	}
+	if deviceB.ID != device.ID {
+		t.Errorf("device IDs do not match: want %s got %s", device.ID, deviceB.ID)
+	}
+}
+
 func TestDeviceRepository_Update(t *testing.T) {
 	c, err := NewTestClient("device_repo_update_test")
 	if err != nil {

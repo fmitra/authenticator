@@ -168,6 +168,9 @@ type LoginHistoryRepository interface {
 type DeviceRepository interface {
 	// ByID returns a Device by it's ID.
 	ByID(ctx context.Context, deviceID string) (*Device, error)
+	// ByClientID retrieves a Device associated with a User
+	// by a ClientID.
+	ByClientID(ctx context.Context, userID string, clientID []byte) (*Device, error)
 	// ByUserID retreives all Devices associated with a User.
 	ByUserID(ctx context.Context, userID string) ([]*Device, error)
 	// Create creates a new Device record.

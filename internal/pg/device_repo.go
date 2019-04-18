@@ -20,6 +20,11 @@ func (r *DeviceRepository) ByID(ctx context.Context, deviceID string) (*auth.Dev
 	return r.get(ctx, "byID", deviceID)
 }
 
+// ByClientID retrieves a Device with a matching ClientID.
+func (r *DeviceRepository) ByClientID(ctx context.Context, userID string, clientID []byte) (*auth.Device, error) {
+	return r.get(ctx, "byClientID", userID, clientID)
+}
+
 // ByUserID retrieves all Devices associated with a User.
 func (r *DeviceRepository) ByUserID(ctx context.Context, userID string) ([]*auth.Device, error) {
 	rows, err := r.client.queryContext(ctx, r.client.deviceQ["byUserID"], userID)

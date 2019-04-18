@@ -77,6 +77,9 @@ func (r *UserRepository) Create(ctx context.Context, user *auth.User) error {
 	// for example, users who do not verify their phone/email
 	// and attempt to create a new account. This should be an update
 	// event where we hash the password and reset the created timestamp.
+	// perhaps created time should reflect the validation date. this
+	// would prevent users from re-setting the password with an email they
+	// don't won prior to another user finishing validation
 	user.Password = string(passwdHash)
 	user.ID = userID.String()
 	row := r.client.queryRowContext(
