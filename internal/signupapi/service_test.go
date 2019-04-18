@@ -1,17 +1,15 @@
 package signupapi
 
 import (
-	"context"
 	"testing"
 
 	"github.com/go-kit/kit/log"
 
-	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/pg"
 	"github.com/fmitra/authenticator/internal/redis"
 )
 
-func TestSignUpSvc_BeginSignUp(t *testing.T) {
+func TestSignUpAPI_SignUp(t *testing.T) {
 	redisDB, err := redis.NewTestRedisDB("1")
 	if err != nil {
 		t.Fatal("faliled to create test database:", err)
@@ -30,15 +28,10 @@ func TestSignUpSvc_BeginSignUp(t *testing.T) {
 		WithRepoManager(repo),
 	)
 
-	ctx := context.Background()
-	user := &auth.User{}
-	err = svc.BeginSignUp(ctx, user)
-	if err != nil {
-		t.Error("failed to start signup:", err)
-	}
+	t.Error("not implemented", svc)
 }
 
-func TestSignUpSvc_FinishSignUp(t *testing.T) {
+func TestSignUpAPI_Verify(t *testing.T) {
 	redisDB, err := redis.NewTestRedisDB("1")
 	if err != nil {
 		t.Fatal("faliled to create test database:", err)
@@ -57,10 +50,5 @@ func TestSignUpSvc_FinishSignUp(t *testing.T) {
 		WithRepoManager(repo),
 	)
 
-	ctx := context.Background()
-	credential := auth.Credential("credential")
-	err = svc.FinishSignUp(ctx, credential)
-	if err != nil {
-		t.Error("failed to finish signup:", err)
-	}
+	t.Error("not implemented", svc)
 }

@@ -16,6 +16,7 @@ func NewService(options ...ConfigOption) auth.TokenService {
 	s := service{
 		logger:      log.NewNopLogger(),
 		tokenExpiry: defaultTokenExpiry,
+		issuer: auth.Issuer,
 	}
 
 	for _, opt := range options {
@@ -63,5 +64,13 @@ func WithEntropy(entropy io.Reader) ConfigOption {
 func WithSecret(secret string) ConfigOption {
 	return func(s *service) {
 		s.secret = []byte(secret)
+	}
+}
+
+// WithIssuer is the issuer identity for the JWT
+// token.
+func WithIssuer(issuer string) ConfigOption {
+	return func(s *service) {
+		s.issuer = issuer
 	}
 }

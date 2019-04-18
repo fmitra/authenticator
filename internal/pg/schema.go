@@ -9,7 +9,9 @@ CREATE TABLE IF NOT EXISTS auth_user (
 	email VARCHAR(255) UNIQUE NULL,
 	password VARCHAR(60) NOT NULL,
 	tfa_secret VARCHAR(20) NOT NULL,
-	auth_req VARCHAR(10) NOT NULL,
+	is_code_allowed BOOLEAN DEFAULT true,
+	is_totp_allowed BOOLEAN DEFAULT false,
+	is_device_allowed BOOLEAN DEFAULT false,
 	is_verified BOOLEAN DEFAULT false,
 	created_at TIMESTAMP WITH TIME ZONE DEFAULT current_timestamp,
 	updated_at TIMESTAMP WITH TIME ZONE DEFAULT current_timestamp

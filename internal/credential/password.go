@@ -20,21 +20,21 @@ func NewPassword(cost int) *Password {
 }
 
 // Hash hashes a password for storage.
-func (p *Password) Hash(passwd auth.Credential) (auth.Credential, error) {
+func (p *Password) Hash(password string) ([]byte, error) {
 	// bcrypt will manage its own salt
-	hash, err := bcrypt.GenerateFromPassword([]byte(passwd), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return "", err
+		return []byte(""), err
 	}
 
-	// TODO Should user struct define Password as a Credential?
-	return auth.Credential(hash), nil
+	return hash, nil
 }
 
 // Validate validates if a submitted password is valid for a
 // stored password hash.
-func (p *Password) Validate(ctx context.Context, user *auth.User, passwd auth.Credential) error {
+func (p *Password) Validate(ctx context.Context, user *auth.User, password string) error {
+	// TODO Store user password as bytes
 	bPasswdHash := []byte(user.Password)
-	bPasswd := []byte(passwd)
+	bPasswd := []byte(password)
 	return bcrypt.CompareHashAndPassword(bPasswdHash, bPasswd)
 }

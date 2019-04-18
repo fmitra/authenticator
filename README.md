@@ -17,14 +17,6 @@ with the user identity information contained within it.
 
 Tokens are embeded with a fingerprint to help prevent [token sidejacking](https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets/JSON_Web_Token_Cheat_Sheet_for_Java.md#token-sidejacking).
 
-### Registration
-
-Registration requires either a phone number or email address as it is a requirement to
-verify the authenticity of a user. The service may be required to enforce email only
-registatraion, phone only, or a combination of both.
-
-New registrations are required to complete verify their accounts with a one time passcode.
-
 ### Passwordless Authentication
 
 Passwordless authentication is an optional system wide configuration. It is often used
@@ -33,12 +25,24 @@ Uber, Grab, and Square Cash.  We support this this as we [can argue](https://aut
 generated, time sensitive multi-character codes are oftentimes more secure then common
 user generated passwords and mitigates password reuse.
 
-### Multi Factor Authentication
+### Registration
 
-Email and SMS may be configured on a per-user basis to be used as 2FA method.
+Registration requires either a phone number or email address as it is a requirement to
+verify the authenticity of a user. The service may be required to enforce email only
+registration, phone only, or a combination of both.
 
-Additionally if a TOTP application or FIDO U2F key is enabled on the account, 2FA
-delivery via email and SMS will be disabled.
+### Authentication
+
+Authentication requires a password (unless passwordless authentication is enabled) and
+an assertion of identity. The assertion may be one of the following:
+
+* Submission of a code delivered via email or SMS - this is the default setting and may
+be disabled if a user enables a separate MFA method.
+
+* Submission of TOTP - TOTP authentication may be enabled after registration
+
+* Submission of a signed WebAuthn challenge - WebAuthn authentication may be enabled
+during or after registration.
 
 ### Client Flow/Storage
 

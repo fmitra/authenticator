@@ -113,41 +113,42 @@ func (c *Client) Open(dataSourceName string) error {
 
 	c.userQ = map[string]string{
 		"forUpdate": `
-			SELECT id, phone, email, password, tfa_secret, auth_req, is_verified,
-				created_at, updated_at
+			SELECT id, phone, email, password, tfa_secret, is_code_allowed,
+				is_totp_allowed, is_device_allowed, is_verified, created_at, updated_at
 			FROM auth_user
 			WHERE id = $1
 			FOR UPDATE;
 		`,
 		"byPhone": `
-			SELECT id, phone, email, password, tfa_secret, auth_req, is_verified,
-				created_at, updated_at
+			SELECT id, phone, email, password, tfa_secret, is_code_allowed,
+				is_totp_allowed, is_device_allowed, is_verified, created_at, updated_at
 			FROM auth_user
 			WHERE phone = $1;
 		`,
 		"byEmail": `
-			SELECT id, phone, email, password, tfa_secret, auth_req, is_verified,
-				created_at, updated_at
+			SELECT id, phone, email, password, tfa_secret, is_code_allowed,
+				is_totp_allowed, is_device_allowed, is_verified, created_at, updated_at
 			FROM auth_user
 			WHERE email = $1;
 		`,
 		"byID": `
-			SELECT id, phone, email, password, tfa_secret, auth_req, is_verified,
-				created_at, updated_at
+			SELECT id, phone, email, password, tfa_secret, is_code_allowed,
+				is_totp_allowed, is_device_allowed, is_verified, created_at, updated_at
 			FROM auth_user
 			WHERE id = $1;
 		`,
 		"update": `
 			UPDATE auth_user
 			SET phone=$2, email=$3, password=$4, tfa_secret=$5,
-				auth_req=$6, is_verified=$7
+				is_code_allowed=$6, is_totp_allowed=$7, is_device_allowed=$8, is_verified=$9
 			WHERE id=$1;
 		`,
 		"insert": `
 			INSERT INTO auth_user (
-				id, phone, email, password, tfa_secret, auth_req, is_verified
+				id, phone, email, password, tfa_secret, is_code_allowed, is_totp_allowed,
+					is_device_allowed, is_verified
 			)
-			VALUES ($1, $2, $3, $4, $5, $6, $7)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 			RETURNING created_at, updated_at
 		`,
 	}

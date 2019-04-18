@@ -22,7 +22,6 @@ func TestLoginHistoryRepository_Create(t *testing.T) {
 	user := auth.User{
 		Password:  "swordfish",
 		TFASecret: "tfa_secret",
-		AuthReq:   auth.RequirePassword,
 		Email: sql.NullString{
 			String: "jane@example.com",
 			Valid:  true,
@@ -69,7 +68,6 @@ func TestLoginHistoryRepository_ByUserID(t *testing.T) {
 	user := auth.User{
 		Password:  "swordfish",
 		TFASecret: "tfa_secret",
-		AuthReq:   auth.RequirePassword,
 		Email: sql.NullString{
 			String: "jane@example.com",
 			Valid:  true,
@@ -144,7 +142,6 @@ func TestLoginHistoryRepository_Update(t *testing.T) {
 	user := auth.User{
 		Password:  "swordfish",
 		TFASecret: "tfa_secret",
-		AuthReq:   auth.RequirePassword,
 		Email: sql.NullString{
 			String: "jane@example.com",
 			Valid:  true,

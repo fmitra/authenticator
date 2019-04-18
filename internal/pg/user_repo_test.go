@@ -89,7 +89,6 @@ func TestUserRepository_Create(t *testing.T) {
 			user := auth.User{
 				Password:  tc.password,
 				TFASecret: "tfa_secret",
-				AuthReq:   auth.RequirePassword,
 				Email:     tc.email,
 				Phone:     tc.phone,
 			}
@@ -133,7 +132,6 @@ func TestUserRepository_ByIdentity(t *testing.T) {
 	user := auth.User{
 		Password:  "swordfish",
 		TFASecret: "tfa_secret",
-		AuthReq:   auth.RequirePassword,
 		Phone: sql.NullString{
 			String: "+6590000000",
 			Valid:  true,
@@ -213,7 +211,6 @@ func TestUserRepository_Update(t *testing.T) {
 	user := auth.User{
 		Password:  "swordfish",
 		TFASecret: "tfa_secret",
-		AuthReq:   auth.RequirePassword,
 		Email: sql.NullString{
 			String: "jane@example.com",
 			Valid:  true,

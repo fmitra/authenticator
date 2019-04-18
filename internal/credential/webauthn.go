@@ -72,7 +72,7 @@ func WithRequestOrigin(s string) ConfigOption {
 
 // Validate validates if a supplied WebAuthn credential is valid
 // for a user.
-func (w *WebAuthn) Validate(ctx context.Context, user *auth.User, passwd auth.Credential) error {
+func (w *WebAuthn) Validate(ctx context.Context, user *auth.User, credential interface{}) error {
 	return nil
 }
 

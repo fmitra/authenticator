@@ -6,8 +6,8 @@ import (
 	auth "github.com/fmitra/authenticator"
 )
 
-// NewService returns a new implementation of auth.SignUpService.
-func NewService(options ...ConfigOption) auth.SignUpService {
+// NewService returns a new implementation of auth.SignUpAPI.
+func NewService(options ...ConfigOption) auth.SignUpAPI {
 	s := service{
 		logger: log.NewNopLogger(),
 	}

@@ -2,7 +2,7 @@
 package signupapi
 
 import (
-	"context"
+	"net/http"
 
 	"github.com/go-kit/kit/log"
 
@@ -15,10 +15,8 @@ type service struct {
 	repoMngr auth.RepositoryManager
 }
 
-func (s *service) BeginSignUp(ctx context.Context, user *auth.User) error {
-	return nil
+func (s *service) SignUp(w http.ResponseWriter, r * http.Request) {
 }
 
-func (s *service) FinishSignUp(ctx context.Context, crednetial auth.Credential) error {
-	return nil
+func (s *service) Verify(w http.ResponseWriter, r *http.Request) {
 }

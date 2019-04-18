@@ -4,17 +4,14 @@ package authenticator
 import (
 	"context"
 	"database/sql"
+	"net/http"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 )
 
-// Credential represents some sensitive value
-// to validate user authenticity.
-type Credential string
-
 const (
-	// Issuer is the issuer of a JWT token.
+	// Issuer is the default issuer of a JWT token.
 	Issuer = "authenticator"
 )
 
@@ -41,25 +38,15 @@ const (
 )
 
 const (
-	// JWTGrant represents a JWT token classification given to users
-	// who have completed the first step of a signup or login flow.
-	JWTGrant = "grant"
-	// JWTBearer represents a JWT token classification given to users
-	// who have completed all steps of a signup or login flow.
-	JWTBearer = "bearer"
-)
-
-const (
-	// RequirePassword indicates a user must complete authentication
-	// with only a password to retrieve a token. 2FA is not required.
-	RequirePassword = "password"
-	// RequireTOTP indicates a user must complete authentication
-	// with a TOTP code retrieved from email/SMS or through
-	// a TOTP generator to retrieve a token.
-	RequireTOTP = "totp"
-	// RequireDevice indicates a user must complete authentication
-	// with a device to retrieve a token.
-	RequireDevice = "device"
+	// JWTUnverified represents the state of a user after initiating
+	// the first step of signup.
+	JWTUnverified = "unverified"
+	// JWTIdentified represents the state of a user after initiating
+	// the first step of login.
+	JWTIdentified = "identified"
+	// JWTAuthorized represents a the state of a user after completing
+	// the final step of login or signup.
+	JWTAuthorized = "authorized"
 )
 
 // User represents a user who is registered with the service.
@@ -74,10 +61,15 @@ type User struct {
 	Password string
 	// TFASecret is a a secret string used to generate 2FA TOTP codes.
 	TFASecret string
-	// AuthReq defines a stage of authentication a User
-	// requires to be considered authenticated.
-	// It may be: password, totp, device
-	AuthReq string
+	// IsCodeAllowed specifies a user may complete authentication
+	// by verifying receipt of a randomly generated code.
+	IsCodeAllowed bool
+	// IsTOTPAllowed specifies a user may complete authentication
+	// by verifying a TOTP code.
+	IsTOTPAllowed bool
+	// IsDeviceAllowed specifies a user may complete authentication
+	// by verifying a WebAuthn capable device.
+	IsDeviceAllowed bool
 	// IsVerified tells us if a user confirmed ownership of
 	// an email or phone number by validating a one time code
 	// after registration.
@@ -145,10 +137,13 @@ type Token struct {
 	// Email is a User's email.
 	Email string `json:"email"`
 	// Phone is a User's phone number.
-	Phone string `json:"phone"`
-	// Class is a classification of the token. It may be
-	// a grant, or bearer.
-	Class string `json:"classification"`
+	Phone string `json:"phone_number"`
+	// State is the current state of the user at the time
+	// the token was issued.
+	State string `json:"state"`
+	// Code is the hash of a randomly generated code.
+	// This field is omitted in authorized tokens.
+	Code string `json:"code,omitempty"`
 }
 
 // LoginHistoryRepository represents a local storage for LoginHistory.
@@ -225,46 +220,49 @@ type TokenService interface {
 	Revoke(ctx context.Context, tokenID string, duration time.Duration) error
 }
 
-// LoginService represents a service to authenticate an existing User.
-type LoginService interface {
-	// BeginLogin is the initial login step to identify a User.
-	BeginLogin(ctx context.Context, user *User) error
-	// FinishLogin is the final login step to validate a User's authenticity.
-	FinishLogin(ctx context.Context, credential Credential) error
+// LoginAPI provides HTTP handlers for user authentication.
+type LoginAPI interface {
+	// Login is the initial login step to identify a User.
+	// On success it will return a JWT token in an identified state.
+	Login(w http.ResponseWriter, r *http.Request)
+	// VerifyDevice verifies a User's authenticity by verifying
+	// a signing device owned by the user. On success it will return
+	// a JWT token in an authorized state.
+	VerifyDevice(w http.ResponseWriter, r *http.Request)
+	// VerifyCode verifies a User's authenticity by verifying
+	// a TOTP or randomly generated code delivered by SMS/Email.
+	// On success it will return a JWT token in an auhtorized state.
+	VerifyCode(w http.ResponseWriter, r *http.Request)
 }
 
-// SignUpService represents service to create new Users.
-type SignUpService interface {
-	// BeginSignUp is the initial registration step to identify a User.
-	BeginSignUp(ctx context.Context, user *User) error
-	// FinishSignUp is the final registration step to validate a new
-	// User's authenticity.
-	FinishSignUp(ctx context.Context, credential Credential) error
+// SignUpAPI provides HTTP handlers for user registration.
+type SignUpAPI interface {
+	// SignUp is the initial registration step to identify a User.
+	// On success it will return a JWT token in an unverified state.
+	SignUp(w http.ResponseWriter, r *http.Request)
+	// Verify is the final registration step to validate a new
+	// User's authenticity. On success it will return a JWT
+	// token in an authozied state.
+	Verify(w http.ResponseWriter, r *http.Request)
 }
 
-// DeviceService represents a service to manage Devices for a User.
-type DeviceService interface {
-	// ValidateDevice validates ownership of a Device for a User.
-	ValidateDevice(ctx context.Context, credential Credential) error
-	// AddDevice adds a new Device for a User.
-	AddDevice(ctx context.Context, user *User) error
-	// RemoveDevice removes a Device associated with a User.
-	RemoveDevice(ctx context.Context, user *User) error
+// DeviceAPI provides HTTP handlers to manage Devices for a User.
+type DeviceAPI interface {
+	// Verify validates ownership of a new Device for a User.
+	Verify(w http.ResponseWriter, r *http.Request)
+	// Create is an iniital request to add a new Device for a User.
+	Create(w http.ResponseWriter, r *http.Request)
+	// Remove removes a Device associated with a User.
+	Remove(w http.ResponseWriter, r *http.Request)
 }
 
-// UserService represents a service to configure a User.
-type UserService interface {
+// UserAPI represents a service to configure a registered User's
+// security/account settings.
+type UserAPI interface {
 	// Enforce2FA change's a User's authentication requirement.
-	Enforce2FA(ctx context.Context, user *User, authReq string) error
+	Enforce2FA() error
 	// UpdatePassword change's a User's password.
-	UpdatePassword(ctx context.Context, user *User, password string) error
+	UpdatePassword(w http.ResponseWriter, r *http.Request)
 	// RevokeToken revokes a User's token for a logged in session.
-	RevokeToken(ctx context.Context, user *User, tokenID string) error
-}
-
-// Validator validates a credential.
-type Validator interface {
-	// TODO Context may not be necessary in this interface
-	// Validate validates the authenticity of a credential.
-	Validate(ctx context.Context, user *User, credential Credential) error
+	RevokeToken(w http.ResponseWriter, r *http.Request) error
 }

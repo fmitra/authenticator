@@ -39,7 +39,8 @@ func (r *UserRepository) ByIdentity(ctx context.Context, attribute, value string
 	row := r.client.queryRowContext(ctx, r.client.userQ[q], value)
 	err := row.Scan(
 		&user.ID, &user.Phone, &user.Email, &user.Password, &user.TFASecret,
-		&user.AuthReq, &user.IsVerified, &user.CreatedAt, &user.UpdatedAt,
+		&user.IsCodeAllowed, &user.IsTOTPAllowed, &user.IsDeviceAllowed,
+		&user.IsVerified, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -67,6 +68,10 @@ func (r *UserRepository) Create(ctx context.Context, user *auth.User) error {
 	}
 
 	// bcrypt will manage its own salt
+	// TODO Perhaps this should be done in the service layer.
+	// Doing it here makes it impossible to check if a user is using the same password
+	// You'll end up littering the passsword protocol accross service and repository
+	// layers
 	passwdHash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return errors.Wrap(err, "failed to hash password")
@@ -90,7 +95,9 @@ func (r *UserRepository) Create(ctx context.Context, user *auth.User) error {
 		user.Email,
 		user.Password,
 		user.TFASecret,
-		user.AuthReq,
+		user.IsCodeAllowed,
+		user.IsTOTPAllowed,
+		user.IsDeviceAllowed,
 		user.IsVerified,
 	)
 	err = row.Scan(
@@ -113,7 +120,9 @@ func (r *UserRepository) Update(ctx context.Context, user *auth.User) error {
 		user.Email,
 		user.Password,
 		user.TFASecret,
-		user.AuthReq,
+		user.IsCodeAllowed,
+		user.IsTOTPAllowed,
+		user.IsDeviceAllowed,
 		user.IsVerified,
 	)
 	if err != nil {
@@ -136,7 +145,8 @@ func (r *UserRepository) GetForUpdate(ctx context.Context, userID string) (*auth
 	row := r.client.queryRowContext(ctx, r.client.userQ["forUpdate"], userID)
 	err := row.Scan(
 		&user.ID, &user.Phone, &user.Email, &user.Password, &user.TFASecret,
-		&user.AuthReq, &user.IsVerified, &user.CreatedAt, &user.UpdatedAt,
+		&user.IsCodeAllowed, &user.IsTOTPAllowed, &user.IsDeviceAllowed,
+		&user.IsVerified, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err

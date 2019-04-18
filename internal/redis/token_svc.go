@@ -33,6 +33,7 @@ type service struct {
 	tokenExpiry time.Duration
 	entropy     io.Reader
 	secret      []byte
+	issuer      string
 	db          Rediser
 }
 
@@ -56,7 +57,7 @@ func (s *service) Create(ctx context.Context, user *auth.User) (*auth.Token, str
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expiresAt,
 			Id:        tokenID,
-			Issuer:    auth.Issuer,
+			Issuer:    s.issuer,
 		},
 		UserID:   user.ID,
 		Email:    user.Email.String,
