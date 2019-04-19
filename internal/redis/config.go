@@ -16,7 +16,7 @@ func NewService(options ...ConfigOption) auth.TokenService {
 	s := service{
 		logger:      log.NewNopLogger(),
 		tokenExpiry: defaultTokenExpiry,
-		issuer: auth.Issuer,
+		issuer:      auth.Issuer,
 	}
 
 	for _, opt := range options {

@@ -15,7 +15,7 @@ type service struct {
 	repoMngr auth.RepositoryManager
 }
 
-func (s *service) SignUp(w http.ResponseWriter, r * http.Request) {
+func (s *service) SignUp(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *service) Verify(w http.ResponseWriter, r *http.Request) {

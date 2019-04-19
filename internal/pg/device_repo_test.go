@@ -186,7 +186,7 @@ func TestDeviceRepository_ByClientID(t *testing.T) {
 		t.Fatal("failed to create device:", err)
 	}
 
-	deviceB, err := c.Device().ByClientID(ctx, user.ID, []byte(clientID))
+	deviceB, err := c.Device().ByClientID(ctx, user.ID, clientID)
 	if err != nil {
 		t.Fatal("failed to retrieve device:", err)
 	}

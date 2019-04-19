@@ -70,7 +70,7 @@ func (r *UserRepository) Create(ctx context.Context, user *auth.User) error {
 	// bcrypt will manage its own salt
 	// TODO Perhaps this should be done in the service layer.
 	// Doing it here makes it impossible to check if a user is using the same password
-	// You'll end up littering the passsword protocol accross service and repository
+	// You'll end up littering the passsword protocol across service and repository
 	// layers
 	passwdHash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {

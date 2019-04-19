@@ -1,16 +1,28 @@
 package credential
 
 import (
-	"context"
+	"encoding/json"
+	"net/http"
 
-	"github.com/duo-labs/webauthn/webauthn"
+	webauthnProto "github.com/duo-labs/webauthn/protocol"
+	webauthnLib "github.com/duo-labs/webauthn/webauthn"
+	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
 )
 
-// WebAuthn is a credential validator for WebAuthn authentical protocol.
+// Webauthner is an interface to duo-labs/webauthn
+type Webauthner interface {
+	BeginRegistration(user webauthnLib.User, opts ...webauthnLib.RegistrationOption) (*webauthnProto.CredentialCreation, *webauthnLib.SessionData, error)
+	FinishRegistration(user webauthnLib.User, session webauthnLib.SessionData, r *http.Request) (*webauthnLib.Credential, error)
+	BeginLogin(user webauthnLib.User, opts ...webauthnLib.LoginOption) (*webauthnProto.CredentialAssertion, *webauthnLib.SessionData, error)
+	FinishLogin(user webauthnLib.User, session webauthnLib.SessionData, r *http.Request) (*webauthnLib.Credential, error)
+}
+
+// WebAuthn is a implements the WebAuthn authentication protocol.
 // Under the hood it defers the actual validation to the /duo-labs/webauthn
-// library.
+// library and wraps the service's domain entities to provide compatibility
+// with the third party library.
 type WebAuthn struct {
 	// displayName is the site display name.
 	displayName string
@@ -19,9 +31,9 @@ type WebAuthn struct {
 	// requestOrigin is the origin domain for
 	// authentication requests.
 	requestOrigin string
-	// webauthnLib is the underlying WebAuthn library
+	// lib is the underlying WebAuthn library
 	// used by this adapter.
-	webauthnLib *webauthn.WebAuthn
+	lib Webauthner
 }
 
 // NewWebAuthn returns a new WebAuthn validator.
@@ -32,7 +44,7 @@ func NewWebAuthn(options ...ConfigOption) (*WebAuthn, error) {
 		opt(&w)
 	}
 
-	webauthnLib, err := webauthn.New(&webauthn.Config{
+	lib, err := webauthnLib.New(&webauthnLib.Config{
 		RPDisplayName: w.displayName,
 		RPID:          w.domain,
 		RPOrigin:      w.requestOrigin,
@@ -41,7 +53,7 @@ func NewWebAuthn(options ...ConfigOption) (*WebAuthn, error) {
 		return nil, err
 	}
 
-	w.webauthnLib = webauthnLib
+	w.lib = lib
 
 	return &w, nil
 }
@@ -70,9 +82,82 @@ func WithRequestOrigin(s string) ConfigOption {
 	}
 }
 
-// Validate validates if a supplied WebAuthn credential is valid
-// for a user.
-func (w *WebAuthn) Validate(ctx context.Context, user *auth.User, credential interface{}) error {
+// Register attempts to register a new WebAuthn capable device for a user.
+func (w *WebAuthn) Register(user *auth.User) ([]byte, error) {
+	wu := User{User: *user}
+
+	// TODO Handle sessionData
+	credentialOptions, _, err := w.lib.BeginRegistration(&wu)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to initialize webauthn registration")
+	}
+
+	b, err := json.Marshal(credentialOptions)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to marshal webauthn credential options")
+	}
+
+	return b, nil
+}
+
+// VerifyRegistration attempts to verify a registration attempt for a new WebAuthn
+// capable device.
+func (w *WebAuthn) VerifyRegistration(user *auth.User, r *http.Request) (*auth.Device, error) {
+	wu := User{User: *user}
+	// TODO Retrieve session embedded in JWT token
+	sessionData := webauthnLib.SessionData{}
+
+	credential, err := w.lib.FinishRegistration(&wu, sessionData, r)
+	if err != nil {
+		return nil, errors.Wrap(err, "webauthn device registration failed")
+	}
+
+	device := auth.Device{
+		UserID:    user.ID,
+		ClientID:  credential.ID,
+		PublicKey: credential.PublicKey,
+		AAGUID:    credential.Authenticator.AAGUID,
+		SignCount: credential.Authenticator.SignCount,
+	}
+
+	return &device, nil
+}
+
+// Authenticate attempts to authenticate a user through device ownership.
+func (w *WebAuthn) Authenticate(user *auth.User) ([]byte, error) {
+	wu := User{User: *user}
+
+	// TODO Handle sessionData
+	assertion, _, err := w.lib.BeginLogin(&wu)
+	if err != nil {
+		return nil, errors.Wrap(err, "webauthn login request failed")
+	}
+
+	b, err := json.Marshal(assertion)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to marshal webauthn assertion")
+	}
+
+	return b, nil
+}
+
+// IsAuthorize determines if a user successfully proved ownership of their device,
+// thereby asserting their identity.
+func (w *WebAuthn) IsAuthorize(user *auth.User, r *http.Request) error {
+	wu := User{User: *user}
+	// TODO Retrieve session embedded in JWT token
+	sessionData := webauthnLib.SessionData{}
+
+	cred, err := w.lib.FinishLogin(&wu, sessionData, r)
+	if err != nil {
+		return errors.Wrap(err, "failed to authenticate user")
+	}
+
+	if cred.Authenticator.CloneWarning {
+		return errors.New("webauthn device is possibly cloned")
+	}
+
+	// TODO Update sign count on the stored device
 	return nil
 }
 
@@ -108,19 +193,19 @@ func (u *User) WebAuthnIcon() string {
 }
 
 // WebAuthnCredentials returns all of the user's Devices.
-func (u *User) WebAuthnCredentials() []webauthn.Credential {
+func (u *User) WebAuthnCredentials() []webauthnLib.Credential {
 	totalDevices := len(u.Devices)
 
-	var wcs []webauthn.Credential
+	var wcs []webauthnLib.Credential
 	{
-		wcs = make([]webauthn.Credential, totalDevices)
+		wcs = make([]webauthnLib.Credential, totalDevices)
 
 		for idx, device := range u.Devices {
-			credential := webauthn.Credential{
-				ID: device.ClientID,
+			credential := webauthnLib.Credential{
+				ID:        device.ClientID,
 				PublicKey: device.PublicKey,
-				Authenticator: webauthn.Authenticator{
-					AAGUID: device.AAGUID,
+				Authenticator: webauthnLib.Authenticator{
+					AAGUID:    device.AAGUID,
 					SignCount: device.SignCount,
 				},
 			}
