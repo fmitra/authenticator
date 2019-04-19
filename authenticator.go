@@ -256,13 +256,21 @@ type DeviceAPI interface {
 	Remove(w http.ResponseWriter, r *http.Request)
 }
 
-// UserAPI represents a service to configure a registered User's
-// security/account settings.
+// TokenAPI provides HTTP handlers to manage a User's tokens.
+type TokenAPI interface {
+	// Revoke revokes a User's token for a logged in session.
+	Revoke(w http.ResponseWriter, r *http.Request)
+	// Verify verifies a Usre's token is authenticate and
+	// valid. A valid token is not expired and not revoked.
+	Verify(w http.ResponseWriter, r *http.Request)
+}
+
+// UserAPI proivdes HTTP handlers to configure a registered User's
+// account.
 type UserAPI interface {
-	// Enforce2FA change's a User's authentication requirement.
-	Enforce2FA() error
+	// UpdateMFA change's a User's authentication requirement. It can
+	// be used to enable/disable TOTP, code, or device authentication.
+	UpdateMFA(w http.ResponseWriter, r *http.Request)
 	// UpdatePassword change's a User's password.
 	UpdatePassword(w http.ResponseWriter, r *http.Request)
-	// RevokeToken revokes a User's token for a logged in session.
-	RevokeToken(w http.ResponseWriter, r *http.Request) error
 }

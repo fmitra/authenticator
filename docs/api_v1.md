@@ -103,3 +103,29 @@ device.
 
 A user removes a device from their account. Removed devices can no longer be used
 for authentication.
+
+## Token API
+
+Provides endpoints to manage a User's token.
+
+### Revoke a token [POST /api/v1/token/:token_id]
+
+A user revokes a token, rendering it invalid for authentication.
+
+### Verify a token [GET /api/v1/token/verify]
+
+A user confirms the currently used token is valid. This endpoint intends to be used
+internally by other trusted services to verify a User's authentication.
+
+## User API
+
+Provides endpoints to manage a User's account.
+
+### Update MFA settings [PATCH /api/v1/user/:user_id]
+
+Toggle settings to enforce MFA through SMS/email delivery of randomly generated codes,
+TOTP generator, or WebAuthn device.
+
+### Update password [PATCH /api/v1/user/reset-password]
+
+Change's a user's password.
