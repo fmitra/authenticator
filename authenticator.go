@@ -206,7 +206,7 @@ type RepositoryManager interface {
 	User() UserRepository
 }
 
-// TokenService represents a service to manage tokens.
+// TokenService represents a service to manage JWT tokens.
 type TokenService interface {
 	// Create creates a new JWT token. On success, it returns
 	// the token and the unhashed ClientID.
@@ -218,6 +218,27 @@ type TokenService interface {
 	Validate(ctx context.Context, signedToken string) (*Token, error)
 	// Revoke Revokes a token for a specified duration of time.
 	Revoke(ctx context.Context, tokenID string, duration time.Duration) error
+}
+
+// WebAuthnService manages the protocol for WebAuthn authentication.
+type WebAuthnService interface {
+	// BeginSignUp attempts to register a new WebAuthn device.
+	BeginSignUp(ctx context.Context, user *User) ([]byte, error)
+	// FinishSignUp confirms a challenge signature for registration.
+	FinishSignUp(ctx context.Context, user *User, r *http.Request) (*Device, error)
+	// BeginLogin starts the authentication flow to validate a device.
+	BeginLogin(ctx context.Context, user *User) ([]byte, error)
+	// FinishLogin confirms that a device successfully signed a challenge.
+	FinishLogin(ctx context.Context, user *User, r *http.Request) error
+}
+
+// PasswordService manages the protocol for password management and validation.
+type PasswordService interface {
+	// Hash hashes a password for storage.
+	Hash(password string) ([]byte, error)
+	// Validate determines if a submitted pasword is valid for a stored
+	// password hash.
+	Validate(user *User, password string) error
 }
 
 // LoginAPI provides HTTP handlers for user authentication.
@@ -250,7 +271,7 @@ type SignUpAPI interface {
 type DeviceAPI interface {
 	// Verify validates ownership of a new Device for a User.
 	Verify(w http.ResponseWriter, r *http.Request)
-	// Create is an iniital request to add a new Device for a User.
+	// Create is an initial request to add a new Device for a User.
 	Create(w http.ResponseWriter, r *http.Request)
 	// Remove removes a Device associated with a User.
 	Remove(w http.ResponseWriter, r *http.Request)

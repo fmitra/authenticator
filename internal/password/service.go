@@ -1,28 +1,27 @@
-package credential
+package password
 
 import (
-	"context"
-
 	"golang.org/x/crypto/bcrypt"
 
 	auth "github.com/fmitra/authenticator"
 )
 
 // Password is a credential validator for password authentication.
-// Password validation uses bcrypt.
 type Password struct {
+	// cost is the bcrypt hash repetition. Higher cost results
+	// in slower computations.
 	cost int
-}
-
-// NewPassword returns a new Password validator.
-func NewPassword(cost int) *Password {
-	return &Password{cost: cost}
+	// minLength is the minimum length of a password.
+	minLength int
+	// maxLength is the maximum length of a password.
+	// We enforce a maximum length to mitigate DOS attacks.
+	maxLength int
 }
 
 // Hash hashes a password for storage.
 func (p *Password) Hash(password string) ([]byte, error) {
 	// bcrypt will manage its own salt
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), p.cost)
 	if err != nil {
 		return []byte(""), err
 	}
@@ -32,7 +31,7 @@ func (p *Password) Hash(password string) ([]byte, error) {
 
 // Validate validates if a submitted password is valid for a
 // stored password hash.
-func (p *Password) Validate(ctx context.Context, user *auth.User, password string) error {
+func (p *Password) Validate(user *auth.User, password string) error {
 	// TODO Store user password as bytes
 	bPasswdHash := []byte(user.Password)
 	bPasswd := []byte(password)

@@ -5,6 +5,7 @@ linters:
   enable-all: true
   disable:
     - interfacer
+    - dupl
 
 linters-settings:
   errcheck:
@@ -14,11 +15,9 @@ linters-settings:
   golint:
     min-confidence: 0
   gocyclo:
-    min-complexity: 12
+    min-complexity: 20
   maligned:
     suggest-new: true
-  dupl:
-    threshold: 120
   goconst:
     min-len: 2
     min-occurrences: 3
@@ -27,6 +26,10 @@ linters-settings:
 
 issues:
   exclude-rules:
+    - path: internal/test/
+      linters:
+        - golint
+        - lll
     - path: errors.go
       linters:
         - golint

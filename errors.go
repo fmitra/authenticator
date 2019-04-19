@@ -13,6 +13,8 @@ const (
 	EInvalidField ErrCode = "invalid_field"
 	// EInternal represents an internal error outside of our domain.
 	EInternal ErrCode = "internal"
+	// EBadRequest represents a bad JSON request body.
+	EBadRequest ErrCode = "bad_request"
 )
 
 // Error represents an error within the authenticator domain.
@@ -32,12 +34,17 @@ type ErrInvalidToken string
 func (e ErrInvalidToken) Code() ErrCode { return EInvalidToken }
 func (e ErrInvalidToken) Error() string { return fmt.Sprintf("[%s] %s", e.Code(), string(e)) }
 
-// ErrInvalidField represents an error related to missing or invalid entity fields
-// in a supplied to repository.
+// ErrInvalidField represents an error related to missing or invalid entity fields.
 type ErrInvalidField string
 
 func (e ErrInvalidField) Code() ErrCode { return EInvalidField }
 func (e ErrInvalidField) Error() string { return fmt.Sprintf("[%s] %s", e.Code(), string(e)) }
+
+// ErrBadRequest represents an error where we fail to read a JSON requst body.
+type ErrBadRequest string
+
+func (e ErrBadRequest) Code() ErrCode { return EBadRequest }
+func (e ErrBadRequest) Error() string { return fmt.Sprintf("[%s] %s", e.Code(), string(e)) }
 
 // DomainError returns a domain error if available.
 func DomainError(err error) Error {

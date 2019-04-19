@@ -88,11 +88,10 @@ complexity to client side auth flow  and competes with building adoption for Web
 
 ## Open Topics
 
-Following issues are still under consideration
+Following topics are still being planned out
 
-* Password reset flow
-* Token expiry time and refresh flow
-* Per-user configuration
+* Password reset
+* Token expiry/refresh
 
 ## Alternatives
 

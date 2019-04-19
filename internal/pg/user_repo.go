@@ -77,7 +77,6 @@ func (r *UserRepository) Create(ctx context.Context, user *auth.User) error {
 		return errors.Wrap(err, "failed to hash password")
 	}
 
-	// TODO Generate user's TFA secret
 	// TODO Handle users who attempt to-resign at a later time
 	// for example, users who do not verify their phone/email
 	// and attempt to create a new account. This should be an update
