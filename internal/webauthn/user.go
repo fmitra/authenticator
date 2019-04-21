@@ -9,13 +9,13 @@ import (
 // User is a wrapper for the authenticator domain entity auth.User
 // to allow compatibility with duo-lab's webauthn User interface.
 type User struct {
-	auth.User
+	*auth.User
 	Devices []*auth.Device
 }
 
 // WebAuthnID returns the User's ID.
 func (u *User) WebAuthnID() []byte {
-	return []byte("")
+	return []byte(u.ID)
 }
 
 // WebAuthnName returns the User's name.

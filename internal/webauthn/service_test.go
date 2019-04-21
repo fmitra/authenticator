@@ -92,7 +92,7 @@ func TestWebAuthnSvc_BeginSignUp(t *testing.T) {
 	}
 }
 
-func TestWebAuthnSvc_FinishSignUp(t *testing.T) {
+func TestWebAuthnSvc_FinishSignUpErrorHandling(t *testing.T) {
 	redisDB, err := test.NewRedisDB(test.RedisWebAuthn)
 	if err != nil {
 		t.Fatal(err, "failed to create test redis database")
@@ -100,34 +100,23 @@ func TestWebAuthnSvc_FinishSignUp(t *testing.T) {
 	defer redisDB.Close()
 
 	tt := []struct {
-		name     string
-		libFn    func() (*webauthnLib.Credential, error)
-		hasError bool
-		userID   string
+		name   string
+		libFn  func() (*webauthnLib.Credential, error)
+		userID string
 	}{
 		{
 			name: "Session retrieval failure",
 			libFn: func() (*webauthnLib.Credential, error) {
 				return &webauthnLib.Credential{ID: []byte("my-credential")}, nil
 			},
-			hasError: true,
-			userID:   "",
+			userID: "",
 		},
 		{
 			name: "Webauthn library failure",
 			libFn: func() (*webauthnLib.Credential, error) {
 				return nil, errors.New("whoops")
 			},
-			hasError: true,
-			userID:   "finish-signup-user-webauthn-err",
-		},
-		{
-			name: "Completes signup",
-			libFn: func() (*webauthnLib.Credential, error) {
-				return &webauthnLib.Credential{ID: []byte("my-credential")}, nil
-			},
-			hasError: false,
-			userID:   "finish-signup-user-success",
+			userID: "finish-signup-user-webauthn-err",
 		},
 	}
 
@@ -152,21 +141,11 @@ func TestWebAuthnSvc_FinishSignUp(t *testing.T) {
 				ID: tc.userID,
 			}
 			device, err := webauthn.FinishSignUp(ctx, user, nil)
-			if tc.hasError && err == nil {
+			if err == nil {
 				t.Error("FinishSignUp should return error, not nil")
 			}
-			if tc.hasError && device != nil {
+			if device != nil {
 				t.Error("device should be nil if error occurred")
-			}
-			if !tc.hasError && err != nil {
-				t.Error("failed to finish signup:", err)
-			}
-			if !tc.hasError && device == nil {
-				t.Error("failed to create a device")
-			}
-			if !tc.hasError && !bytes.Equal(device.ClientID, []byte("my-credential")) {
-				t.Errorf("client IDs do not match: want %s got %s",
-					device.ClientID, []byte("my-credential"))
 			}
 		})
 	}
@@ -198,7 +177,7 @@ func TestWebAuthnSvc_BeginLogin(t *testing.T) {
 		{
 			name: "Fails on webauthn error",
 			devicesFn: func() ([]*auth.Device, error) {
-				devices := []*auth.Device{&auth.Device{}}
+				devices := []*auth.Device{{}}
 				return devices, nil
 			},
 			libFn: func() (*webauthnProto.CredentialAssertion, *webauthnLib.SessionData, error) {
@@ -209,7 +188,7 @@ func TestWebAuthnSvc_BeginLogin(t *testing.T) {
 		{
 			name: "Returns credential bytes on success",
 			devicesFn: func() ([]*auth.Device, error) {
-				devices := []*auth.Device{&auth.Device{}}
+				devices := []*auth.Device{{}}
 				return devices, nil
 			},
 			libFn: func() (*webauthnProto.CredentialAssertion, *webauthnLib.SessionData, error) {
@@ -267,7 +246,6 @@ func TestWebAuthnSvc_FinishLoginErrorHandling(t *testing.T) {
 
 	tt := []struct {
 		name      string
-		hasError  bool
 		userID    string
 		libFn     func() (*webauthnLib.Credential, error)
 		devicesFn func() ([]*auth.Device, error)
@@ -275,9 +253,8 @@ func TestWebAuthnSvc_FinishLoginErrorHandling(t *testing.T) {
 		commitFn  func() (interface{}, error)
 	}{
 		{
-			name:     "Fails with no devices",
-			hasError: true,
-			userID:   "finish-login-user-no-device",
+			name:   "Fails with no devices",
+			userID: "finish-login-user-no-device",
 			libFn: func() (*webauthnLib.Credential, error) {
 				return &webauthnLib.Credential{}, nil
 			},
@@ -292,14 +269,13 @@ func TestWebAuthnSvc_FinishLoginErrorHandling(t *testing.T) {
 			},
 		},
 		{
-			name:     "Fails on missing session",
-			hasError: true,
-			userID:   "",
+			name:   "Fails on missing session",
+			userID: "",
 			libFn: func() (*webauthnLib.Credential, error) {
 				return &webauthnLib.Credential{}, nil
 			},
 			devicesFn: func() ([]*auth.Device, error) {
-				devices := []*auth.Device{&auth.Device{}}
+				devices := []*auth.Device{{}}
 				return devices, nil
 			},
 			txnFn: func() (auth.RepositoryManager, error) {
@@ -310,9 +286,8 @@ func TestWebAuthnSvc_FinishLoginErrorHandling(t *testing.T) {
 			},
 		},
 		{
-			name:     "Fails on webauthn error",
-			hasError: true,
-			userID:   "finish-login-user-webauthn",
+			name:   "Fails on webauthn error",
+			userID: "finish-login-user-webauthn",
 			libFn: func() (*webauthnLib.Credential, error) {
 				return nil, errors.New("failed to authenticate user")
 			},
@@ -329,9 +304,8 @@ func TestWebAuthnSvc_FinishLoginErrorHandling(t *testing.T) {
 			},
 		},
 		{
-			name:     "Fails on clone warning",
-			hasError: true,
-			userID:   "finish-login-user-clone",
+			name:   "Fails on clone warning",
+			userID: "finish-login-user-clone",
 			libFn: func() (*webauthnLib.Credential, error) {
 				credential := &webauthnLib.Credential{
 					Authenticator: webauthnLib.Authenticator{
@@ -341,7 +315,7 @@ func TestWebAuthnSvc_FinishLoginErrorHandling(t *testing.T) {
 				return credential, nil
 			},
 			devicesFn: func() ([]*auth.Device, error) {
-				devices := []*auth.Device{&auth.Device{}}
+				devices := []*auth.Device{{}}
 				return devices, nil
 			},
 			txnFn: func() (auth.RepositoryManager, error) {
@@ -352,14 +326,13 @@ func TestWebAuthnSvc_FinishLoginErrorHandling(t *testing.T) {
 			},
 		},
 		{
-			name:     "Fails on transaction error",
-			hasError: true,
-			userID:   "finish-login-user-txn",
+			name:   "Fails on transaction error",
+			userID: "finish-login-user-txn",
 			libFn: func() (*webauthnLib.Credential, error) {
 				return &webauthnLib.Credential{}, nil
 			},
 			devicesFn: func() ([]*auth.Device, error) {
-				devices := []*auth.Device{&auth.Device{}}
+				devices := []*auth.Device{{}}
 				return devices, nil
 			},
 			txnFn: func() (auth.RepositoryManager, error) {
@@ -370,9 +343,8 @@ func TestWebAuthnSvc_FinishLoginErrorHandling(t *testing.T) {
 			},
 		},
 		{
-			name:     "Fails on repository commit",
-			hasError: true,
-			userID:   "finish-login-user-commit",
+			name:   "Fails on repository commit",
+			userID: "finish-login-user-commit",
 			libFn: func() (*webauthnLib.Credential, error) {
 				credential := &webauthnLib.Credential{
 					ID: []byte("my-credential"),
@@ -381,7 +353,7 @@ func TestWebAuthnSvc_FinishLoginErrorHandling(t *testing.T) {
 			},
 			devicesFn: func() ([]*auth.Device, error) {
 				devices := []*auth.Device{
-					&auth.Device{
+					{
 						ClientID: []byte("my-credential"),
 						ID:       "device-id",
 					},
@@ -427,11 +399,8 @@ func TestWebAuthnSvc_FinishLoginErrorHandling(t *testing.T) {
 			}
 
 			err = webauthn.FinishLogin(ctx, user, nil)
-			if tc.hasError && err == nil {
+			if err == nil {
 				t.Error("FinishLogin should return error, not nil")
-			}
-			if !tc.hasError && err != nil {
-				t.Error("failed to finish login:", err)
 			}
 		})
 	}
@@ -450,6 +419,74 @@ func TestWebAuthnSvc_FinishSignUpSuccess(t *testing.T) {
 		t.Fatal("failed to create test database:", err)
 	}
 	defer pg.DropTestDB(repoMngr, "webauthn_finish_signup_test")
+
+	ctx := context.Background()
+	user := &auth.User{
+		Password:  "swordfish",
+		TFASecret: "tfa_secret",
+		Email: sql.NullString{
+			String: "jane@example.com",
+			Valid:  true,
+		},
+	}
+	err = repoMngr.User().Create(ctx, user)
+	if err != nil {
+		t.Fatal("failed to create uer:", err)
+	}
+
+	clientID := []byte("my-credential")
+	lib := test.WebAuthnLib{
+		FinishRegistrationFn: func() (*webauthnLib.Credential, error) {
+			credential := &webauthnLib.Credential{
+				ID: clientID,
+			}
+			return credential, nil
+		},
+	}
+	webauthn := &WebAuthn{
+		lib:      &lib,
+		db:       redisDB,
+		repoMngr: repoMngr,
+	}
+
+	err = setSession(ctx, user.ID, redisDB)
+	if err != nil {
+		t.Fatal("failed to set test session:", err)
+	}
+
+	device, err := webauthn.FinishSignUp(ctx, user, nil)
+	if err != nil {
+		t.Fatal("failed to finish signup:", err)
+	}
+	if device == nil {
+		t.Fatal("failed to create device")
+	}
+	if !bytes.Equal(device.ClientID, clientID) {
+		t.Errorf("client IDs do not match: want %s got %s",
+			device.ClientID, clientID)
+	}
+
+	device, err = repoMngr.Device().ByID(ctx, device.ID)
+	if err != nil {
+		t.Error("device not found:", err)
+	}
+	if device.ID == "" {
+		t.Error("device ID not set")
+	}
+}
+
+func TestWebAuthnSvc_FinishLoginSuccess(t *testing.T) {
+	redisDB, err := test.NewRedisDB(test.RedisWebAuthn)
+	if err != nil {
+		t.Fatal(err, "failed to create test redis database")
+	}
+	defer redisDB.Close()
+
+	repoMngr, err := pg.NewTestClient("webauthn_finish_login_test")
+	if err != nil {
+		t.Fatal("failed to create test database:", err)
+	}
+	defer pg.DropTestDB(repoMngr, "webauthn_finish_login_test")
 
 	ctx := context.Background()
 	user := &auth.User{

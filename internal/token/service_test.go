@@ -1,20 +1,41 @@
-package redis
+package token
 
 import (
 	"context"
 	"crypto/sha512"
 	"encoding/hex"
+	"io"
 	"math/rand"
 	"testing"
 	"time"
 
+	"github.com/go-kit/kit/log"
 	"github.com/oklog/ulid"
 
 	auth "github.com/fmitra/authenticator"
+	"github.com/fmitra/authenticator/internal/test"
 )
 
+func NewTestTokenSvc(db Rediser) auth.TokenService {
+	var entropy io.Reader
+	{
+		random := rand.New(rand.NewSource(time.Now().UnixNano()))
+		entropy = ulid.Monotonic(random, 0)
+	}
+
+	tokenSvc := NewService(
+		WithLogger(log.NewNopLogger()),
+		WithDB(db),
+		WithEntropy(entropy),
+		WithTokenExpiry(time.Second*10),
+		WithSecret("my-signing-secret"),
+	)
+
+	return tokenSvc
+}
+
 func TestTokenSvc_Create(t *testing.T) {
-	db, err := NewTestRedisDB("0")
+	db, err := test.NewRedisDB(test.RedisTokenSvc)
 	if err != nil {
 		t.Fatal("faliled to create test database:", err)
 	}
@@ -62,7 +83,7 @@ func TestTokenSvc_Create(t *testing.T) {
 }
 
 func TestTokenSvc_InvalidateAfterRevocation(t *testing.T) {
-	db, err := NewTestRedisDB("0")
+	db, err := test.NewRedisDB(test.RedisTokenSvc)
 	if err != nil {
 		t.Fatal("faliled to create test database:", err)
 	}
@@ -105,7 +126,7 @@ func TestTokenSvc_InvalidateAfterRevocation(t *testing.T) {
 }
 
 func TestTokenSvc_InvalidateAfterExpiry(t *testing.T) {
-	db, err := NewTestRedisDB("0")
+	db, err := test.NewRedisDB(test.RedisTokenSvc)
 	if err != nil {
 		t.Fatal("faliled to create test database:", err)
 	}

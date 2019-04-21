@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 	"net/http"
+	"time"
 
 	webauthnProto "github.com/duo-labs/webauthn/protocol"
 	webauthnLib "github.com/duo-labs/webauthn/webauthn"
@@ -10,6 +11,20 @@ import (
 
 	auth "github.com/fmitra/authenticator"
 )
+
+// TokenService mocks auth.TokenService interface.
+type TokenService struct {
+	CreateFn   func() (*auth.Token, string, error)
+	SignFn     func() (string, error)
+	ValidateFn func() (*auth.Token, error)
+	RevokeFn   func() error
+	Calls      struct {
+		Create   int
+		Sign     int
+		Validate int
+		Revoke   int
+	}
+}
 
 // RepositoryManager mocks auth.RepositoryManager interface.
 type RepositoryManager struct {
@@ -298,4 +313,40 @@ func (m *LoginHistoryRepository) Update(ctx context.Context, login *auth.LoginHi
 		return m.UpdateFn()
 	}
 	return nil
+}
+
+// Create mock.
+func (m *TokenService) Create(ctx context.Context, u *auth.User) (*auth.Token, string, error) {
+	m.Calls.Create++
+	if m.CreateFn != nil {
+		return m.CreateFn()
+	}
+	return nil, "", errors.New("failed to create token")
+}
+
+// Sign mock.
+func (m *TokenService) Sign(ctx context.Context, token *auth.Token) (string, error) {
+	m.Calls.Sign++
+	if m.SignFn != nil {
+		return m.SignFn()
+	}
+	return "", errors.New("failed to sign token")
+}
+
+// Validate mock.
+func (m *TokenService) Validate(ctx context.Context, signedToken string) (*auth.Token, error) {
+	m.Calls.Validate++
+	if m.ValidateFn != nil {
+		return m.ValidateFn()
+	}
+	return nil, errors.New("token is not valid")
+}
+
+// Revoke mock.
+func (m *TokenService) Revoke(ctx context.Context, tokenID string, duration time.Duration) error {
+	m.Calls.Revoke++
+	if m.RevokeFn != nil {
+		return m.RevokeFn()
+	}
+	return errors.New("token revocation failed")
 }

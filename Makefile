@@ -1,5 +1,5 @@
 fmt:
-	go fmt ./...
+	gofmt -w -s ./
 
 lint:
 	golangci-lint run -v
