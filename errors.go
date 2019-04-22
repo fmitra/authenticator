@@ -20,6 +20,7 @@ const (
 // Error represents an error within the authenticator domain.
 type Error interface {
 	Error() string
+	Message() string
 	Code() ErrCode
 }
 
@@ -31,20 +32,23 @@ type ErrCode string
 // such as expiry, revocation, or signing errors.
 type ErrInvalidToken string
 
-func (e ErrInvalidToken) Code() ErrCode { return EInvalidToken }
-func (e ErrInvalidToken) Error() string { return fmt.Sprintf("[%s] %s", e.Code(), string(e)) }
+func (e ErrInvalidToken) Code() ErrCode   { return EInvalidToken }
+func (e ErrInvalidToken) Error() string   { return fmt.Sprintf("[%s] %s", e.Code(), string(e)) }
+func (e ErrInvalidToken) Message() string { return string(e) }
 
 // ErrInvalidField represents an error related to missing or invalid entity fields.
 type ErrInvalidField string
 
-func (e ErrInvalidField) Code() ErrCode { return EInvalidField }
-func (e ErrInvalidField) Error() string { return fmt.Sprintf("[%s] %s", e.Code(), string(e)) }
+func (e ErrInvalidField) Code() ErrCode   { return EInvalidField }
+func (e ErrInvalidField) Error() string   { return fmt.Sprintf("[%s] %s", e.Code(), string(e)) }
+func (e ErrInvalidField) Message() string { return string(e) }
 
 // ErrBadRequest represents an error where we fail to read a JSON requst body.
 type ErrBadRequest string
 
-func (e ErrBadRequest) Code() ErrCode { return EBadRequest }
-func (e ErrBadRequest) Error() string { return fmt.Sprintf("[%s] %s", e.Code(), string(e)) }
+func (e ErrBadRequest) Code() ErrCode   { return EBadRequest }
+func (e ErrBadRequest) Error() string   { return fmt.Sprintf("[%s] %s", e.Code(), string(e)) }
+func (e ErrBadRequest) Message() string { return string(e) }
 
 // DomainError returns a domain error if available.
 func DomainError(err error) Error {

@@ -260,30 +260,30 @@ type LoginAPI interface {
 type SignUpAPI interface {
 	// SignUp is the initial registration step to identify a User.
 	// On success it will return a JWT token in an unverified state.
-	SignUp(w http.ResponseWriter, r *http.Request)
+	SignUp(w http.ResponseWriter, r *http.Request) (interface{}, error)
 	// Verify is the final registration step to validate a new
 	// User's authenticity. On success it will return a JWT
 	// token in an authozied state.
-	Verify(w http.ResponseWriter, r *http.Request)
+	Verify(w http.ResponseWriter, r *http.Request) (interface{}, error)
 }
 
 // DeviceAPI provides HTTP handlers to manage Devices for a User.
 type DeviceAPI interface {
 	// Verify validates ownership of a new Device for a User.
-	Verify(w http.ResponseWriter, r *http.Request)
+	Verify(w http.ResponseWriter, r *http.Request) (interface{}, error)
 	// Create is an initial request to add a new Device for a User.
-	Create(w http.ResponseWriter, r *http.Request)
+	Create(w http.ResponseWriter, r *http.Request) (interface{}, error)
 	// Remove removes a Device associated with a User.
-	Remove(w http.ResponseWriter, r *http.Request)
+	Remove(w http.ResponseWriter, r *http.Request) (interface{}, error)
 }
 
 // TokenAPI provides HTTP handlers to manage a User's tokens.
 type TokenAPI interface {
 	// Revoke revokes a User's token for a logged in session.
-	Revoke(w http.ResponseWriter, r *http.Request)
+	Revoke(w http.ResponseWriter, r *http.Request) (interface{}, error)
 	// Verify verifies a Usre's token is authenticate and
 	// valid. A valid token is not expired and not revoked.
-	Verify(w http.ResponseWriter, r *http.Request)
+	Verify(w http.ResponseWriter, r *http.Request) (interface{}, error)
 }
 
 // UserAPI proivdes HTTP handlers to configure a registered User's
@@ -291,7 +291,7 @@ type TokenAPI interface {
 type UserAPI interface {
 	// UpdateMFA change's a User's authentication requirement. It can
 	// be used to enable/disable TOTP, code, or device authentication.
-	UpdateMFA(w http.ResponseWriter, r *http.Request)
+	UpdateMFA(w http.ResponseWriter, r *http.Request) (interface{}, error)
 	// UpdatePassword change's a User's password.
-	UpdatePassword(w http.ResponseWriter, r *http.Request)
+	UpdatePassword(w http.ResponseWriter, r *http.Request) (interface{}, error)
 }

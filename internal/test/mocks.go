@@ -102,6 +102,28 @@ type WebAuthnLib struct {
 	}
 }
 
+// WebAuthnSerfvice mocks auth.WebAuthnService.
+type WebAuthnService struct {
+	BeginSignUpFn  func() ([]byte, error)
+	FinishSignUpFn func() (*auth.Device, error)
+	BeginLoginFn   func() ([]byte, error)
+	FinishLoginFn  func() error
+	Calls          struct {
+		BeginSignUp  int
+		FinishSignUp int
+		BeginLogin   int
+		FinishLogin  int
+	}
+}
+
+// Logger mocks a go-kit logger.
+type Logger struct {
+	LogFn func() error
+	Calls struct {
+		Log int
+	}
+}
+
 // BeginRegistration mock.
 func (m *WebAuthnLib) BeginRegistration(user webauthnLib.User, opts ...webauthnLib.RegistrationOption) (*webauthnProto.CredentialCreation, *webauthnLib.SessionData, error) {
 	m.Calls.BeginRegistration++
@@ -349,4 +371,54 @@ func (m *TokenService) Revoke(ctx context.Context, tokenID string, duration time
 		return m.RevokeFn()
 	}
 	return errors.New("token revocation failed")
+}
+
+// BeginSignUp mock.
+func (m *WebAuthnService) BeginSignUp(ctx context.Context, user *auth.User) ([]byte, error) {
+	m.Calls.BeginSignUp++
+	if m.BeginSignUpFn != nil {
+		return m.BeginSignUpFn()
+	}
+
+	return nil, errors.New("failed to start signup")
+}
+
+// FinishSignUp mock.
+func (m *WebAuthnService) FinishSignUp(ctx context.Context, user *auth.User, r *http.Request) (*auth.Device, error) {
+	m.Calls.FinishSignUp++
+	if m.FinishSignUpFn != nil {
+		return m.FinishSignUpFn()
+	}
+
+	return nil, errors.New("failed to finish signup")
+}
+
+// BeginLogin mock.
+func (m *WebAuthnService) BeginLogin(ctx context.Context, user *auth.User) ([]byte, error) {
+	m.Calls.BeginLogin++
+	if m.BeginLoginFn != nil {
+		return m.BeginLoginFn()
+	}
+
+	return nil, errors.New("failed to begin login")
+}
+
+// FinishLogin mock.
+func (m *WebAuthnService) FinishLogin(ctx context.Context, user *auth.User, r *http.Request) error {
+	m.Calls.FinishLogin++
+	if m.FinishLoginFn != nil {
+		return m.FinishLoginFn()
+	}
+
+	return errors.New("failed to finsih login")
+}
+
+// Log mock.
+func (m *Logger) Log(keyvals ...interface{}) error {
+	m.Calls.Log++
+	if m.LogFn != nil {
+		return m.LogFn()
+	}
+
+	return nil
 }

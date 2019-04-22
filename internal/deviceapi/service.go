@@ -5,8 +5,10 @@ import (
 	"net/http"
 
 	"github.com/go-kit/kit/log"
+	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
+	"github.com/fmitra/authenticator/internal/httpapi"
 )
 
 type service struct {
@@ -16,37 +18,45 @@ type service struct {
 }
 
 // Create is an initial request to add a new Device for a User.
-func (s *service) Create(w http.ResponseWriter, r *http.Request) {
+func (s *service) Create(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 	ctx := r.Context()
-	userID, ok := ctx.Value("userID").(string)
-	if !ok {
-		// TODO Internal error response. User ID should
-		// have been set in authentication middleware
-		return
+	userID, err := httpapi.GetUserID(r)
+	if err != nil {
+		return nil, err
 	}
 
 	user, err := s.repoMngr.User().ByIdentity(ctx, "ID", userID)
 	if err != nil {
-		// TODO Bad request domain error
-		return
+		return nil, err
 	}
 
-	// NOTE The webauthn serviec will manage persisting the session. We
-	// dont want to worry about it in the device api.
-	_, err = s.webauthn.BeginSignUp(ctx, user)
-	if err != nil {
-		// TODO new domain error for webauthn registration
-		return
-	}
-
-	// TODO Parse bytes to json and return to user
-	// { token: "", publicKey: "" }
+	return s.webauthn.BeginSignUp(ctx, user)
 }
 
 // Verify validates ownership of a new Device for a User.
-func (s *service) Verify(w http.ResponseWriter, r *http.Request) {
+func (s *service) Verify(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+	ctx := r.Context()
+	userID, err := httpapi.GetUserID(r)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := s.repoMngr.User().ByIdentity(ctx, "ID", userID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.webauthn.FinishLogin(ctx, user, r)
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 // Remove removes a Device associated with a User.
-func (s *service) Remove(w http.ResponseWriter, r *http.Request) {
+func (s *service) Remove(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+	// TODO Implement this in device repo. While you're at it
+	// it makes sense to allow querying by client ID for updates
+	return nil, errors.New("not implemented")
 }

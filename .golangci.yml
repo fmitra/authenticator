@@ -30,6 +30,7 @@ issues:
       linters:
         - golint
         - lll
+        - errcheck
     - path: errors.go
       linters:
         - golint
