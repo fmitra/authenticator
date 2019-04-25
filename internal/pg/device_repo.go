@@ -94,12 +94,12 @@ func (r *DeviceRepository) Update(ctx context.Context, device *auth.Device) erro
 		device.UpdatedAt,
 	)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to execute update")
 	}
 
 	updatedRows, err := res.RowsAffected()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to check affected rows")
 	}
 	if updatedRows != 1 {
 		return errors.Errorf("wrong number of devices updated: %d", updatedRows)
@@ -116,10 +116,31 @@ func (r *DeviceRepository) GetForUpdate(ctx context.Context, deviceID string) (*
 		&device.AAGUID, &device.SignCount, &device.CreatedAt, &device.UpdatedAt,
 	)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to retrieve record for update")
 	}
 
 	return &device, nil
+}
+
+// Remove removes a Device associated with a User.
+func (r *DeviceRepository) Remove(ctx context.Context, deviceID, userID string) error {
+	res, err := r.client.execContext(ctx, r.client.deviceQ["delete"], deviceID, userID)
+	if err != nil {
+		return errors.Wrap(err, "failed to execute delete")
+	}
+
+	removedRows, err := res.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "failed to check affected rows")
+	}
+	if removedRows == 0 {
+		return auth.ErrNotFound("device does not exist")
+	}
+	if removedRows != 1 {
+		return errors.Errorf("wrong number of devices removed: %d", removedRows)
+	}
+
+	return nil
 }
 
 func (r *DeviceRepository) get(ctx context.Context, queryKey string, values ...interface{}) (*auth.Device, error) {

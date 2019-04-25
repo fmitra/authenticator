@@ -15,6 +15,8 @@ const (
 	EInternal ErrCode = "internal"
 	// EBadRequest represents a bad JSON request body.
 	EBadRequest ErrCode = "bad_request"
+	// ENotFound represents a non existent entity.
+	ENotFound ErrCode = "not_found"
 )
 
 // Error represents an error within the authenticator domain.
@@ -49,6 +51,13 @@ type ErrBadRequest string
 func (e ErrBadRequest) Code() ErrCode   { return EBadRequest }
 func (e ErrBadRequest) Error() string   { return fmt.Sprintf("[%s] %s", e.Code(), string(e)) }
 func (e ErrBadRequest) Message() string { return string(e) }
+
+// ErrNotFound represents an error where we fail to read a JSON requst body.
+type ErrNotFound string
+
+func (e ErrNotFound) Code() ErrCode   { return ENotFound }
+func (e ErrNotFound) Error() string   { return fmt.Sprintf("[%s] %s", e.Code(), string(e)) }
+func (e ErrNotFound) Message() string { return string(e) }
 
 // DomainError returns a domain error if available.
 func DomainError(err error) Error {

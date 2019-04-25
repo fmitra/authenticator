@@ -125,12 +125,12 @@ func (r *UserRepository) Update(ctx context.Context, user *auth.User) error {
 		user.IsVerified,
 	)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to execute update")
 	}
 
 	updatedRows, err := res.RowsAffected()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to check affected rows")
 	}
 	if updatedRows != 1 {
 		return errors.Errorf("wrong number of users updated: %d", updatedRows)
@@ -148,7 +148,7 @@ func (r *UserRepository) GetForUpdate(ctx context.Context, userID string) (*auth
 		&user.IsVerified, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to retrieve record for update")
 	}
 
 	return &user, nil

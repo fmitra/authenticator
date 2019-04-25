@@ -2,10 +2,10 @@
 package deviceapi
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/go-kit/kit/log"
-	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/httpapi"
@@ -20,10 +20,7 @@ type service struct {
 // Create is an initial request to add a new Device for a User.
 func (s *service) Create(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 	ctx := r.Context()
-	userID, err := httpapi.GetUserID(r)
-	if err != nil {
-		return nil, err
-	}
+	userID := httpapi.GetUserID(r)
 
 	user, err := s.repoMngr.User().ByIdentity(ctx, "ID", userID)
 	if err != nil {
@@ -36,17 +33,14 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) (interface{}, e
 // Verify validates ownership of a new Device for a User.
 func (s *service) Verify(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 	ctx := r.Context()
-	userID, err := httpapi.GetUserID(r)
-	if err != nil {
-		return nil, err
-	}
+	userID := httpapi.GetUserID(r)
 
 	user, err := s.repoMngr.User().ByIdentity(ctx, "ID", userID)
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.webauthn.FinishLogin(ctx, user, r)
+	_, err = s.webauthn.FinishSignUp(ctx, user, r)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +50,24 @@ func (s *service) Verify(w http.ResponseWriter, r *http.Request) (interface{}, e
 
 // Remove removes a Device associated with a User.
 func (s *service) Remove(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	// TODO Implement this in device repo. While you're at it
-	// it makes sense to allow querying by client ID for updates
-	return nil, errors.New("not implemented")
+	ctx := r.Context()
+	userID := httpapi.GetUserID(r)
+
+	var request map[string]string
+	err := json.NewDecoder(r.Body).Decode(&request)
+	if err != nil {
+		return nil, auth.ErrBadRequest("invalid request format")
+	}
+
+	deviceID := request["deviceID"]
+	if deviceID == "" {
+		return nil, auth.ErrInvalidField("missing deviceID")
+	}
+
+	err = s.repoMngr.Device().Remove(ctx, deviceID, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }

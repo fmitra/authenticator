@@ -40,7 +40,7 @@ func AuthMiddleware(jsonHandler JSONAPIHandler, tokenSvc auth.TokenService) JSON
 // being parsed to an HTTP response.
 func ErrorLoggingMiddleware(jsonHandler JSONAPIHandler, source string, log log.Logger) JSONAPIHandler {
 	return func(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-		userID, _ := GetUserID(r)
+		userID := GetUserID(r)
 		response, err := jsonHandler(w, r)
 		if err != nil {
 			log.Log(

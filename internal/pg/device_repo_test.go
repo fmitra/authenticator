@@ -261,3 +261,48 @@ func TestDeviceRepository_Update(t *testing.T) {
 			device.ID, updatedDevice.ID)
 	}
 }
+
+func TestDeviceRepository_Remove(t *testing.T) {
+	c, err := NewTestClient("device_repo_remove_test")
+	if err != nil {
+		t.Fatal("failed to create test database:", err)
+	}
+	defer DropTestDB(c, "device_repo_remove_test")
+
+	ctx := context.Background()
+	user := auth.User{
+		Password:  "swordfish",
+		TFASecret: "tfa_secret",
+		Email: sql.NullString{
+			String: "jane@example.com",
+			Valid:  true,
+		},
+	}
+	err = c.User().Create(ctx, &user)
+	if err != nil {
+		t.Fatal("failed to create user:", err)
+	}
+
+	clientID := []byte("372b0969c35944209ca7adb5e617365c")
+	device := auth.Device{
+		UserID:    user.ID,
+		ClientID:  clientID,
+		PublicKey: []byte(publicKey),
+		AAGUID:    []byte("2bc7fd09a3d64cdea6f038023d0fa49e"),
+		Name:      "U2F Key",
+	}
+	err = c.Device().Create(ctx, &device)
+	if err != nil {
+		t.Fatal("failed to create device:", err)
+	}
+
+	err = c.Device().Remove(ctx, device.ID, "non-existant-user-id")
+	if err == nil {
+		t.Error("expected error response, not nil")
+	}
+
+	err = c.Device().Remove(ctx, device.ID, device.UserID)
+	if err != nil {
+		t.Error("failed to delete device:", err)
+	}
+}

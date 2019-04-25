@@ -165,3 +165,38 @@ func TestTokenSvc_InvalidateAfterExpiry(t *testing.T) {
 		t.Error("expired token should return error")
 	}
 }
+
+func TestTokenSvc_InvalidateNoUserID(t *testing.T) {
+	db, err := test.NewRedisDB(test.RedisTokenSvc)
+	if err != nil {
+		t.Fatal("faliled to create test database:", err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	user := &auth.User{}
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	entropy := ulid.Monotonic(random, 0)
+
+	tokenSvc := NewService(
+		WithDB(db),
+		WithEntropy(entropy),
+		WithTokenExpiry(time.Millisecond),
+		WithSecret("my-signing-secret"),
+	)
+
+	token, _, err := tokenSvc.Create(ctx, user)
+	if err != nil {
+		t.Fatal("failed to create token:", err)
+	}
+
+	jwtToken, err := tokenSvc.Sign(ctx, token)
+	if err != nil {
+		t.Fatal("failed to sign token:", err)
+	}
+
+	_, err = tokenSvc.Validate(ctx, jwtToken)
+	if err == nil {
+		t.Error("token with no user ID should return error, not nil")
+	}
+}

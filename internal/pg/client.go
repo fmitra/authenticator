@@ -109,6 +109,9 @@ func (c *Client) Open(dataSourceName string) error {
 			VALUES ($1, $2, $3, $4, $5, $6, $7)
 			RETURNING created_at, updated_at;
 		`,
+		"delete": `
+			DELETE FROM device WHERE id=$1 AND user_id=$2;
+		`,
 	}
 
 	c.userQ = map[string]string{

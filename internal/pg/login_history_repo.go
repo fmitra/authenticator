@@ -76,12 +76,12 @@ func (r *LoginHistoryRepository) Update(ctx context.Context, login *auth.LoginHi
 		login.UpdatedAt,
 	)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to execute update")
 	}
 
 	updatedRows, err := res.RowsAffected()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to check affected rows")
 	}
 	if updatedRows != 1 {
 		return errors.Errorf("wrong number of devices updated: %d", updatedRows)
@@ -98,7 +98,7 @@ func (r *LoginHistoryRepository) GetForUpdate(ctx context.Context, tokenID strin
 		&login.CreatedAt, &login.UpdatedAt,
 	)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to retrieve record for update")
 	}
 
 	return &login, nil

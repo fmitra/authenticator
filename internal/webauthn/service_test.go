@@ -33,6 +33,19 @@ func setSession(ctx context.Context, userID string, redisDB Rediser) error {
 	return redisDB.WithContext(ctx).Set(key, b, time.Second).Err()
 }
 
+func TestWebAuthnSvc_ConfiguresService(t *testing.T) {
+	_, err := NewService(
+		WithDB(&test.Rediser{}),
+		WithDisplayName("username"),
+		WithDomain("api.authenticator.local"),
+		WithRequestOrigin("app.authenticator.local"),
+		WithRepoManager(&test.RepositoryManager{}),
+	)
+	if err != nil {
+		t.Error("received error on service initialization:", err)
+	}
+}
+
 func TestWebAuthnSvc_BeginSignUp(t *testing.T) {
 	redisDB, err := test.NewRedisDB(test.RedisWebAuthn)
 	if err != nil {

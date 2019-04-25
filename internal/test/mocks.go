@@ -7,6 +7,7 @@ import (
 
 	webauthnProto "github.com/duo-labs/webauthn/protocol"
 	webauthnLib "github.com/duo-labs/webauthn/webauthn"
+	redisLib "github.com/go-redis/redis"
 	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
@@ -64,6 +65,7 @@ type DeviceRepository struct {
 	CreateFn       func() error
 	GetForUpdateFn func() (*auth.Device, error)
 	UpdateFn       func() error
+	RemoveFn       func() error
 	Calls          struct {
 		ByID         int
 		ByClientID   int
@@ -71,6 +73,7 @@ type DeviceRepository struct {
 		Create       int
 		GetForUpdate int
 		Update       int
+		Remove       int
 	}
 }
 
@@ -121,6 +124,20 @@ type Logger struct {
 	LogFn func() error
 	Calls struct {
 		Log int
+	}
+}
+
+// Rediser mocks go-redis client.
+type Rediser struct {
+	GetFn         func() *redisLib.StringCmd
+	SetFn         func() *redisLib.StatusCmd
+	WithContextFn func() *redisLib.Client
+	CloseFn       func() error
+	Calls         struct {
+		Get         int
+		Set         int
+		WithContext int
+		Close       int
 	}
 }
 
@@ -239,6 +256,15 @@ func (m *UserRepository) Update(ctx context.Context, u *auth.User) error {
 	m.Calls.Update++
 	if m.UpdateFn != nil {
 		return m.UpdateFn()
+	}
+	return nil
+}
+
+// Remove mock.
+func (m *DeviceRepository) Remove(ct context.Context, deviceID, userID string) error {
+	m.Calls.Remove++
+	if m.RemoveFn != nil {
+		return m.RemoveFn()
 	}
 	return nil
 }
@@ -420,5 +446,41 @@ func (m *Logger) Log(keyvals ...interface{}) error {
 		return m.LogFn()
 	}
 
+	return nil
+}
+
+// Get mock.
+func (m *Rediser) Get(key string) *redisLib.StringCmd {
+	m.Calls.Get++
+	if m.GetFn != nil {
+		return m.GetFn()
+	}
+	return nil
+}
+
+// Set mock.
+func (m *Rediser) Set(key string, v interface{}, t time.Duration) *redisLib.StatusCmd {
+	m.Calls.Set++
+	if m.SetFn != nil {
+		return m.SetFn()
+	}
+	return nil
+}
+
+// WithContext mock.
+func (m *Rediser) WithContext(ctxt context.Context) *redisLib.Client {
+	m.Calls.WithContext++
+	if m.WithContextFn != nil {
+		return m.WithContextFn()
+	}
+	return nil
+}
+
+// Close mock.
+func (m *Rediser) Close() error {
+	m.Calls.Close++
+	if m.CloseFn != nil {
+		return m.CloseFn()
+	}
 	return nil
 }

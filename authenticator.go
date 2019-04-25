@@ -174,6 +174,8 @@ type DeviceRepository interface {
 	GetForUpdate(ctx context.Context, deviceID string) (*Device, error)
 	// Update updates a Device.
 	Update(ctx context.Context, device *Device) error
+	// Removes a Devie associated with a User.
+	Remove(ctx context.Context, deviceID, userID string) error
 }
 
 // UserRepository represents a local storage for User.

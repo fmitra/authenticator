@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/pkg/errors"
-
 	auth "github.com/fmitra/authenticator"
 )
 
@@ -28,13 +26,13 @@ func ToHandlerFunc(jsonHandler JSONAPIHandler, successCode int) http.HandlerFunc
 }
 
 // GetUserID retrieves a User ID from context.
-func GetUserID(r *http.Request) (string, error) {
+func GetUserID(r *http.Request) string {
 	ctx := r.Context()
 	userID, ok := ctx.Value(userIDContextKey).(string)
 	if !ok {
-		return "", errors.New("no user ID available")
+		return ""
 	}
-	return userID, nil
+	return userID
 }
 
 // JSONResponse writes a response body. If a struct is provided

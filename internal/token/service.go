@@ -113,6 +113,10 @@ func (s *service) Validate(ctx context.Context, signedToken string) (*auth.Token
 		}
 	}
 
+	if token.UserID == "" {
+		return nil, auth.ErrInvalidToken("token is not associated with user")
+	}
+
 	err = s.db.WithContext(ctx).Get(token.Id).Err()
 	if err == nil {
 		return nil, auth.ErrInvalidToken("token is revoked")
