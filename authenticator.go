@@ -248,6 +248,16 @@ type PasswordService interface {
 	// Validate determines if a submitted pasword is valid for a stored
 	// password hash.
 	Validate(user *User, password string) error
+	// OKForUser checks if a password may be used for a user.
+	OKForUser(password string) error
+}
+
+// OTPService manages the protocol for SMS/Email 2FA codes and TOTP codes.
+type OTPService interface {
+	// RandomCode creates a random code and hash.
+	RandomCode() (code string, hash string, err error)
+	// Validate checks if a User OTP code is valid.
+	Validate(user *User, code string, hash string) error
 }
 
 // LoginAPI provides HTTP handlers for user authentication.

@@ -9,6 +9,8 @@ import (
 const (
 	// EInvalidToken represents an invalid JWT token error.
 	EInvalidToken ErrCode = "invalid_token"
+	// EInvalidCode represents an invalid OTP code.
+	EInvalidCode ErrCode = "invalid_code"
 	// EInvalidField represents an entity field error in a repository.
 	EInvalidField ErrCode = "invalid_field"
 	// EInternal represents an internal error outside of our domain.
@@ -29,6 +31,13 @@ type Error interface {
 // ErrCode is a machine readable code representing
 // an error within the authenticator domain.
 type ErrCode string
+
+// ErrInvalidCode represents an error related to an invalid TOTP/OTP code.
+type ErrInvalidCode string
+
+func (e ErrInvalidCode) Code() ErrCode   { return EInvalidCode }
+func (e ErrInvalidCode) Error() string   { return fmt.Sprintf("[%s] %s", e.Code(), string(e)) }
+func (e ErrInvalidCode) Message() string { return string(e) }
 
 // ErrInvalidToken represents an error related to JWT token invalidation
 // such as expiry, revocation, or signing errors.

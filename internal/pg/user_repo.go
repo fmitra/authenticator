@@ -8,14 +8,14 @@ import (
 	"github.com/nyaruka/phonenumbers"
 	"github.com/oklog/ulid"
 	"github.com/pkg/errors"
-	"golang.org/x/crypto/bcrypt"
 
 	auth "github.com/fmitra/authenticator"
 )
 
 // UserRepository is an implementation of auth.UserRepository.
 type UserRepository struct {
-	client *Client
+	client   *Client
+	password auth.PasswordService
 }
 
 // ByIdentity retrieves a User by their phone, email, or unique ID.
@@ -56,7 +56,6 @@ func (r *UserRepository) Create(ctx context.Context, user *auth.User) error {
 		validateIdentity,
 		validateEmail,
 		validatePhone,
-		validatePassword,
 	)
 	if err != nil {
 		return err
@@ -67,17 +66,10 @@ func (r *UserRepository) Create(ctx context.Context, user *auth.User) error {
 		return errors.Wrap(err, "cannot generate unique user ID")
 	}
 
-	// bcrypt will manage its own salt
-	// TODO Perhaps this should be done in the service layer.
-	// Doing it here makes it impossible to check if a user is using the same password
-	// You'll end up littering the passsword protocol across service and repository
-	// layers
-	passwdHash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return errors.Wrap(err, "failed to hash password")
+	if err = r.hashPassword(user); err != nil {
+		return err
 	}
 
-	user.Password = string(passwdHash)
 	user.ID = userID.String()
 	row := r.client.queryRowContext(
 		ctx,
@@ -110,7 +102,6 @@ func (r *UserRepository) ReCreate(ctx context.Context, user *auth.User) error {
 		validateIdentity,
 		validateEmail,
 		validatePhone,
-		validatePassword,
 		validateUserUnverified,
 	)
 	if err != nil {
@@ -122,14 +113,8 @@ func (r *UserRepository) ReCreate(ctx context.Context, user *auth.User) error {
 		return errors.Wrap(err, "cannot generate unique user ID")
 	}
 
-	// bcrypt will manage its own salt
-	// TODO Perhaps this should be done in the service layer.
-	// Doing it here makes it impossible to check if a user is using the same password
-	// You'll end up littering the passsword protocol across service and repository
-	// layers
-	passwdHash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return errors.Wrap(err, "failed to hash password")
+	if err = r.hashPassword(user); err != nil {
+		return err
 	}
 
 	currentTime := time.Now().UTC()
@@ -137,7 +122,6 @@ func (r *UserRepository) ReCreate(ctx context.Context, user *auth.User) error {
 	user.ID = userID.String()
 	user.UpdatedAt = currentTime
 	user.CreatedAt = currentTime
-	user.Password = string(passwdHash)
 
 	return r.update(ctx, oldID, user)
 }
@@ -200,6 +184,21 @@ func (r *UserRepository) update(ctx context.Context, userID string, user *auth.U
 	return nil
 }
 
+func (r *UserRepository) hashPassword(user *auth.User) error {
+	err := r.password.OKForUser(user.Password)
+	if err != nil {
+		return err
+	}
+
+	passwordHash, err := r.password.Hash(user.Password)
+	if err != nil {
+		return errors.Wrap(err, "failed to hash password")
+	}
+
+	user.Password = string(passwordHash)
+	return nil
+}
+
 // validateUserFields proccesses an arbitrary number of user entity
 // validator functions.
 func validateUserFields(user *auth.User, validators ...func(user *auth.User) error) error {
@@ -254,25 +253,6 @@ func validatePhone(user *auth.User) error {
 	isValid := phonenumbers.IsValidNumber(meta)
 	if !isValid {
 		return auth.ErrInvalidField("phone number is invalid")
-	}
-
-	return nil
-}
-
-// validatePassword ensure's a password meets length requirements.
-func validatePassword(user *auth.User) error {
-	var (
-		minPasswordLen = 8
-		maxPasswordLen = 1000
-	)
-
-	if len(user.Password) < minPasswordLen {
-		return auth.ErrInvalidField("password must be at least 8 characters long")
-	}
-
-	// A maximum password length is enforced to help mitigate DOS attacks.
-	if len(user.Password) > maxPasswordLen {
-		return auth.ErrInvalidField("password cannot be longer than 1000 characters")
 	}
 
 	return nil

@@ -2,12 +2,12 @@ package signupapi
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"context"
 
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"

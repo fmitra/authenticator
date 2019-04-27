@@ -10,6 +10,8 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/oklog/ulid"
+
+	"github.com/fmitra/authenticator/internal/password"
 )
 
 // NewTestClient returns a new Client connected to a test database.
@@ -53,9 +55,11 @@ func NewTestClient(testDBName string) (*Client, error) {
 		entropy = ulid.Monotonic(random, 0)
 	}
 
+	passwordSvc := password.NewPassword()
 	testClient := NewClient(
 		WithLogger(log.NewNopLogger()),
 		WithEntropy(entropy),
+		WithPassword(passwordSvc),
 	)
 	err = testClient.Open(testConnDetails)
 	if err != nil {

@@ -4,6 +4,8 @@ import (
 	"io"
 
 	"github.com/go-kit/kit/log"
+
+	auth "github.com/fmitra/authenticator"
 )
 
 // NewClient returns a new Postgres client to manage repositories.
@@ -43,5 +45,12 @@ func WithLogger(l log.Logger) ConfigOption {
 func WithEntropy(entropy io.Reader) ConfigOption {
 	return func(c *Client) {
 		c.entropy = entropy
+	}
+}
+
+// WithPassword configures the client with a PasswordService.
+func WithPassword(p auth.PasswordService) ConfigOption {
+	return func(c *Client) {
+		c.userRepository.password = p
 	}
 }
