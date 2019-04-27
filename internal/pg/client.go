@@ -143,7 +143,8 @@ func (c *Client) Open(dataSourceName string) error {
 		"update": `
 			UPDATE auth_user
 			SET phone=$2, email=$3, password=$4, tfa_secret=$5,
-				is_code_allowed=$6, is_totp_allowed=$7, is_device_allowed=$8, is_verified=$9
+				is_code_allowed=$6, is_totp_allowed=$7, is_device_allowed=$8,
+				is_verified=$9, created_at=$10, updated_at=$11, id=$12
 			WHERE id=$1;
 		`,
 		"insert": `

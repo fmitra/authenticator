@@ -45,7 +45,7 @@ func TestTokenSvc_Create(t *testing.T) {
 	user := &auth.User{ID: "user_id"}
 	tokenSvc := NewTestTokenSvc(db)
 
-	token, clientID, err := tokenSvc.Create(ctx, user)
+	token, clientID, err := tokenSvc.Create(ctx, user, auth.JWTAuthorized)
 	if err != nil {
 		t.Fatal("failed to create token:", err)
 	}
@@ -93,7 +93,7 @@ func TestTokenSvc_InvalidateAfterRevocation(t *testing.T) {
 	user := &auth.User{ID: "user_id"}
 	tokenSvc := NewTestTokenSvc(db)
 
-	token, _, err := tokenSvc.Create(ctx, user)
+	token, _, err := tokenSvc.Create(ctx, user, auth.JWTAuthorized)
 	if err != nil {
 		t.Fatal("failed to create token:", err)
 	}
@@ -144,7 +144,7 @@ func TestTokenSvc_InvalidateAfterExpiry(t *testing.T) {
 		WithSecret("my-signing-secret"),
 	)
 
-	token, _, err := tokenSvc.Create(ctx, user)
+	token, _, err := tokenSvc.Create(ctx, user, auth.JWTAuthorized)
 	if err != nil {
 		t.Fatal("failed to create token:", err)
 	}
@@ -185,7 +185,7 @@ func TestTokenSvc_InvalidateNoUserID(t *testing.T) {
 		WithSecret("my-signing-secret"),
 	)
 
-	token, _, err := tokenSvc.Create(ctx, user)
+	token, _, err := tokenSvc.Create(ctx, user, auth.JWTAuthorized)
 	if err != nil {
 		t.Fatal("failed to create token:", err)
 	}

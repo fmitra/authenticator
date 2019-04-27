@@ -38,6 +38,7 @@ issues:
       linters:
         - scopelint
         - errcheck
+        - goconst
 
   exclude-use-default: false
   exclude:

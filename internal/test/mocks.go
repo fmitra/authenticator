@@ -82,11 +82,13 @@ type UserRepository struct {
 	ByIdentityFn   func() (*auth.User, error)
 	GetForUpdateFn func() (*auth.User, error)
 	CreateFn       func() error
+	ReCreateFn     func() error
 	UpdateFn       func() error
 	Calls          struct {
 		ByIdentity   int
 		GetForUpdate int
 		Create       int
+		ReCreate     int
 		Update       int
 	}
 }
@@ -251,6 +253,15 @@ func (m *UserRepository) Create(ctx context.Context, u *auth.User) error {
 	return nil
 }
 
+// ReCreate mock.
+func (m *UserRepository) ReCreate(ctx context.Context, u *auth.User) error {
+	m.Calls.ReCreate++
+	if m.ReCreateFn != nil {
+		return m.ReCreateFn()
+	}
+	return nil
+}
+
 // Update mock.
 func (m *UserRepository) Update(ctx context.Context, u *auth.User) error {
 	m.Calls.Update++
@@ -364,7 +375,7 @@ func (m *LoginHistoryRepository) Update(ctx context.Context, login *auth.LoginHi
 }
 
 // Create mock.
-func (m *TokenService) Create(ctx context.Context, u *auth.User) (*auth.Token, string, error) {
+func (m *TokenService) Create(ctx context.Context, u *auth.User, state auth.TokenState) (*auth.Token, string, error) {
 	m.Calls.Create++
 	if m.CreateFn != nil {
 		return m.CreateFn()

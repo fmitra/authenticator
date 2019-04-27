@@ -26,7 +26,7 @@ func TestUserRepository_Create(t *testing.T) {
 		isCreated bool
 	}{
 		{
-			name:      "No phone/email failure",
+			name:      "No phone or email failure",
 			email:     sql.NullString{},
 			phone:     sql.NullString{},
 			password:  "swordfish",
@@ -255,5 +255,169 @@ func TestUserRepository_Update(t *testing.T) {
 	if user.ID != updatedUser.ID {
 		t.Errorf("user IDs do not match: want %s got %s",
 			user.ID, updatedUser.ID)
+	}
+}
+
+func TestUserRepository_ReCreateFailure(t *testing.T) {
+	c, err := NewTestClient("user_repo_recreate_err_test")
+	if err != nil {
+		t.Fatal("failed to create test database:", err)
+	}
+	defer DropTestDB(c, "user_repo_recreate_err_test")
+
+	tt := []struct {
+		name        string
+		email       sql.NullString
+		phone       sql.NullString
+		password    string
+		isDomainErr bool
+		isVerified  bool
+	}{
+		{
+			name:        "No phone or email failure",
+			email:       sql.NullString{},
+			phone:       sql.NullString{},
+			password:    "swordfish",
+			isDomainErr: true,
+			isVerified:  false,
+		},
+		{
+			name: "Invalid email failure",
+			email: sql.NullString{
+				String: "not-a-real-email",
+				Valid:  true,
+			},
+			phone:       sql.NullString{},
+			password:    "swordfish",
+			isDomainErr: true,
+			isVerified:  false,
+		},
+		{
+			name:  "Invalid phone failure",
+			email: sql.NullString{},
+			phone: sql.NullString{
+				String: "94867353",
+				Valid:  true,
+			},
+			password:    "swordfish",
+			isDomainErr: true,
+			isVerified:  false,
+		},
+		{
+			name: "Fail if password invalid",
+			email: sql.NullString{
+				String: "jane@example.com",
+				Valid:  true,
+			},
+			phone:       sql.NullString{},
+			password:    "short",
+			isDomainErr: true,
+			isVerified:  false,
+		},
+		{
+			name: "Already verified failure",
+			email: sql.NullString{
+				String: "jane@example.com",
+				Valid:  true,
+			},
+			phone:       sql.NullString{},
+			password:    "swordfish",
+			isDomainErr: false,
+			isVerified:  true,
+		},
+	}
+
+	user := auth.User{
+		Password:  "swordfish",
+		TFASecret: "tfa_secret",
+		Email: sql.NullString{
+			String: "jane@example.com",
+			Valid:  true,
+		},
+		Phone: sql.NullString{
+			String: "+6594867353",
+			Valid:  true,
+		},
+		IsVerified: true,
+	}
+	ctx := context.Background()
+	err = c.User().Create(ctx, &user)
+	if err != nil {
+		t.Fatal("failed to create user:", err)
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			newUser := auth.User{
+				ID:         user.ID,
+				Password:   tc.password,
+				TFASecret:  "tfa_secret",
+				Email:      tc.email,
+				Phone:      tc.phone,
+				IsVerified: tc.isVerified,
+			}
+			err = c.User().ReCreate(ctx, &newUser)
+			if err == nil {
+				t.Fatal("new user should not be created")
+			}
+
+			if tc.isDomainErr && auth.DomainError(err) == nil {
+				t.Error("user creation should be blocked by domain error")
+			}
+		})
+	}
+}
+
+func TestUserRepository_ReCreateSuccess(t *testing.T) {
+	c, err := NewTestClient("user_repo_recreate_ok_test")
+	if err != nil {
+		t.Fatal("failed to create test database:", err)
+	}
+	defer DropTestDB(c, "user_repo_recreate_ok_test")
+
+	user := auth.User{
+		Password:  "swordfish",
+		TFASecret: "tfa_secret",
+		Email: sql.NullString{
+			String: "jane@example.com",
+			Valid:  true,
+		},
+		Phone: sql.NullString{
+			String: "+6594867353",
+			Valid:  true,
+		},
+		IsVerified: false,
+	}
+	ctx := context.Background()
+	err = c.User().Create(ctx, &user)
+	if err != nil {
+		t.Fatal("failed to create user:", err)
+	}
+
+	newUser := auth.User{
+		ID:        user.ID,
+		Password:  "swordfish",
+		TFASecret: "tfa_secret",
+		Email: sql.NullString{
+			String: "jane@example.com",
+			Valid:  true,
+		},
+		Phone: sql.NullString{
+			String: "+6594867353",
+			Valid:  true,
+		},
+	}
+
+	err = c.User().ReCreate(ctx, &newUser)
+	if err != nil {
+		t.Fatal("failed to re-create user:", err)
+	}
+
+	if user.ID == newUser.ID {
+		t.Error("recreated user should have newly generated ID")
+	}
+
+	if newUser.CreatedAt.Unix() < user.CreatedAt.Unix() {
+		t.Error("new user should be created after the older user")
 	}
 }

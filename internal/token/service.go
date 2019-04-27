@@ -39,7 +39,7 @@ type service struct {
 
 // Create creates a new, signed JWT token for a User.
 // On success it returns a token and the unhashed ClientID.
-func (s *service) Create(ctx context.Context, user *auth.User) (*auth.Token, string, error) {
+func (s *service) Create(ctx context.Context, user *auth.User, state auth.TokenState) (*auth.Token, string, error) {
 	tokenULID, err := ulid.New(ulid.Now(), s.entropy)
 	if err != nil {
 		return nil, "", errors.Wrap(err, "cannot generate unique token ID")
@@ -63,6 +63,7 @@ func (s *service) Create(ctx context.Context, user *auth.User) (*auth.Token, str
 		Email:    user.Email.String,
 		Phone:    user.Phone.String,
 		ClientID: clientIDHash,
+		State:    state,
 	}
 
 	return &token, clientID, nil

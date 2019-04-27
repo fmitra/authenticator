@@ -77,13 +77,6 @@ func (r *UserRepository) Create(ctx context.Context, user *auth.User) error {
 		return errors.Wrap(err, "failed to hash password")
 	}
 
-	// TODO Handle users who attempt to-resign at a later time
-	// for example, users who do not verify their phone/email
-	// and attempt to create a new account. This should be an update
-	// event where we hash the password and reset the created timestamp.
-	// perhaps created time should reflect the validation date. this
-	// would prevent users from re-setting the password with an email they
-	// don't won prior to another user finishing validation
 	user.Password = string(passwdHash)
 	user.ID = userID.String()
 	row := r.client.queryRowContext(
@@ -106,36 +99,52 @@ func (r *UserRepository) Create(ctx context.Context, user *auth.User) error {
 	return err
 }
 
-// Update updates a User in storage.
-func (r *UserRepository) Update(ctx context.Context, user *auth.User) error {
-	currentTime := time.Now().UTC()
-	user.UpdatedAt = currentTime
-
-	res, err := r.client.execContext(
-		ctx,
-		r.client.userQ["update"],
-		user.ID,
-		user.Phone,
-		user.Email,
-		user.Password,
-		user.TFASecret,
-		user.IsCodeAllowed,
-		user.IsTOTPAllowed,
-		user.IsDeviceAllowed,
-		user.IsVerified,
+// ReCreate updates an existing unverified User record
+// with new a new creation timestamp and primary key value
+// to treat the user as a newly created record. New Users
+// remain in an unverified state until completing OTP
+// verification to prove ownership of a phone or email address.
+func (r *UserRepository) ReCreate(ctx context.Context, user *auth.User) error {
+	err := validateUserFields(
+		user,
+		validateIdentity,
+		validateEmail,
+		validatePhone,
+		validatePassword,
+		validateUserUnverified,
 	)
 	if err != nil {
-		return errors.Wrap(err, "failed to execute update")
+		return err
 	}
 
-	updatedRows, err := res.RowsAffected()
+	userID, err := ulid.New(ulid.Now(), r.client.entropy)
 	if err != nil {
-		return errors.Wrap(err, "failed to check affected rows")
+		return errors.Wrap(err, "cannot generate unique user ID")
 	}
-	if updatedRows != 1 {
-		return errors.Errorf("wrong number of users updated: %d", updatedRows)
+
+	// bcrypt will manage its own salt
+	// TODO Perhaps this should be done in the service layer.
+	// Doing it here makes it impossible to check if a user is using the same password
+	// You'll end up littering the passsword protocol across service and repository
+	// layers
+	passwdHash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return errors.Wrap(err, "failed to hash password")
 	}
-	return nil
+
+	currentTime := time.Now().UTC()
+	oldID := user.ID
+	user.ID = userID.String()
+	user.UpdatedAt = currentTime
+	user.CreatedAt = currentTime
+	user.Password = string(passwdHash)
+
+	return r.update(ctx, oldID, user)
+}
+
+// Update updates a User in storage.
+func (r *UserRepository) Update(ctx context.Context, user *auth.User) error {
+	return r.update(ctx, user.ID, user)
 }
 
 // GetForUpdate retrieves a User to be updated.
@@ -152,6 +161,43 @@ func (r *UserRepository) GetForUpdate(ctx context.Context, userID string) (*auth
 	}
 
 	return &user, nil
+}
+
+func (r *UserRepository) update(ctx context.Context, userID string, user *auth.User) error {
+	currentTime := time.Now().UTC()
+	user.UpdatedAt = currentTime
+
+	res, err := r.client.execContext(
+		ctx,
+		r.client.userQ["update"],
+		userID,
+		user.Phone,
+		user.Email,
+		user.Password,
+		user.TFASecret,
+		user.IsCodeAllowed,
+		user.IsTOTPAllowed,
+		user.IsDeviceAllowed,
+		user.IsVerified,
+		// We support updating CreatedAt and ID fields
+		// in order to treat re-registrations
+		// of unverified users as a new user.
+		user.CreatedAt,
+		user.UpdatedAt,
+		user.ID,
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed to execute update")
+	}
+
+	updatedRows, err := res.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "failed to check affected rows")
+	}
+	if updatedRows != 1 {
+		return errors.Errorf("wrong number of users updated: %d", updatedRows)
+	}
+	return nil
 }
 
 // validateUserFields proccesses an arbitrary number of user entity
@@ -227,6 +273,22 @@ func validatePassword(user *auth.User) error {
 	// A maximum password length is enforced to help mitigate DOS attacks.
 	if len(user.Password) > maxPasswordLen {
 		return auth.ErrInvalidField("password cannot be longer than 1000 characters")
+	}
+
+	return nil
+}
+
+// validateUserUnverified ensure's a user is in an unverified state.
+func validateUserUnverified(user *auth.User) error {
+	if user.IsVerified {
+		// External users should not be aware if a user is verified or not.
+		// This error should not occur under normal conditions and the most
+		// likely scenario is a race condition between legitimate and illegitimate
+		// users in which one user completes account verification immediately before
+		// another user obtains a lock before re-creation. In this case it
+		// should be  treated as an internal error to prevent clients
+		// from becoming aware of what users exist in our system.
+		return errors.New("cannot re-create already verified user")
 	}
 
 	return nil

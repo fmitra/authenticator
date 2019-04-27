@@ -16,7 +16,7 @@ const authorizationHeader = "AUTHORIZATION"
 const userIDContextKey contextKey = "userID"
 
 // AuthMiddleware validates an Authorization header if available.
-func AuthMiddleware(jsonHandler JSONAPIHandler, tokenSvc auth.TokenService) JSONAPIHandler {
+func AuthMiddleware(jsonHandler JSONAPIHandler, tokenSvc auth.TokenService, state auth.TokenState) JSONAPIHandler {
 	return func(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 		ctx := r.Context()
 		jwtToken := r.Header.Get(authorizationHeader)
@@ -27,6 +27,10 @@ func AuthMiddleware(jsonHandler JSONAPIHandler, tokenSvc auth.TokenService) JSON
 		token, err := tokenSvc.Validate(ctx, jwtToken)
 		if err != nil {
 			return nil, err
+		}
+
+		if token.State != state {
+			return nil, auth.ErrInvalidToken("token state is not supported")
 		}
 
 		ctxWithUserID := context.WithValue(ctx, userIDContextKey, token.UserID)

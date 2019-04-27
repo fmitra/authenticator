@@ -32,7 +32,7 @@ func TestDeviceAPI_Create(t *testing.T) {
 			errMessage:  "user is not authenticated",
 			loggerCount: 1,
 			tokenValidateFn: func() (*auth.Token, error) {
-				return &auth.Token{UserID: "user-id"}, nil
+				return &auth.Token{UserID: "user-id", State: auth.JWTAuthorized}, nil
 			},
 			userFn: func() (*auth.User, error) {
 				return &auth.User{}, nil
@@ -64,7 +64,7 @@ func TestDeviceAPI_Create(t *testing.T) {
 			errMessage:  "no user found",
 			loggerCount: 1,
 			tokenValidateFn: func() (*auth.Token, error) {
-				return &auth.Token{UserID: "user-id"}, nil
+				return &auth.Token{UserID: "user-id", State: auth.JWTAuthorized}, nil
 			},
 			userFn: func() (*auth.User, error) {
 				return nil, auth.ErrBadRequest("no user found")
@@ -80,7 +80,7 @@ func TestDeviceAPI_Create(t *testing.T) {
 			errMessage:  "An internal error occurred",
 			loggerCount: 1,
 			tokenValidateFn: func() (*auth.Token, error) {
-				return &auth.Token{UserID: "user-id"}, nil
+				return &auth.Token{UserID: "user-id", State: auth.JWTAuthorized}, nil
 			},
 			userFn: func() (*auth.User, error) {
 				return nil, errors.New("whoops")
@@ -96,7 +96,7 @@ func TestDeviceAPI_Create(t *testing.T) {
 			errMessage:  "",
 			loggerCount: 0,
 			tokenValidateFn: func() (*auth.Token, error) {
-				return &auth.Token{UserID: "user-id"}, nil
+				return &auth.Token{UserID: "user-id", State: auth.JWTAuthorized}, nil
 			},
 			userFn: func() (*auth.User, error) {
 				return &auth.User{}, nil
@@ -148,10 +148,9 @@ func TestDeviceAPI_Create(t *testing.T) {
 				t.Errorf("incorrect status code, want %v got %v", tc.statusCode, rr.Code)
 			}
 
-			var errResponse map[string]map[string]string
-			err = json.NewDecoder(rr.Body).Decode(&errResponse)
-			if err != nil && tc.errMessage != "" {
-				t.Error("failed to parse response body:", err)
+			err = validateErrMessage(tc.errMessage, rr.Body)
+			if err != nil {
+				t.Error(err)
 			}
 
 			if logger.Calls.Log != tc.loggerCount {
@@ -180,7 +179,7 @@ func TestDeviceAPI_Verify(t *testing.T) {
 			errMessage:  "user is not authenticated",
 			loggerCount: 1,
 			tokenValidateFn: func() (*auth.Token, error) {
-				return &auth.Token{UserID: "user-id"}, nil
+				return &auth.Token{UserID: "user-id", State: auth.JWTAuthorized}, nil
 			},
 			userFn: func() (*auth.User, error) {
 				return &auth.User{}, nil
@@ -212,7 +211,7 @@ func TestDeviceAPI_Verify(t *testing.T) {
 			errMessage:  "no user found",
 			loggerCount: 1,
 			tokenValidateFn: func() (*auth.Token, error) {
-				return &auth.Token{UserID: "user-id"}, nil
+				return &auth.Token{UserID: "user-id", State: auth.JWTAuthorized}, nil
 			},
 			userFn: func() (*auth.User, error) {
 				return nil, auth.ErrBadRequest("no user found")
@@ -228,7 +227,7 @@ func TestDeviceAPI_Verify(t *testing.T) {
 			errMessage:  "An internal error occurred",
 			loggerCount: 1,
 			tokenValidateFn: func() (*auth.Token, error) {
-				return &auth.Token{UserID: "user-id"}, nil
+				return &auth.Token{UserID: "user-id", State: auth.JWTAuthorized}, nil
 			},
 			userFn: func() (*auth.User, error) {
 				return &auth.User{}, nil
@@ -244,7 +243,7 @@ func TestDeviceAPI_Verify(t *testing.T) {
 			errMessage:  "",
 			loggerCount: 0,
 			tokenValidateFn: func() (*auth.Token, error) {
-				return &auth.Token{UserID: "user-id"}, nil
+				return &auth.Token{UserID: "user-id", State: auth.JWTAuthorized}, nil
 			},
 			userFn: func() (*auth.User, error) {
 				return &auth.User{}, nil
@@ -296,10 +295,9 @@ func TestDeviceAPI_Verify(t *testing.T) {
 				t.Errorf("incorrect status code, want %v got %v", tc.statusCode, rr.Code)
 			}
 
-			var errResponse map[string]map[string]string
-			err = json.NewDecoder(rr.Body).Decode(&errResponse)
-			if err != nil && tc.errMessage != "" {
-				t.Error("failed to parse response body:", err)
+			err = validateErrMessage(tc.errMessage, rr.Body)
+			if err != nil {
+				t.Error(err)
 			}
 
 			if logger.Calls.Log != tc.loggerCount {
@@ -391,7 +389,10 @@ func TestDeviceAPI_Remove(t *testing.T) {
 			}
 			tokenSvc := &test.TokenService{
 				ValidateFn: func() (*auth.Token, error) {
-					return &auth.Token{UserID: "user-id"}, nil
+					return &auth.Token{
+						UserID: "user-id",
+						State:  auth.JWTAuthorized,
+					}, nil
 				},
 			}
 			svc := NewService(
@@ -418,10 +419,9 @@ func TestDeviceAPI_Remove(t *testing.T) {
 				t.Errorf("incorrect status code, want %v got %v", tc.statusCode, rr.Code)
 			}
 
-			var errResponse map[string]map[string]string
-			err = json.NewDecoder(rr.Body).Decode(&errResponse)
-			if err != nil && tc.errMessage != "" {
-				t.Error("failed to parse response body:", err)
+			err = validateErrMessage(tc.errMessage, rr.Body)
+			if err != nil {
+				t.Error(err)
 			}
 
 			if logger.Calls.Log != tc.loggerCount {
@@ -430,4 +430,23 @@ func TestDeviceAPI_Remove(t *testing.T) {
 			}
 		})
 	}
+}
+
+func validateErrMessage(expectedMsg string, body *bytes.Buffer) error {
+	if expectedMsg == "" {
+		return nil
+	}
+
+	var errResponse map[string]map[string]string
+	err := json.NewDecoder(body).Decode(&errResponse)
+	if err != nil {
+		return err
+	}
+
+	if errResponse["error"]["message"] != expectedMsg {
+		return errors.Errorf("incorrect error resposne, want '%s' got '%s'",
+			expectedMsg, errResponse["error"]["message"])
+	}
+
+	return nil
 }

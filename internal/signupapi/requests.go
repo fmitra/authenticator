@@ -1,6 +1,7 @@
 package signupapi
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
 
@@ -10,6 +11,7 @@ import (
 )
 
 type signupRequest struct {
+	Password string `json:"password"`
 	Identity string `json:"identity"`
 	Type     string `json:"type"`
 }
@@ -27,6 +29,27 @@ func (r *signupRequest) UserAttribute() string {
 	default:
 		return ""
 	}
+}
+
+func (r *signupRequest) ToUser() *auth.User {
+	user := auth.User{
+		Password: r.Password,
+	}
+
+	identity := sql.NullString{
+		String: r.Identity,
+		Valid:  true,
+	}
+
+	if r.Type == "email" {
+		user.Email = identity
+	}
+
+	if r.Type == "phone" {
+		user.Phone = identity
+	}
+
+	return &user
 }
 
 func decodeSignupRequest(r *http.Request) (*signupRequest, error) {

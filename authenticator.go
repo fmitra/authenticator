@@ -10,6 +10,11 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
+// TokenState represents a state of a JWT token.
+// A token may represent an intermediary state prior
+// to authorization (ex. TOTP code is required)
+type TokenState string
+
 const (
 	// Issuer is the default issuer of a JWT token.
 	Issuer = "authenticator"
@@ -38,15 +43,12 @@ const (
 )
 
 const (
-	// JWTUnverified represents the state of a user after initiating
-	// the first step of signup.
-	JWTUnverified = "unverified"
-	// JWTIdentified represents the state of a user after initiating
-	// the first step of login.
-	JWTIdentified = "identified"
+	// JWTPreAuthorized represents the state of a user before completing
+	// the MFA step of signup or login.
+	JWTPreAuthorized TokenState = "pre_authorized"
 	// JWTAuthorized represents a the state of a user after completing
 	// the final step of login or signup.
-	JWTAuthorized = "authorized"
+	JWTAuthorized TokenState = "authorized"
 )
 
 // User represents a user who is registered with the service.
@@ -140,7 +142,7 @@ type Token struct {
 	Phone string `json:"phone_number"`
 	// State is the current state of the user at the time
 	// the token was issued.
-	State string `json:"state"`
+	State TokenState `json:"state"`
 	// Code is the hash of a randomly generated code.
 	// This field is omitted in authorized tokens.
 	Code string `json:"code,omitempty"`
@@ -187,6 +189,11 @@ type UserRepository interface {
 	GetForUpdate(ctx context.Context, userID string) (*User, error)
 	// Create creates a new User Record.
 	Create(ctx context.Context, u *User) error
+	// ReCreate updates an existing, unverified User record,
+	// to treat the entry as a new unverified User registration.
+	// User's are considered unverified until completing OTP
+	// verification to prove ownership of a phone or email address.
+	ReCreate(ctx context.Context, u *User) error
 	// Update updates a User.
 	Update(ctx context.Context, u *User) error
 }
@@ -210,9 +217,9 @@ type RepositoryManager interface {
 
 // TokenService represents a service to manage JWT tokens.
 type TokenService interface {
-	// Create creates a new JWT token. On success, it returns
-	// the token and the unhashed ClientID.
-	Create(ctx context.Context, user *User) (*Token, string, error)
+	// Create creates a new authorized or pre-authorized JWT token.
+	// On success, it returns the token and the unhashed ClientID.
+	Create(ctx context.Context, user *User, state TokenState) (*Token, string, error)
 	// Sign creates a signed JWT token string from a token struct.
 	Sign(ctx context.Context, token *Token) (string, error)
 	// Validate checks that a JWT token is signed by us, unexpired,
