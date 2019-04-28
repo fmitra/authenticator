@@ -393,7 +393,7 @@ func (m *TokenService) Sign(ctx context.Context, token *auth.Token) (string, err
 }
 
 // Validate mock.
-func (m *TokenService) Validate(ctx context.Context, signedToken string) (*auth.Token, error) {
+func (m *TokenService) Validate(ctx context.Context, signedToken string, clientID string) (*auth.Token, error) {
 	m.Calls.Validate++
 	if m.ValidateFn != nil {
 		return m.ValidateFn()

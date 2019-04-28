@@ -13,6 +13,7 @@ import (
 type contextKey string
 
 const authorizationHeader = "AUTHORIZATION"
+const clientID = "CLIENTID"
 const userIDContextKey contextKey = "userID"
 
 // AuthMiddleware validates an Authorization header if available.
@@ -24,7 +25,12 @@ func AuthMiddleware(jsonHandler JSONAPIHandler, tokenSvc auth.TokenService, stat
 			return nil, auth.ErrInvalidToken("user is not authenticated")
 		}
 
-		token, err := tokenSvc.Validate(ctx, jwtToken)
+		clientIDCookie, err := r.Cookie(clientID)
+		if err != nil {
+			return nil, auth.ErrInvalidToken("token source is invalid")
+		}
+
+		token, err := tokenSvc.Validate(ctx, jwtToken, clientIDCookie.Value)
 		if err != nil {
 			return nil, err
 		}

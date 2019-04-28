@@ -59,7 +59,7 @@ func WithEntropy(entropy io.Reader) ConfigOption {
 	}
 }
 
-// WithSecret configures the client with a secret value
+// WithSecret configures the service with a secret value
 // for signing functions.
 func WithSecret(secret string) ConfigOption {
 	return func(s *service) {
@@ -72,5 +72,12 @@ func WithSecret(secret string) ConfigOption {
 func WithIssuer(issuer string) ConfigOption {
 	return func(s *service) {
 		s.issuer = issuer
+	}
+}
+
+// WithOTP configures the service with an OTP management service.
+func WithOTP(o auth.OTPService) ConfigOption {
+	return func(s *service) {
+		s.otp = o
 	}
 }

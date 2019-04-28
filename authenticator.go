@@ -143,9 +143,11 @@ type Token struct {
 	// State is the current state of the user at the time
 	// the token was issued.
 	State TokenState `json:"state"`
-	// Code is the hash of a randomly generated code.
+	// CodeHash is the hash of a randomly generated code.
 	// This field is omitted in authorized tokens.
-	Code string `json:"code,omitempty"`
+	CodeHash string `json:"code,omitempty"`
+	// Code is the unhashed value of CodeHash
+	Code string `json:"-"`
 }
 
 // LoginHistoryRepository represents a local storage for LoginHistory.
@@ -223,8 +225,9 @@ type TokenService interface {
 	// Sign creates a signed JWT token string from a token struct.
 	Sign(ctx context.Context, token *Token) (string, error)
 	// Validate checks that a JWT token is signed by us, unexpired,
-	// and unrevoked. On success it will return the unpacked Token struct.
-	Validate(ctx context.Context, signedToken string) (*Token, error)
+	// unrevoked, and from the a valid client. On success it will return the unpacked
+	// Token struct.
+	Validate(ctx context.Context, signedToken string, clientID string) (*Token, error)
 	// Revoke Revokes a token for a specified duration of time.
 	Revoke(ctx context.Context, tokenID string, duration time.Duration) error
 }

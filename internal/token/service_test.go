@@ -13,6 +13,7 @@ import (
 	"github.com/oklog/ulid"
 
 	auth "github.com/fmitra/authenticator"
+	"github.com/fmitra/authenticator/internal/otp"
 	"github.com/fmitra/authenticator/internal/test"
 )
 
@@ -29,12 +30,14 @@ func NewTestTokenSvc(db Rediser) auth.TokenService {
 		WithEntropy(entropy),
 		WithTokenExpiry(time.Second*10),
 		WithSecret("my-signing-secret"),
+		WithIssuer("authenticator"),
+		WithOTP(otp.NewOTP()),
 	)
 
 	return tokenSvc
 }
 
-func TestTokenSvc_Create(t *testing.T) {
+func TestTokenSvc_CreateAuthorized(t *testing.T) {
 	db, err := test.NewRedisDB(test.RedisTokenSvc)
 	if err != nil {
 		t.Fatal("faliled to create test database:", err)
@@ -72,6 +75,10 @@ func TestTokenSvc_Create(t *testing.T) {
 		t.Error("invalid clientID generated for token")
 	}
 
+	if token.Code != "" || token.CodeHash != "" {
+		t.Error("otp codes should not be generated for authorized tokens")
+	}
+
 	h := sha512.New()
 	h.Write([]byte(clientID))
 	clientIDHash := hex.EncodeToString(h.Sum(nil))
@@ -79,6 +86,27 @@ func TestTokenSvc_Create(t *testing.T) {
 	if clientIDHash != token.ClientID {
 		t.Errorf("client ID does not match: want %s got %s",
 			clientIDHash, token.ClientID)
+	}
+}
+
+func TestTokenSvc_CreatePreAuthorized(t *testing.T) {
+	db, err := test.NewRedisDB(test.RedisTokenSvc)
+	if err != nil {
+		t.Fatal("faliled to create test database:", err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	user := &auth.User{ID: "user_id", IsCodeAllowed: true}
+	tokenSvc := NewTestTokenSvc(db)
+
+	token, _, err := tokenSvc.Create(ctx, user, auth.JWTPreAuthorized)
+	if err != nil {
+		t.Fatal("failed to create token:", err)
+	}
+
+	if token.Code == "" || token.CodeHash == "" {
+		t.Fatal("otp codes should be generated for pre-authorized tokens")
 	}
 }
 
@@ -93,7 +121,7 @@ func TestTokenSvc_InvalidateAfterRevocation(t *testing.T) {
 	user := &auth.User{ID: "user_id"}
 	tokenSvc := NewTestTokenSvc(db)
 
-	token, _, err := tokenSvc.Create(ctx, user, auth.JWTAuthorized)
+	token, clientID, err := tokenSvc.Create(ctx, user, auth.JWTAuthorized)
 	if err != nil {
 		t.Fatal("failed to create token:", err)
 	}
@@ -103,7 +131,7 @@ func TestTokenSvc_InvalidateAfterRevocation(t *testing.T) {
 		t.Fatal("failed to sign token:", err)
 	}
 
-	_, err = tokenSvc.Validate(ctx, jwtToken)
+	_, err = tokenSvc.Validate(ctx, jwtToken, clientID)
 	if err != nil {
 		t.Error("failed to validate token:", err)
 	}
@@ -113,7 +141,7 @@ func TestTokenSvc_InvalidateAfterRevocation(t *testing.T) {
 		t.Error("failed to revoke token:", err)
 	}
 
-	_, err = tokenSvc.Validate(ctx, jwtToken)
+	_, err = tokenSvc.Validate(ctx, jwtToken, clientID)
 	if err == nil {
 		t.Fatal("revoked token should return error")
 	}
@@ -142,9 +170,11 @@ func TestTokenSvc_InvalidateAfterExpiry(t *testing.T) {
 		WithEntropy(entropy),
 		WithTokenExpiry(time.Millisecond),
 		WithSecret("my-signing-secret"),
+		WithIssuer("authenticator"),
+		WithOTP(otp.NewOTP()),
 	)
 
-	token, _, err := tokenSvc.Create(ctx, user, auth.JWTAuthorized)
+	token, clientID, err := tokenSvc.Create(ctx, user, auth.JWTAuthorized)
 	if err != nil {
 		t.Fatal("failed to create token:", err)
 	}
@@ -154,13 +184,13 @@ func TestTokenSvc_InvalidateAfterExpiry(t *testing.T) {
 		t.Fatal("failed to sign token:", err)
 	}
 
-	_, err = tokenSvc.Validate(ctx, jwtToken)
+	_, err = tokenSvc.Validate(ctx, jwtToken, clientID)
 	if err != nil {
 		t.Error("failed to validate token:", err)
 	}
 
 	time.Sleep(time.Second)
-	_, err = tokenSvc.Validate(ctx, jwtToken)
+	_, err = tokenSvc.Validate(ctx, jwtToken, clientID)
 	if err == nil {
 		t.Error("expired token should return error")
 	}
@@ -183,9 +213,11 @@ func TestTokenSvc_InvalidateNoUserID(t *testing.T) {
 		WithEntropy(entropy),
 		WithTokenExpiry(time.Millisecond),
 		WithSecret("my-signing-secret"),
+		WithIssuer("authenticator"),
+		WithOTP(otp.NewOTP()),
 	)
 
-	token, _, err := tokenSvc.Create(ctx, user, auth.JWTAuthorized)
+	token, clientID, err := tokenSvc.Create(ctx, user, auth.JWTAuthorized)
 	if err != nil {
 		t.Fatal("failed to create token:", err)
 	}
@@ -195,8 +227,56 @@ func TestTokenSvc_InvalidateNoUserID(t *testing.T) {
 		t.Fatal("failed to sign token:", err)
 	}
 
-	_, err = tokenSvc.Validate(ctx, jwtToken)
+	_, err = tokenSvc.Validate(ctx, jwtToken, clientID)
 	if err == nil {
 		t.Error("token with no user ID should return error, not nil")
+	}
+}
+
+func TestTokenSvc_InvalidateClientIDMismatch(t *testing.T) {
+	db, err := test.NewRedisDB(test.RedisTokenSvc)
+	if err != nil {
+		t.Fatal("faliled to create test database:", err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	user := &auth.User{ID: "user_id"}
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	entropy := ulid.Monotonic(random, 0)
+
+	tokenSvc := NewService(
+		WithDB(db),
+		WithEntropy(entropy),
+		WithTokenExpiry(time.Millisecond),
+		WithSecret("my-signing-secret"),
+		WithIssuer("authenticator"),
+		WithOTP(otp.NewOTP()),
+	)
+
+	token, clientID, err := tokenSvc.Create(ctx, user, auth.JWTAuthorized)
+	if err != nil {
+		t.Fatal("failed to create token:", err)
+	}
+
+	jwtToken, err := tokenSvc.Sign(ctx, token)
+	if err != nil {
+		t.Fatal("failed to sign token:", err)
+	}
+
+	_, err = tokenSvc.Validate(ctx, jwtToken, clientID)
+	if err != nil {
+		t.Error("failed to validate token:", err)
+	}
+
+	_, err = tokenSvc.Validate(ctx, jwtToken, "bad-client-id")
+	domainErr := auth.DomainError(err)
+	if domainErr == nil {
+		t.Fatal("expected domain error")
+	}
+
+	if domainErr.Code() != auth.EInvalidToken {
+		t.Errorf("incorrect error code, want %s got %s",
+			auth.EInvalidToken, domainErr.Code())
 	}
 }

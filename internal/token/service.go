@@ -35,6 +35,7 @@ type service struct {
 	secret      []byte
 	issuer      string
 	db          Rediser
+	otp         auth.OTPService
 }
 
 // Create creates a new, signed JWT token for a User.
@@ -66,6 +67,21 @@ func (s *service) Create(ctx context.Context, user *auth.User, state auth.TokenS
 		State:    state,
 	}
 
+	// OTP codes are embeded into JWT tokens in pre-authorization steps.
+	// If this feature is disabled or the user is receiving an authorized token,
+	// we can skip the next step and just return the token.
+	if state == auth.JWTAuthorized || !user.IsCodeAllowed {
+		return &token, clientID, nil
+	}
+
+	code, codeHash, err := s.otp.RandomCode()
+	if err != nil {
+		return nil, "", errors.Wrap(err, "failed to generate OTP code")
+	}
+
+	token.Code = code
+	token.CodeHash = codeHash
+
 	return &token, clientID, nil
 }
 
@@ -80,9 +96,10 @@ func (s *service) Sign(ctx context.Context, token *auth.Token) (string, error) {
 	return jwtSigned, nil
 }
 
-// Validate checks that a JWT token is signed by us, unexpired,
-// and unrevoked. On success it will return the unpacked Token struct.
-func (s *service) Validate(ctx context.Context, signedToken string) (*auth.Token, error) {
+// Validate checks that a JWT token is signed by us, unexpired, unrevoked
+// and originating from a valid client. On success it will return the unpacked
+// Token struct.
+func (s *service) Validate(ctx context.Context, signedToken string, clientID string) (*auth.Token, error) {
 	tokenParser := func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.Errorf("unexpected signing method %v", token.Header["alg"])
@@ -118,6 +135,10 @@ func (s *service) Validate(ctx context.Context, signedToken string) (*auth.Token
 		return nil, auth.ErrInvalidToken("token is not associated with user")
 	}
 
+	if !s.isClientIDValid(clientID, token.ClientID) {
+		return nil, auth.ErrInvalidToken("token source is invalid")
+	}
+
 	err = s.db.WithContext(ctx).Get(token.Id).Err()
 	if err == nil {
 		return nil, auth.ErrInvalidToken("token is revoked")
@@ -133,6 +154,19 @@ func (s *service) Validate(ctx context.Context, signedToken string) (*auth.Token
 // Revoke revokes a JWT token by its ID for a specified duration.
 func (s *service) Revoke(ctx context.Context, tokenID string, duration time.Duration) error {
 	return s.db.WithContext(ctx).Set(tokenID, true, duration).Err()
+}
+
+func (s *service) isClientIDValid(clientID, clientIDHash string) bool {
+	h, err := genClientIDHash(clientID)
+	if err != nil {
+		return false
+	}
+
+	if h != clientIDHash {
+		return false
+	}
+
+	return true
 }
 
 func genClientID() string {
