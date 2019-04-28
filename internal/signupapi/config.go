@@ -42,3 +42,10 @@ func WithRepoManager(repoMngr auth.RepositoryManager) ConfigOption {
 		s.repoMngr = repoMngr
 	}
 }
+
+// WithMessaging configures the service with a MessagingService.
+func WithMessaging(m auth.MessagingService) ConfigOption {
+	return func(s *service) {
+		s.message = m
+	}
+}

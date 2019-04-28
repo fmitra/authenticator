@@ -48,7 +48,7 @@ func TestTokenSvc_CreateAuthorized(t *testing.T) {
 	user := &auth.User{ID: "user_id"}
 	tokenSvc := NewTestTokenSvc(db)
 
-	token, clientID, err := tokenSvc.Create(ctx, user, auth.JWTAuthorized)
+	token, err := tokenSvc.Create(ctx, user, auth.JWTAuthorized)
 	if err != nil {
 		t.Fatal("failed to create token:", err)
 	}
@@ -71,7 +71,7 @@ func TestTokenSvc_CreateAuthorized(t *testing.T) {
 		t.Error("invalid ID generated for token")
 	}
 
-	if clientID == "" {
+	if token.ClientID == "" {
 		t.Error("invalid clientID generated for token")
 	}
 
@@ -80,10 +80,10 @@ func TestTokenSvc_CreateAuthorized(t *testing.T) {
 	}
 
 	h := sha512.New()
-	h.Write([]byte(clientID))
+	h.Write([]byte(token.ClientID))
 	clientIDHash := hex.EncodeToString(h.Sum(nil))
 
-	if clientIDHash != token.ClientID {
+	if clientIDHash != token.ClientIDHash {
 		t.Errorf("client ID does not match: want %s got %s",
 			clientIDHash, token.ClientID)
 	}
@@ -100,7 +100,7 @@ func TestTokenSvc_CreatePreAuthorized(t *testing.T) {
 	user := &auth.User{ID: "user_id", IsCodeAllowed: true}
 	tokenSvc := NewTestTokenSvc(db)
 
-	token, _, err := tokenSvc.Create(ctx, user, auth.JWTPreAuthorized)
+	token, err := tokenSvc.Create(ctx, user, auth.JWTPreAuthorized)
 	if err != nil {
 		t.Fatal("failed to create token:", err)
 	}
@@ -121,7 +121,7 @@ func TestTokenSvc_InvalidateAfterRevocation(t *testing.T) {
 	user := &auth.User{ID: "user_id"}
 	tokenSvc := NewTestTokenSvc(db)
 
-	token, clientID, err := tokenSvc.Create(ctx, user, auth.JWTAuthorized)
+	token, err := tokenSvc.Create(ctx, user, auth.JWTAuthorized)
 	if err != nil {
 		t.Fatal("failed to create token:", err)
 	}
@@ -131,7 +131,7 @@ func TestTokenSvc_InvalidateAfterRevocation(t *testing.T) {
 		t.Fatal("failed to sign token:", err)
 	}
 
-	_, err = tokenSvc.Validate(ctx, jwtToken, clientID)
+	_, err = tokenSvc.Validate(ctx, jwtToken, token.ClientID)
 	if err != nil {
 		t.Error("failed to validate token:", err)
 	}
@@ -141,7 +141,7 @@ func TestTokenSvc_InvalidateAfterRevocation(t *testing.T) {
 		t.Error("failed to revoke token:", err)
 	}
 
-	_, err = tokenSvc.Validate(ctx, jwtToken, clientID)
+	_, err = tokenSvc.Validate(ctx, jwtToken, token.ClientID)
 	if err == nil {
 		t.Fatal("revoked token should return error")
 	}
@@ -174,7 +174,7 @@ func TestTokenSvc_InvalidateAfterExpiry(t *testing.T) {
 		WithOTP(otp.NewOTP()),
 	)
 
-	token, clientID, err := tokenSvc.Create(ctx, user, auth.JWTAuthorized)
+	token, err := tokenSvc.Create(ctx, user, auth.JWTAuthorized)
 	if err != nil {
 		t.Fatal("failed to create token:", err)
 	}
@@ -184,13 +184,13 @@ func TestTokenSvc_InvalidateAfterExpiry(t *testing.T) {
 		t.Fatal("failed to sign token:", err)
 	}
 
-	_, err = tokenSvc.Validate(ctx, jwtToken, clientID)
+	_, err = tokenSvc.Validate(ctx, jwtToken, token.ClientID)
 	if err != nil {
 		t.Error("failed to validate token:", err)
 	}
 
 	time.Sleep(time.Second)
-	_, err = tokenSvc.Validate(ctx, jwtToken, clientID)
+	_, err = tokenSvc.Validate(ctx, jwtToken, token.ClientID)
 	if err == nil {
 		t.Error("expired token should return error")
 	}
@@ -217,7 +217,7 @@ func TestTokenSvc_InvalidateNoUserID(t *testing.T) {
 		WithOTP(otp.NewOTP()),
 	)
 
-	token, clientID, err := tokenSvc.Create(ctx, user, auth.JWTAuthorized)
+	token, err := tokenSvc.Create(ctx, user, auth.JWTAuthorized)
 	if err != nil {
 		t.Fatal("failed to create token:", err)
 	}
@@ -227,7 +227,7 @@ func TestTokenSvc_InvalidateNoUserID(t *testing.T) {
 		t.Fatal("failed to sign token:", err)
 	}
 
-	_, err = tokenSvc.Validate(ctx, jwtToken, clientID)
+	_, err = tokenSvc.Validate(ctx, jwtToken, token.ClientID)
 	if err == nil {
 		t.Error("token with no user ID should return error, not nil")
 	}
@@ -254,7 +254,7 @@ func TestTokenSvc_InvalidateClientIDMismatch(t *testing.T) {
 		WithOTP(otp.NewOTP()),
 	)
 
-	token, clientID, err := tokenSvc.Create(ctx, user, auth.JWTAuthorized)
+	token, err := tokenSvc.Create(ctx, user, auth.JWTAuthorized)
 	if err != nil {
 		t.Fatal("failed to create token:", err)
 	}
@@ -264,7 +264,7 @@ func TestTokenSvc_InvalidateClientIDMismatch(t *testing.T) {
 		t.Fatal("failed to sign token:", err)
 	}
 
-	_, err = tokenSvc.Validate(ctx, jwtToken, clientID)
+	_, err = tokenSvc.Validate(ctx, jwtToken, token.ClientID)
 	if err != nil {
 		t.Error("failed to validate token:", err)
 	}

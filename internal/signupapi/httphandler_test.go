@@ -25,9 +25,10 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 		loggerCount     int
 		reqBody         []byte
 		userCreateCalls int
+		messagingCalls  int
 		userGetFn       func() (*auth.User, error)
 		userCreateFn    func() error
-		tokenCreateFn   func() (*auth.Token, string, error)
+		tokenCreateFn   func() (*auth.Token, error)
 		tokenSignFn     func() (string, error)
 	}{
 		{
@@ -41,14 +42,15 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 				"identity": "jane@example.com"
 			}`),
 			userCreateCalls: 0,
+			messagingCalls:  0,
 			userGetFn: func() (*auth.User, error) {
 				return nil, errors.New("database connection error")
 			},
 			userCreateFn: func() error {
 				return nil
 			},
-			tokenCreateFn: func() (*auth.Token, string, error) {
-				return &auth.Token{}, "client-id", nil
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "jwt-token", nil
@@ -65,14 +67,15 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 				"identity": "jane@example.com"
 			}`),
 			userCreateCalls: 0,
+			messagingCalls:  0,
 			userGetFn: func() (*auth.User, error) {
 				return &auth.User{IsVerified: true}, nil
 			},
 			userCreateFn: func() error {
 				return nil
 			},
-			tokenCreateFn: func() (*auth.Token, string, error) {
-				return &auth.Token{}, "client-id", nil
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "jwt-token", nil
@@ -89,14 +92,15 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 				"identity": "jane@example.com"
 			}`),
 			userCreateCalls: 1,
+			messagingCalls:  0,
 			userGetFn: func() (*auth.User, error) {
 				return nil, sql.ErrNoRows
 			},
 			userCreateFn: func() error {
 				return errors.New("faled to create user")
 			},
-			tokenCreateFn: func() (*auth.Token, string, error) {
-				return &auth.Token{}, "client-id", nil
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "jwt-token", nil
@@ -113,14 +117,15 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 				"identity": "jane@example.com"
 			}`),
 			userCreateCalls: 1,
+			messagingCalls:  0,
 			userGetFn: func() (*auth.User, error) {
 				return nil, sql.ErrNoRows
 			},
 			userCreateFn: func() error {
 				return nil
 			},
-			tokenCreateFn: func() (*auth.Token, string, error) {
-				return nil, "", errors.New("failed to create token")
+			tokenCreateFn: func() (*auth.Token, error) {
+				return nil, errors.New("failed to create token")
 			},
 			tokenSignFn: func() (string, error) {
 				return "jwt-token", nil
@@ -137,14 +142,15 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 				"identity": "jane@example.com"
 			}`),
 			userCreateCalls: 1,
+			messagingCalls:  0,
 			userGetFn: func() (*auth.User, error) {
 				return nil, sql.ErrNoRows
 			},
 			userCreateFn: func() error {
 				return nil
 			},
-			tokenCreateFn: func() (*auth.Token, string, error) {
-				return &auth.Token{}, "client-id", nil
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "", errors.New("failed to sign token")
@@ -157,14 +163,15 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 			loggerCount:     1,
 			reqBody:         []byte(`{}`),
 			userCreateCalls: 0,
+			messagingCalls:  0,
 			userGetFn: func() (*auth.User, error) {
 				return nil, sql.ErrNoRows
 			},
 			userCreateFn: func() error {
 				return nil
 			},
-			tokenCreateFn: func() (*auth.Token, string, error) {
-				return &auth.Token{}, "client-id", nil
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "jwt-token", nil
@@ -181,14 +188,15 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 				"identity": "jane@example.com"
 			}`),
 			userCreateCalls: 1,
+			messagingCalls:  1,
 			userGetFn: func() (*auth.User, error) {
 				return nil, sql.ErrNoRows
 			},
 			userCreateFn: func() error {
 				return nil
 			},
-			tokenCreateFn: func() (*auth.Token, string, error) {
-				return &auth.Token{}, "client-id", nil
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "jwt-token", nil
@@ -213,10 +221,12 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 				CreateFn: tc.tokenCreateFn,
 				SignFn:   tc.tokenSignFn,
 			}
+			messagingSvc := &test.MessagingService{}
 			svc := NewService(
 				WithLogger(&test.Logger{}),
 				WithTokenService(tokenSvc),
 				WithRepoManager(repoMngr),
+				WithMessaging(messagingSvc),
 			)
 
 			req, err := http.NewRequest(
@@ -266,6 +276,11 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 				t.Errorf("incorrect UserRepository.Create() call count, want %v got %v",
 					tc.userCreateCalls, userRepo.Calls.Create)
 			}
+
+			if messagingSvc.Calls.Send != tc.messagingCalls {
+				t.Errorf("incorrect MessagingService.Send() call count, want %v got %v",
+					tc.messagingCalls, messagingSvc.Calls.Send)
+			}
 		})
 	}
 }
@@ -295,18 +310,20 @@ func TestSignUpAPI_SignUpExistingUser(t *testing.T) {
 	router := mux.NewRouter()
 	logger := &test.Logger{}
 	tokenSvc := &test.TokenService{
-		CreateFn: func() (*auth.Token, string, error) {
-			return &auth.Token{}, "client-id", nil
+		CreateFn: func() (*auth.Token, error) {
+			return &auth.Token{}, nil
 		},
 		SignFn: func() (string, error) {
 			return "jwt-token", nil
 		},
 	}
+	messagingSvc := &test.MessagingService{}
 
 	svc := NewService(
 		WithLogger(&test.Logger{}),
 		WithTokenService(tokenSvc),
 		WithRepoManager(repoMngr),
+		WithMessaging(messagingSvc),
 	)
 
 	req, err := http.NewRequest("POST", "/api/v1/signup", bytes.NewBuffer([]byte(`{
@@ -334,6 +351,11 @@ func TestSignUpAPI_SignUpExistingUser(t *testing.T) {
 
 	if newUser.ID == user.ID {
 		t.Error("user ID not reset on re-creation")
+	}
+
+	if messagingSvc.Calls.Send != 1 {
+		t.Errorf("incorrect MessagingService.Send() call count, want 1 got %v",
+			messagingSvc.Calls.Send)
 	}
 }
 

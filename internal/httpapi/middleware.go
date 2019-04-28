@@ -8,12 +8,12 @@ import (
 	"github.com/go-kit/kit/log"
 
 	auth "github.com/fmitra/authenticator"
+	"github.com/fmitra/authenticator/internal/token"
 )
 
 type contextKey string
 
 const authorizationHeader = "AUTHORIZATION"
-const clientID = "CLIENTID"
 const userIDContextKey contextKey = "userID"
 
 // AuthMiddleware validates an Authorization header if available.
@@ -25,7 +25,7 @@ func AuthMiddleware(jsonHandler JSONAPIHandler, tokenSvc auth.TokenService, stat
 			return nil, auth.ErrInvalidToken("user is not authenticated")
 		}
 
-		clientIDCookie, err := r.Cookie(clientID)
+		clientIDCookie, err := r.Cookie(token.ClientIDCookie)
 		if err != nil {
 			return nil, auth.ErrInvalidToken("token source is invalid")
 		}

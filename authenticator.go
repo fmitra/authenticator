@@ -130,10 +130,13 @@ type Token struct {
 	// jwt.StandardClaims provides standard JWT fields
 	// such as Audience, ExpiresAt, Id, Issuer.
 	jwt.StandardClaims
-	// ClientID is hash of an ID stored in the client for which
+	// ClientID is the unhashed ID stored used to help
+	// validate token request source.
+	ClientID string `json:"-"`
+	// ClientIDHash is hash of an ID stored in the client for which
 	// the token was delivered too. A token is only valid
 	// when delivered alongside the unhashed ClientID.
-	ClientID string `json:"client_id"`
+	ClientIDHash string `json:"client_id"`
 	// UserID is the User's ID.
 	UserID string `json:"user_id"`
 	// Email is a User's email.
@@ -220,8 +223,8 @@ type RepositoryManager interface {
 // TokenService represents a service to manage JWT tokens.
 type TokenService interface {
 	// Create creates a new authorized or pre-authorized JWT token.
-	// On success, it returns the token and the unhashed ClientID.
-	Create(ctx context.Context, user *User, state TokenState) (*Token, string, error)
+	// On success, it returns the token.
+	Create(ctx context.Context, user *User, state TokenState) (*Token, error)
 	// Sign creates a signed JWT token string from a token struct.
 	Sign(ctx context.Context, token *Token) (string, error)
 	// Validate checks that a JWT token is signed by us, unexpired,
@@ -230,6 +233,8 @@ type TokenService interface {
 	Validate(ctx context.Context, signedToken string, clientID string) (*Token, error)
 	// Revoke Revokes a token for a specified duration of time.
 	Revoke(ctx context.Context, tokenID string, duration time.Duration) error
+	// Cookie returns a secure cookie to accompany a token.
+	Cookie(ctx context.Context, token *Token) *http.Cookie
 }
 
 // WebAuthnService manages the protocol for WebAuthn authentication.
@@ -261,6 +266,12 @@ type OTPService interface {
 	RandomCode() (code string, hash string, err error)
 	// Validate checks if a User OTP code is valid.
 	Validate(user *User, code string, hash string) error
+}
+
+// MessagingService sends messages through email or SMS.
+type MessagingService interface {
+	// Send sends a message to a user.
+	Send(ctx context.Context, user *User, message string)
 }
 
 // LoginAPI provides HTTP handlers for user authentication.

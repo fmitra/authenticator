@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"io"
 	"math/rand"
+	"net/http"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -17,6 +18,10 @@ import (
 
 	auth "github.com/fmitra/authenticator"
 )
+
+// ClientIDCookie is the cookie name used to set the token's
+// ClientID value on a client.
+const ClientIDCookie = "CLIENTID"
 
 // Rediser is an interface to go-redis.
 type Rediser interface {
@@ -40,17 +45,17 @@ type service struct {
 
 // Create creates a new, signed JWT token for a User.
 // On success it returns a token and the unhashed ClientID.
-func (s *service) Create(ctx context.Context, user *auth.User, state auth.TokenState) (*auth.Token, string, error) {
+func (s *service) Create(ctx context.Context, user *auth.User, state auth.TokenState) (*auth.Token, error) {
 	tokenULID, err := ulid.New(ulid.Now(), s.entropy)
 	if err != nil {
-		return nil, "", errors.Wrap(err, "cannot generate unique token ID")
+		return nil, errors.Wrap(err, "cannot generate unique token ID")
 	}
 
 	tokenID := tokenULID.String()
 	clientID := genClientID()
 	clientIDHash, err := genClientIDHash(clientID)
 	if err != nil {
-		return nil, "", errors.Wrap(err, "failed to write client ID")
+		return nil, errors.Wrap(err, "failed to write client ID")
 	}
 
 	expiresAt := time.Now().Add(s.tokenExpiry).Unix()
@@ -60,29 +65,30 @@ func (s *service) Create(ctx context.Context, user *auth.User, state auth.TokenS
 			Id:        tokenID,
 			Issuer:    s.issuer,
 		},
-		UserID:   user.ID,
-		Email:    user.Email.String,
-		Phone:    user.Phone.String,
-		ClientID: clientIDHash,
-		State:    state,
+		UserID:       user.ID,
+		Email:        user.Email.String,
+		Phone:        user.Phone.String,
+		ClientID:     clientID,
+		ClientIDHash: clientIDHash,
+		State:        state,
 	}
 
-	// OTP codes are embeded into JWT tokens in pre-authorization steps.
+	// OTP codes are embedded into JWT tokens in pre-authorization steps.
 	// If this feature is disabled or the user is receiving an authorized token,
 	// we can skip the next step and just return the token.
 	if state == auth.JWTAuthorized || !user.IsCodeAllowed {
-		return &token, clientID, nil
+		return &token, nil
 	}
 
 	code, codeHash, err := s.otp.RandomCode()
 	if err != nil {
-		return nil, "", errors.Wrap(err, "failed to generate OTP code")
+		return nil, errors.Wrap(err, "failed to generate OTP code")
 	}
 
 	token.Code = code
 	token.CodeHash = codeHash
 
-	return &token, clientID, nil
+	return &token, nil
 }
 
 // Sign creates a signed JWT token string from a token struct.
@@ -135,7 +141,7 @@ func (s *service) Validate(ctx context.Context, signedToken string, clientID str
 		return nil, auth.ErrInvalidToken("token is not associated with user")
 	}
 
-	if !s.isClientIDValid(clientID, token.ClientID) {
+	if !s.isClientIDValid(clientID, token.ClientIDHash) {
 		return nil, auth.ErrInvalidToken("token source is invalid")
 	}
 
@@ -154,6 +160,19 @@ func (s *service) Validate(ctx context.Context, signedToken string, clientID str
 // Revoke revokes a JWT token by its ID for a specified duration.
 func (s *service) Revoke(ctx context.Context, tokenID string, duration time.Duration) error {
 	return s.db.WithContext(ctx).Set(tokenID, true, duration).Err()
+}
+
+// Cookie returns a secure cookie to accompany a token.
+func (s *service) Cookie(ctx context.Context, token *auth.Token) *http.Cookie {
+	cookie := http.Cookie{
+		Name:     ClientIDCookie,
+		Value:    token.ClientID,
+		MaxAge:   0,
+		Secure:   true,
+		HttpOnly: true,
+	}
+
+	return &cookie
 }
 
 func (s *service) isClientIDValid(clientID, clientIDHash string) bool {

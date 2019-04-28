@@ -13,17 +13,27 @@ import (
 	auth "github.com/fmitra/authenticator"
 )
 
+// MessagingService mocks auth.MessagingService interface.
+type MessagingService struct {
+	SendFn func()
+	Calls  struct {
+		Send int
+	}
+}
+
 // TokenService mocks auth.TokenService interface.
 type TokenService struct {
-	CreateFn   func() (*auth.Token, string, error)
+	CreateFn   func() (*auth.Token, error)
 	SignFn     func() (string, error)
 	ValidateFn func() (*auth.Token, error)
 	RevokeFn   func() error
+	CookieFn   func() *http.Cookie
 	Calls      struct {
 		Create   int
 		Sign     int
 		Validate int
 		Revoke   int
+		Cookie   int
 	}
 }
 
@@ -374,13 +384,22 @@ func (m *LoginHistoryRepository) Update(ctx context.Context, login *auth.LoginHi
 	return nil
 }
 
+// Cookie mock.
+func (m *TokenService) Cookie(ctx context.Context, token *auth.Token) *http.Cookie {
+	m.Calls.Cookie++
+	if m.CookieFn != nil {
+		return m.CookieFn()
+	}
+	return &http.Cookie{}
+}
+
 // Create mock.
-func (m *TokenService) Create(ctx context.Context, u *auth.User, state auth.TokenState) (*auth.Token, string, error) {
+func (m *TokenService) Create(ctx context.Context, u *auth.User, state auth.TokenState) (*auth.Token, error) {
 	m.Calls.Create++
 	if m.CreateFn != nil {
 		return m.CreateFn()
 	}
-	return nil, "", errors.New("failed to create token")
+	return nil, errors.New("failed to create token")
 }
 
 // Sign mock.
@@ -494,4 +513,12 @@ func (m *Rediser) Close() error {
 		return m.CloseFn()
 	}
 	return nil
+}
+
+// Send mock.
+func (m *MessagingService) Send(ctx context.Context, user *auth.User, message string) {
+	m.Calls.Send++
+	if m.SendFn != nil {
+		m.SendFn()
+	}
 }
