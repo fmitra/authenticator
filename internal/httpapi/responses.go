@@ -35,6 +35,16 @@ func GetUserID(r *http.Request) string {
 	return userID
 }
 
+// GetToken retrieves a Token from context.
+func GetToken(r *http.Request) *auth.Token {
+	ctx := r.Context()
+	token, ok := ctx.Value(tokenContextKey).(*auth.Token)
+	if !ok {
+		return nil
+	}
+	return token
+}
+
 // JSONResponse writes a response body. If a struct is provided
 // and we are unable to marshal it, we return an internal error.
 func JSONResponse(w http.ResponseWriter, v interface{}, statusCode int) {

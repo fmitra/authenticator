@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
+	"github.com/fmitra/authenticator/internal/otp"
 	"github.com/fmitra/authenticator/internal/pg"
 	"github.com/fmitra/authenticator/internal/test"
 )
@@ -50,7 +51,7 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 				return nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{}, nil
+				return &auth.Token{Code: "123456"}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "jwt-token", nil
@@ -75,7 +76,7 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 				return nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{}, nil
+				return &auth.Token{Code: "123456"}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "jwt-token", nil
@@ -100,7 +101,7 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 				return errors.New("faled to create user")
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{}, nil
+				return &auth.Token{Code: "123456"}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "jwt-token", nil
@@ -150,7 +151,7 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 				return nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{}, nil
+				return &auth.Token{Code: "123456"}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "", errors.New("failed to sign token")
@@ -171,7 +172,7 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 				return nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{}, nil
+				return &auth.Token{Code: "123456"}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "jwt-token", nil
@@ -196,7 +197,7 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 				return nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{}, nil
+				return &auth.Token{Code: "123456"}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "jwt-token", nil
@@ -311,7 +312,7 @@ func TestSignUpAPI_SignUpExistingUser(t *testing.T) {
 	logger := &test.Logger{}
 	tokenSvc := &test.TokenService{
 		CreateFn: func() (*auth.Token, error) {
-			return &auth.Token{}, nil
+			return &auth.Token{Code: "123456"}, nil
 		},
 		SignFn: func() (string, error) {
 			return "jwt-token", nil
@@ -356,6 +357,159 @@ func TestSignUpAPI_SignUpExistingUser(t *testing.T) {
 	if messagingSvc.Calls.Send != 1 {
 		t.Errorf("incorrect MessagingService.Send() call count, want 1 got %v",
 			messagingSvc.Calls.Send)
+	}
+}
+
+func TestSignUpAPI_VerifyCode(t *testing.T) {
+	codeHash := "ba3253876aed6bc22d4a6ff53d8406c6ad864195ed144ab5" +
+		"c87621b6c233b548baeae6956df346ec8c17f5ea10f35ee3cbc51479" +
+		"7ed7ddd3145464e2a0bab413"
+
+	tt := []struct {
+		name            string
+		statusCode      int
+		loggerCount     int
+		reqBody         []byte
+		userFn          func() (*auth.User, error)
+		messagingCalls  int
+		tokenValidateFn func() (*auth.Token, error)
+		tokenCreateFn   func() (*auth.Token, error)
+		tokenSignFn     func() (string, error)
+	}{
+		{
+			name:        "User query failure",
+			statusCode:  http.StatusInternalServerError,
+			loggerCount: 1,
+			reqBody:     []byte(`{"code": "123456"}`),
+			userFn: func() (*auth.User, error) {
+				return nil, errors.New("whoops")
+			},
+			tokenValidateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: codeHash, State: auth.JWTPreAuthorized}, nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "jwt-token", nil
+			},
+			messagingCalls: 0,
+		},
+		{
+			name:        "Bad request failure",
+			statusCode:  http.StatusBadRequest,
+			loggerCount: 1,
+			reqBody:     []byte(""),
+			userFn: func() (*auth.User, error) {
+				return &auth.User{IsCodeAllowed: true}, nil
+			},
+			tokenValidateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: codeHash, State: auth.JWTPreAuthorized}, nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "jwt-token", nil
+			},
+			messagingCalls: 0,
+		},
+		{
+			name:        "Code invalid failure",
+			statusCode:  http.StatusBadRequest,
+			loggerCount: 1,
+			reqBody:     []byte(`{"code": "222444"}`),
+			userFn: func() (*auth.User, error) {
+				return &auth.User{IsCodeAllowed: true}, nil
+			},
+			tokenValidateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: codeHash, State: auth.JWTPreAuthorized}, nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "jwt-token", nil
+			},
+			messagingCalls: 0,
+		},
+		{
+			name:        "Code validated",
+			statusCode:  http.StatusOK,
+			loggerCount: 0,
+			reqBody:     []byte(`{"code": "123456"}`),
+			userFn: func() (*auth.User, error) {
+				return &auth.User{IsCodeAllowed: true}, nil
+			},
+			tokenValidateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: codeHash, State: auth.JWTPreAuthorized}, nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "jwt-token", nil
+			},
+			messagingCalls: 0,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			router := mux.NewRouter()
+			logger := &test.Logger{}
+			userRepo := &test.UserRepository{
+				ByIdentityFn: tc.userFn,
+			}
+			repoMngr := &test.RepositoryManager{
+				UserFn: func() auth.UserRepository {
+					return userRepo
+				},
+			}
+			tokenSvc := &test.TokenService{
+				ValidateFn: tc.tokenValidateFn,
+				CreateFn:   tc.tokenCreateFn,
+				SignFn:     tc.tokenSignFn,
+			}
+			otpSvc := otp.NewOTP()
+			messagingSvc := &test.MessagingService{}
+			svc := NewService(
+				WithLogger(&test.Logger{}),
+				WithTokenService(tokenSvc),
+				WithRepoManager(repoMngr),
+				WithOTP(otpSvc),
+				WithMessaging(messagingSvc),
+			)
+
+			req, err := http.NewRequest(
+				"POST",
+				"/api/v1/signup/verify",
+				bytes.NewBuffer(tc.reqBody),
+			)
+			if err != nil {
+				t.Fatal("failed to create request:", err)
+			}
+
+			req.Header.Set("AUTHORIZATION", "JWTTOKEN")
+			req.AddCookie(&http.Cookie{
+				Name:  "CLIENTID",
+				Value: "client-id",
+			})
+
+			SetupHTTPHandler(svc, router, tokenSvc, logger)
+
+			rr := httptest.NewRecorder()
+			router.ServeHTTP(rr, req)
+
+			if rr.Code != tc.statusCode {
+				t.Errorf("incorrect status code, want %v got %v", tc.statusCode, rr.Code)
+			}
+
+			if messagingSvc.Calls.Send != tc.messagingCalls {
+				t.Errorf("incorrect MessagingService.Send() call count, want %v got %v",
+					tc.messagingCalls, messagingSvc.Calls.Send)
+			}
+		})
 	}
 }
 

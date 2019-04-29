@@ -49,3 +49,10 @@ func WithMessaging(m auth.MessagingService) ConfigOption {
 		s.message = m
 	}
 }
+
+// WithOTP configures the service with an OTP validator.
+func WithOTP(o auth.OTPService) ConfigOption {
+	return func(s *service) {
+		s.otp = o
+	}
+}

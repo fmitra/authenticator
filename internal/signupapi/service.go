@@ -6,10 +6,13 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-kit/kit/log"
+	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
+	"github.com/fmitra/authenticator/internal/httpapi"
 )
 
 type service struct {
@@ -17,6 +20,7 @@ type service struct {
 	token    auth.TokenService
 	repoMngr auth.RepositoryManager
 	message  auth.MessagingService
+	otp      auth.OTPService
 }
 
 func (s *service) SignUp(w http.ResponseWriter, r *http.Request) (interface{}, error) {
@@ -31,7 +35,7 @@ func (s *service) SignUp(w http.ResponseWriter, r *http.Request) (interface{}, e
 	user, err := s.repoMngr.User().ByIdentity(ctx, req.UserAttribute(), req.Identity)
 
 	if isUserCheckFailed(err) {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to check user identity")
 	}
 
 	if isUserVerified(user, err) {
@@ -54,11 +58,48 @@ func (s *service) SignUp(w http.ResponseWriter, r *http.Request) (interface{}, e
 		return nil, err
 	}
 
-	return s.respond(ctx, w, newUser, auth.JWTPreAuthorized)
+	jwtToken, err := s.token.Create(ctx, user, auth.JWTPreAuthorized)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.respond(ctx, w, newUser, jwtToken)
 }
 
 func (s *service) Verify(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	return nil, nil
+	ctx := r.Context()
+	userID := httpapi.GetUserID(r)
+	token := httpapi.GetToken(r)
+
+	req, err := decodeSignupVerifyRequest(r)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := s.repoMngr.User().ByIdentity(ctx, "ID", userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = s.otp.Validate(user, req.Code, token.CodeHash); err != nil {
+		return nil, err
+	}
+
+	jwtToken, err := s.token.Create(ctx, user, auth.JWTAuthorized)
+	if err != nil {
+		return nil, err
+	}
+
+	loginHistory := &auth.LoginHistory{
+		UserID:    userID,
+		TokenID:   jwtToken.Id,
+		ExpiresAt: time.Unix(jwtToken.ExpiresAt, 0),
+	}
+	if err = s.repoMngr.LoginHistory().Create(ctx, loginHistory); err != nil {
+		return nil, err
+	}
+
+	return s.respond(ctx, w, user, jwtToken)
 }
 
 // reCreateUser re-creates the account of a non verified user. A user
@@ -88,7 +129,7 @@ func (s *service) reCreateUser(ctx context.Context, userID string, newUser *auth
 
 		err = client.User().ReCreate(ctx, user)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "cannot re-create user")
 		}
 
 		return user, nil
@@ -107,12 +148,7 @@ func (s *service) createUser(ctx context.Context, newUser *auth.User) error {
 }
 
 // respond creates a JWT token response.
-func (s *service) respond(ctx context.Context, w http.ResponseWriter, user *auth.User, state auth.TokenState) ([]byte, error) {
-	jwtToken, err := s.token.Create(ctx, user, state)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *service) respond(ctx context.Context, w http.ResponseWriter, user *auth.User, jwtToken *auth.Token) ([]byte, error) {
 	tokenStr, err := s.token.Sign(ctx, jwtToken)
 	if err != nil {
 		return nil, err
@@ -120,7 +156,9 @@ func (s *service) respond(ctx context.Context, w http.ResponseWriter, user *auth
 
 	http.SetCookie(w, s.token.Cookie(ctx, jwtToken))
 
-	s.message.Send(ctx, user, jwtToken.Code)
+	if jwtToken.Code != "" {
+		s.message.Send(ctx, user, jwtToken.Code)
+	}
 
 	return []byte(fmt.Sprintf(`
 		{"token": "%s", "clientID": "%s"}
