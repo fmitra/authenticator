@@ -1,9 +1,13 @@
 package test
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+
+	"github.com/pkg/errors"
 
 	"github.com/gorilla/mux"
 )
@@ -36,4 +40,23 @@ func Server(resps ...ServerResp) *httptest.Server {
 
 	s := httptest.NewServer(router)
 	return s
+}
+
+func ValidateErrMessage(expectedMsg string, body *bytes.Buffer) error {
+	if expectedMsg == "" {
+		return nil
+	}
+
+	var errResponse map[string]map[string]string
+	err := json.NewDecoder(body).Decode(&errResponse)
+	if err != nil {
+		return err
+	}
+
+	if errResponse["error"]["message"] != expectedMsg {
+		return errors.Errorf("incorrect error resposne, want '%s' got '%s'",
+			expectedMsg, errResponse["error"]["message"])
+	}
+
+	return nil
 }

@@ -279,6 +279,8 @@ type LoginAPI interface {
 	// Login is the initial login step to identify a User.
 	// On success it will return a JWT token in an identified state.
 	Login(w http.ResponseWriter, r *http.Request) (interface{}, error)
+	// DeviceChallenge retrieves a device challenge to be signed by the client.
+	DeviceChallenge(w http.ResponseWriter, r *http.Request) (interface{}, error)
 	// VerifyDevice verifies a User's authenticity by verifying
 	// a signing device owned by the user. On success it will return
 	// a JWT token in an authorized state.

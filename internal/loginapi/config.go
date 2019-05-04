@@ -63,3 +63,10 @@ func WithMessaging(m auth.MessagingService) ConfigOption {
 		s.message = m
 	}
 }
+
+// WithPassword configures the servicewith a PasswordService.
+func WithPassword(p auth.PasswordService) ConfigOption {
+	return func(s *service) {
+		s.password = p
+	}
+}

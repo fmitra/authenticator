@@ -2,7 +2,6 @@ package deviceapi
 
 import (
 	"bytes"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -148,7 +147,7 @@ func TestDeviceAPI_Create(t *testing.T) {
 				t.Errorf("incorrect status code, want %v got %v", tc.statusCode, rr.Code)
 			}
 
-			err = validateErrMessage(tc.errMessage, rr.Body)
+			err = test.ValidateErrMessage(tc.errMessage, rr.Body)
 			if err != nil {
 				t.Error(err)
 			}
@@ -295,7 +294,7 @@ func TestDeviceAPI_Verify(t *testing.T) {
 				t.Errorf("incorrect status code, want %v got %v", tc.statusCode, rr.Code)
 			}
 
-			err = validateErrMessage(tc.errMessage, rr.Body)
+			err = test.ValidateErrMessage(tc.errMessage, rr.Body)
 			if err != nil {
 				t.Error(err)
 			}
@@ -419,7 +418,7 @@ func TestDeviceAPI_Remove(t *testing.T) {
 				t.Errorf("incorrect status code, want %v got %v", tc.statusCode, rr.Code)
 			}
 
-			err = validateErrMessage(tc.errMessage, rr.Body)
+			err = test.ValidateErrMessage(tc.errMessage, rr.Body)
 			if err != nil {
 				t.Error(err)
 			}
@@ -430,25 +429,6 @@ func TestDeviceAPI_Remove(t *testing.T) {
 			}
 		})
 	}
-}
-
-func validateErrMessage(expectedMsg string, body *bytes.Buffer) error {
-	if expectedMsg == "" {
-		return nil
-	}
-
-	var errResponse map[string]map[string]string
-	err := json.NewDecoder(body).Decode(&errResponse)
-	if err != nil {
-		return err
-	}
-
-	if errResponse["error"]["message"] != expectedMsg {
-		return errors.Errorf("incorrect error resposne, want '%s' got '%s'",
-			expectedMsg, errResponse["error"]["message"])
-	}
-
-	return nil
 }
 
 func setAuthHeaders(r *http.Request) {

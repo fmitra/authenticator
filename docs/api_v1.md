@@ -54,17 +54,17 @@ code or TOTP code.
 A user provides either an email or phone number and password for us to identify them.
 On success we will return a JWT token with status `identified`.
 
-### Complete login with code [POST /api/v1/login/login]
+### Complete login with code [POST /api/v1/login/verify-code]
 
 A user submits a random server generated code or TOTP code. On success we will return
 a JWT token with status `authorized`.
 
-### Complete login with device [POST /api/v1/login/device]
+### Complete login with device [POST /api/v1/login/verify-device]
 
 A user signs a server challenge with their WebAuthn capable device. On success we will
 return a JWT token with status `authorized`.
 
-### Request device challenge [GET /api/v1/login/device]
+### Request device challenge [GET /api/v1/login/verify-device]
 
 A user holding a JWT token with status `identified` may request this endpoint to receive
 a challenge value to sign. The signed value must be POSTed back to our service to

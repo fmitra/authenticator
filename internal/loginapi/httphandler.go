@@ -21,6 +21,12 @@ func SetupHTTPHandler(svc auth.LoginAPI, router *mux.Router, tokenSvc auth.Token
 		router.HandleFunc("/api/v1/login", httpHandler).Methods("Post")
 	}
 	{
+		handler = httpapi.AuthMiddleware(svc.DeviceChallenge, tokenSvc, auth.JWTPreAuthorized)
+		handler = httpapi.ErrorLoggingMiddleware(handler, "LoginAPI.DeviceChallenge", logger)
+		httpHandler := httpapi.ToHandlerFunc(handler, http.StatusOK)
+		router.HandleFunc("/api/v1/login/verify-device", httpHandler).Methods("Get")
+	}
+	{
 		handler = httpapi.AuthMiddleware(svc.VerifyDevice, tokenSvc, auth.JWTPreAuthorized)
 		handler = httpapi.ErrorLoggingMiddleware(handler, "LoginAPI.VerifyDevice", logger)
 		httpHandler := httpapi.ToHandlerFunc(handler, http.StatusOK)
