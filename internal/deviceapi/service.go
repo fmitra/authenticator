@@ -2,7 +2,6 @@
 package deviceapi
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/go-kit/kit/log"
@@ -53,18 +52,12 @@ func (s *service) Remove(w http.ResponseWriter, r *http.Request) (interface{}, e
 	ctx := r.Context()
 	userID := httpapi.GetUserID(r)
 
-	var request map[string]string
-	err := json.NewDecoder(r.Body).Decode(&request)
+	req, err := decodeRemoveRequest(r)
 	if err != nil {
-		return nil, auth.ErrBadRequest("invalid request format")
+		return nil, err
 	}
 
-	deviceID := request["deviceID"]
-	if deviceID == "" {
-		return nil, auth.ErrInvalidField("missing deviceID")
-	}
-
-	err = s.repoMngr.Device().Remove(ctx, deviceID, userID)
+	err = s.repoMngr.Device().Remove(ctx, req.DeviceID, userID)
 	if err != nil {
 		return nil, err
 	}

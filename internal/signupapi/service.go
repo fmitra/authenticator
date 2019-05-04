@@ -23,6 +23,7 @@ type service struct {
 	otp      auth.OTPService
 }
 
+// SignUp is the initial registration step to create a new User.
 func (s *service) SignUp(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 	ctx := r.Context()
 
@@ -66,6 +67,7 @@ func (s *service) SignUp(w http.ResponseWriter, r *http.Request) (interface{}, e
 	return s.respond(ctx, w, newUser, jwtToken)
 }
 
+// Verify is the final registration step to validate a new User's authenticity.
 func (s *service) Verify(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 	ctx := r.Context()
 	userID := httpapi.GetUserID(r)

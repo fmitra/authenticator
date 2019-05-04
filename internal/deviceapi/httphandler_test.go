@@ -333,7 +333,7 @@ func TestDeviceAPI_Remove(t *testing.T) {
 			name:        "Invalid request format error",
 			statusCode:  http.StatusBadRequest,
 			authHeader:  true,
-			errMessage:  "invalid request format",
+			errMessage:  "invalid JSON request",
 			loggerCount: 1,
 			deviceFn: func() error {
 				return nil

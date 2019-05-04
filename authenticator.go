@@ -278,15 +278,15 @@ type MessagingService interface {
 type LoginAPI interface {
 	// Login is the initial login step to identify a User.
 	// On success it will return a JWT token in an identified state.
-	Login(w http.ResponseWriter, r *http.Request)
+	Login(w http.ResponseWriter, r *http.Request) (interface{}, error)
 	// VerifyDevice verifies a User's authenticity by verifying
 	// a signing device owned by the user. On success it will return
 	// a JWT token in an authorized state.
-	VerifyDevice(w http.ResponseWriter, r *http.Request)
+	VerifyDevice(w http.ResponseWriter, r *http.Request) (interface{}, error)
 	// VerifyCode verifies a User's authenticity by verifying
 	// a TOTP or randomly generated code delivered by SMS/Email.
 	// On success it will return a JWT token in an auhtorized state.
-	VerifyCode(w http.ResponseWriter, r *http.Request)
+	VerifyCode(w http.ResponseWriter, r *http.Request) (interface{}, error)
 }
 
 // SignUpAPI provides HTTP handlers for user registration.
