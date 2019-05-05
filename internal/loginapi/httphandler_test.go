@@ -243,15 +243,15 @@ func TestLoginAPI_DeviceChallenge(t *testing.T) {
 		},
 		{
 			name:           "User query failure",
-			statusCode:     http.StatusInternalServerError,
+			statusCode:     http.StatusBadRequest,
 			loggerCount:    1,
 			messagingCalls: 0,
-			errMessage:     "An internal error occurred",
+			errMessage:     "no user found",
 			webauthnFn: func() ([]byte, error) {
 				return []byte(""), nil
 			},
 			userFn: func() (*auth.User, error) {
-				return nil, errors.New("database connection failed")
+				return nil, auth.ErrNotFound("no user found")
 			},
 			tokenValidateFn: func() (*auth.Token, error) {
 				return &auth.Token{State: auth.JWTPreAuthorized}, nil
@@ -259,12 +259,12 @@ func TestLoginAPI_DeviceChallenge(t *testing.T) {
 		},
 		{
 			name:           "Webauthn failure",
-			statusCode:     http.StatusInternalServerError,
+			statusCode:     http.StatusBadRequest,
 			loggerCount:    1,
 			messagingCalls: 0,
-			errMessage:     "An internal error occurred",
+			errMessage:     "cannot create challenge",
 			webauthnFn: func() ([]byte, error) {
-				return nil, errors.New("failed to created challenge")
+				return nil, auth.ErrBadRequest("cannot create challenge")
 			},
 			userFn: func() (*auth.User, error) {
 				return &auth.User{}, nil
@@ -350,26 +350,242 @@ func TestLoginAPI_DeviceChallenge(t *testing.T) {
 
 func TestLoginAPI_VerifyDevice(t *testing.T) {
 	tt := []struct {
-		name           string
-		statusCode     int
-		loggerCount    int
-		errMessage     string
-		reqBody        []byte
-		messagingCalls int
-		webauthnFn     func() error
-		userFn         func() (*auth.User, error)
-		tokenCreateFn  func() (*auth.Token, error)
-		tokenSignFn    func() (string, error)
-		loginHistoryFn func() error
+		name              string
+		statusCode        int
+		loggerCount       int
+		messagingCalls    int
+		errMessage        string
+		reqBody           []byte
+		webauthnFn        func() error
+		userFn            func() (*auth.User, error)
+		tokenCreateFn     func() (*auth.Token, error)
+		tokenSignFn       func() (string, error)
+		tokenValidationFn func() (*auth.Token, error)
+		loginHistoryFn    func() error
 	}{
 		{
-			name: "Invalid token failure",
+			name:           "Invalid token failure",
+			statusCode:     http.StatusUnauthorized,
+			loggerCount:    1,
+			messagingCalls: 0,
+			errMessage:     "token state is not supported",
+			reqBody:        []byte(""),
+			webauthnFn: func() error {
+				return nil
+			},
+			userFn: func() (*auth.User, error) {
+				return &auth.User{}, nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "jwt-token", nil
+			},
+			tokenValidationFn: func() (*auth.Token, error) {
+				return &auth.Token{State: auth.JWTAuthorized}, nil
+			},
+			loginHistoryFn: func() error {
+				return nil
+			},
+		},
+		{
+			name:           "User query failure",
+			statusCode:     http.StatusBadRequest,
+			loggerCount:    1,
+			messagingCalls: 0,
+			errMessage:     "user does not exist",
+			reqBody:        []byte(""),
+			webauthnFn: func() error {
+				return nil
+			},
+			userFn: func() (*auth.User, error) {
+				return nil, auth.ErrNotFound("user does not exist")
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "jwt-token", nil
+			},
+			tokenValidationFn: func() (*auth.Token, error) {
+				return &auth.Token{State: auth.JWTPreAuthorized}, nil
+			},
+			loginHistoryFn: func() error {
+				return nil
+			},
+		},
+		{
+			name:           "Webauthn login failure",
+			statusCode:     http.StatusBadRequest,
+			loggerCount:    1,
+			messagingCalls: 0,
+			errMessage:     "failed to login",
+			reqBody:        []byte(""),
+			webauthnFn: func() error {
+				return auth.ErrWebAuthn("failed to login")
+			},
+			userFn: func() (*auth.User, error) {
+				return &auth.User{}, nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "jwt-token", nil
+			},
+			tokenValidationFn: func() (*auth.Token, error) {
+				return &auth.Token{State: auth.JWTPreAuthorized}, nil
+			},
+			loginHistoryFn: func() error {
+				return nil
+			},
+		},
+		{
+			name:           "Login history persisted failure",
+			statusCode:     http.StatusBadRequest,
+			loggerCount:    1,
+			messagingCalls: 0,
+			errMessage:     "cannot save login",
+			reqBody:        []byte(""),
+			webauthnFn: func() error {
+				return nil
+			},
+			userFn: func() (*auth.User, error) {
+				return &auth.User{}, nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "jwt-token", nil
+			},
+			tokenValidationFn: func() (*auth.Token, error) {
+				return &auth.Token{State: auth.JWTPreAuthorized}, nil
+			},
+			loginHistoryFn: func() error {
+				return auth.ErrBadRequest("cannot save login")
+			},
+		},
+		{
+			name:           "Token signing failure",
+			statusCode:     http.StatusBadRequest,
+			loggerCount:    1,
+			messagingCalls: 0,
+			errMessage:     "cannot sign token",
+			reqBody:        []byte(""),
+			webauthnFn: func() error {
+				return nil
+			},
+			userFn: func() (*auth.User, error) {
+				return &auth.User{}, nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "", auth.ErrBadRequest("cannot sign token")
+			},
+			tokenValidationFn: func() (*auth.Token, error) {
+				return &auth.Token{State: auth.JWTPreAuthorized}, nil
+			},
+			loginHistoryFn: func() error {
+				return nil
+			},
+		},
+		{
+			name:           "Successful request",
+			statusCode:     http.StatusOK,
+			loggerCount:    0,
+			messagingCalls: 0,
+			errMessage:     "",
+			reqBody:        []byte(""),
+			webauthnFn: func() error {
+				return nil
+			},
+			userFn: func() (*auth.User, error) {
+				return &auth.User{}, nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "jwt-token", nil
+			},
+			tokenValidationFn: func() (*auth.Token, error) {
+				return &auth.Token{State: auth.JWTPreAuthorized}, nil
+			},
+			loginHistoryFn: func() error {
+				return nil
+			},
 		},
 	}
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Error("whoops")
+			router := mux.NewRouter()
+			logger := &test.Logger{}
+			userRepo := &test.UserRepository{
+				ByIdentityFn: tc.userFn,
+			}
+			loginHistoryRepo := &test.LoginHistoryRepository{
+				CreateFn: tc.loginHistoryFn,
+			}
+			repoMngr := &test.RepositoryManager{
+				UserFn: func() auth.UserRepository {
+					return userRepo
+				},
+				LoginHistoryFn: func() auth.LoginHistoryRepository {
+					return loginHistoryRepo
+				},
+			}
+			tokenSvc := &test.TokenService{
+				ValidateFn: tc.tokenValidationFn,
+				CreateFn:   tc.tokenCreateFn,
+				SignFn:     tc.tokenSignFn,
+			}
+			messagingSvc := &test.MessagingService{}
+			webauthnSvc := &test.WebAuthnService{
+				FinishLoginFn: tc.webauthnFn,
+			}
+			svc := NewService(
+				WithLogger(&test.Logger{}),
+				WithTokenService(tokenSvc),
+				WithRepoManager(repoMngr),
+				WithMessaging(messagingSvc),
+				WithWebAuthn(webauthnSvc),
+			)
+
+			req, err := http.NewRequest(
+				"POST",
+				"/api/v1/login/verify-device",
+				bytes.NewBuffer(tc.reqBody),
+			)
+			if err != nil {
+				t.Fatal("failed to create request:", err)
+			}
+
+			test.SetAuthHeaders(req)
+
+			SetupHTTPHandler(svc, router, tokenSvc, logger)
+
+			rr := httptest.NewRecorder()
+			router.ServeHTTP(rr, req)
+
+			if rr.Code != tc.statusCode {
+				t.Errorf("incorrect status code, want %v got %v", tc.statusCode, rr.Code)
+				t.Error(rr.Body.String())
+			}
+
+			if messagingSvc.Calls.Send != tc.messagingCalls {
+				t.Errorf("incorrect MessagingService.Send() call count, want %v got %v",
+					tc.messagingCalls, messagingSvc.Calls.Send)
+			}
+
+			err = test.ValidateErrMessage(tc.errMessage, rr.Body)
+			if err != nil {
+				t.Error(err)
+			}
 		})
 	}
 }
@@ -385,7 +601,7 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Error("whoops")
+			t.Errorf("test [%s] is not implemented", tc.name)
 		})
 	}
 }

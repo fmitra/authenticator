@@ -19,6 +19,8 @@ const (
 	EBadRequest ErrCode = "bad_request"
 	// ENotFound represents a non existent entity.
 	ENotFound ErrCode = "not_found"
+	// EWebAuthn represents a webauthn authentication error.
+	EWebAuthn ErrCode = "webauthn"
 )
 
 // Error represents an error within the authenticator domain.
@@ -67,6 +69,13 @@ type ErrNotFound string
 func (e ErrNotFound) Code() ErrCode   { return ENotFound }
 func (e ErrNotFound) Error() string   { return fmt.Sprintf("[%s] %s", e.Code(), string(e)) }
 func (e ErrNotFound) Message() string { return string(e) }
+
+// ErrWebAuthn represents an error related to webauthn authentication.
+type ErrWebAuthn string
+
+func (e ErrWebAuthn) Code() ErrCode   { return EWebAuthn }
+func (e ErrWebAuthn) Error() string   { return fmt.Sprintf("[%s] %s", e.Code(), string(e)) }
+func (e ErrWebAuthn) Message() string { return string(e) }
 
 // DomainError returns a domain error if available.
 func DomainError(err error) Error {

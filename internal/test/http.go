@@ -42,6 +42,8 @@ func Server(resps ...ServerResp) *httptest.Server {
 	return s
 }
 
+// ValidateErrMessage validates an API error message in the format
+// of { error: { message: "", code: "" } }
 func ValidateErrMessage(expectedMsg string, body *bytes.Buffer) error {
 	if expectedMsg == "" {
 		return nil
@@ -61,6 +63,8 @@ func ValidateErrMessage(expectedMsg string, body *bytes.Buffer) error {
 	return nil
 }
 
+// SetAuthHeaders sets authentication header and client ID cookie
+// to the client request for API testing.
 func SetAuthHeaders(r *http.Request) {
 	cookie := http.Cookie{
 		Name:     "CLIENTID",
