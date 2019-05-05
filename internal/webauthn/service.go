@@ -60,7 +60,7 @@ func (w *WebAuthn) BeginSignUp(ctx context.Context, user *auth.User) ([]byte, er
 
 	credentialOptions, session, err := w.lib.BeginRegistration(&wu)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to initialize webauthn registration")
+		return nil, errors.Wrap(auth.ErrWebAuthn(err.Error()), "webauthn registration initialization failed")
 	}
 
 	return w.prepareChallenge(ctx, user, session, credentialOptions)
@@ -78,7 +78,7 @@ func (w *WebAuthn) FinishSignUp(ctx context.Context, user *auth.User, r *http.Re
 
 	credential, err := w.lib.FinishRegistration(&wu, *session, r)
 	if err != nil {
-		return nil, errors.Wrap(err, "webauthn device registration failed")
+		return nil, errors.Wrap(auth.ErrWebAuthn(err.Error()), "webauthn registration failed")
 	}
 
 	device := auth.Device{
@@ -101,7 +101,7 @@ func (w *WebAuthn) FinishSignUp(ctx context.Context, user *auth.User, r *http.Re
 func (w *WebAuthn) BeginLogin(ctx context.Context, user *auth.User) ([]byte, error) {
 	devices, err := w.repoMngr.Device().ByUserID(ctx, user.ID)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot find valid devices for user")
+		return nil, errors.Wrap(auth.ErrWebAuthn("no devices found"), err.Error())
 	}
 
 	wu := User{
@@ -111,7 +111,7 @@ func (w *WebAuthn) BeginLogin(ctx context.Context, user *auth.User) ([]byte, err
 
 	assertion, session, err := w.lib.BeginLogin(&wu)
 	if err != nil {
-		return nil, errors.Wrap(err, "webauthn login request failed")
+		return nil, errors.Wrap(auth.ErrWebAuthn(err.Error()), "webauthn login request failed")
 	}
 
 	return w.prepareChallenge(ctx, user, session, assertion)
@@ -122,7 +122,7 @@ func (w *WebAuthn) BeginLogin(ctx context.Context, user *auth.User) ([]byte, err
 func (w *WebAuthn) FinishLogin(ctx context.Context, user *auth.User, r *http.Request) error {
 	devices, err := w.repoMngr.Device().ByUserID(ctx, user.ID)
 	if err != nil {
-		return errors.Wrap(err, "cannot find valid devices for user")
+		return errors.Wrap(auth.ErrWebAuthn("no devices found"), err.Error())
 	}
 
 	wu := User{
@@ -137,11 +137,11 @@ func (w *WebAuthn) FinishLogin(ctx context.Context, user *auth.User, r *http.Req
 
 	credential, err := w.lib.FinishLogin(&wu, *session, r)
 	if err != nil {
-		return errors.Wrap(err, "failed to authenticate user")
+		return errors.Wrap(auth.ErrWebAuthn(err.Error()), "webauthn login failed")
 	}
 
 	if credential.Authenticator.CloneWarning {
-		return errors.New("webauthn device is possibly cloned")
+		return auth.ErrWebAuthn("device is possibly cloned")
 	}
 
 	client, err := w.repoMngr.NewWithTransaction(ctx)
@@ -176,7 +176,7 @@ func (w *WebAuthn) retrieveSession(ctx context.Context, user *auth.User) (*webau
 	sessionKey := newSessionKey(user.ID)
 	b, err := w.db.WithContext(ctx).Get(sessionKey).Bytes()
 	if err != nil {
-		return nil, errors.Wrap(err, "webauthn session not found")
+		return nil, errors.Wrap(auth.ErrWebAuthn("webauthn session not started"), err.Error())
 	}
 
 	session := webauthnLib.SessionData{}
