@@ -103,11 +103,42 @@ func (s *service) VerifyDevice(w http.ResponseWriter, r *http.Request) (interfac
 // VerifyCode verifies a User's authenticity through a validating TOTP or
 // randomly generated code.
 func (s *service) VerifyCode(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	return nil, errors.New("not implemented")
+	ctx := r.Context()
+	userID := httpapi.GetUserID(r)
+	token := httpapi.GetToken(r)
+
+	req, err := decodeVerifyCodeRequest(r)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := s.repoMngr.User().ByIdentity(ctx, "ID", userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = s.otp.Validate(user, req.Code, token.CodeHash); err != nil {
+		return nil, err
+	}
+
+	jwtToken, err := s.token.Create(ctx, user, auth.JWTAuthorized)
+	if err != nil {
+		return nil, err
+	}
+
+	loginHistory := &auth.LoginHistory{
+		UserID:    userID,
+		TokenID:   jwtToken.Id,
+		ExpiresAt: time.Unix(jwtToken.ExpiresAt, 0),
+	}
+	if err = s.repoMngr.LoginHistory().Create(ctx, loginHistory); err != nil {
+		return nil, err
+	}
+
+	return s.respond(ctx, w, user, jwtToken)
 }
 
 // respond creates a JWT token response.
-// TODO Look into drying this up
 func (s *service) respond(ctx context.Context, w http.ResponseWriter, user *auth.User, jwtToken *auth.Token) ([]byte, error) {
 	tokenStr, err := s.token.Sign(ctx, jwtToken)
 	if err != nil {

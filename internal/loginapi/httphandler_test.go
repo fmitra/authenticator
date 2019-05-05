@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
+	"github.com/fmitra/authenticator/internal/otp"
 	"github.com/fmitra/authenticator/internal/password"
 	"github.com/fmitra/authenticator/internal/test"
 )
@@ -591,17 +592,249 @@ func TestLoginAPI_VerifyDevice(t *testing.T) {
 }
 
 func TestLoginAPI_VerifyCode(t *testing.T) {
+	codeHash := "ba3253876aed6bc22d4a6ff53d8406c6ad864195ed144ab5" +
+		"c87621b6c233b548baeae6956df346ec8c17f5ea10f35ee3cbc51479" +
+		"7ed7ddd3145464e2a0bab413"
+
 	tt := []struct {
-		name string
+		name              string
+		statusCode        int
+		loggerCount       int
+		messagingCalls    int
+		reqBody           []byte
+		errMessage        string
+		userFn            func() (*auth.User, error)
+		tokenCreateFn     func() (*auth.Token, error)
+		tokenSignFn       func() (string, error)
+		tokenValidationFn func() (*auth.Token, error)
+		loginHistoryFn    func() error
 	}{
 		{
-			name: "Invalid token failure",
+			name:           "Invalid token failure",
+			statusCode:     http.StatusUnauthorized,
+			loggerCount:    1,
+			messagingCalls: 0,
+			reqBody:        []byte(`{"code": "123456"}`),
+			errMessage:     "token state is not supported",
+			userFn: func() (*auth.User, error) {
+				return &auth.User{IsCodeAllowed: true}, nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "jwt-token", nil
+			},
+			tokenValidationFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: codeHash, State: auth.JWTAuthorized}, nil
+			},
+			loginHistoryFn: func() error {
+				return nil
+			},
+		},
+		{
+			name:           "User query failure",
+			statusCode:     http.StatusBadRequest,
+			loggerCount:    1,
+			messagingCalls: 0,
+			errMessage:     "user does not exist",
+			reqBody:        []byte(`{"code": "123456"}`),
+			userFn: func() (*auth.User, error) {
+				return nil, auth.ErrNotFound("user does not exist")
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "jwt-token", nil
+			},
+			tokenValidationFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: codeHash, State: auth.JWTPreAuthorized}, nil
+			},
+			loginHistoryFn: func() error {
+				return nil
+			},
+		},
+		{
+			name:           "Invalid OTP code failure",
+			statusCode:     http.StatusBadRequest,
+			loggerCount:    1,
+			messagingCalls: 0,
+			errMessage:     "incorrect code provided",
+			reqBody:        []byte(`{"code": "222222"}`),
+			userFn: func() (*auth.User, error) {
+				return &auth.User{IsCodeAllowed: true}, nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "jwt-token", nil
+			},
+			tokenValidationFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: codeHash, State: auth.JWTPreAuthorized}, nil
+			},
+			loginHistoryFn: func() error {
+				return nil
+			},
+		},
+		{
+			name:           "Token creation failure",
+			statusCode:     http.StatusBadRequest,
+			loggerCount:    1,
+			messagingCalls: 0,
+			errMessage:     "cannot create token",
+			reqBody:        []byte(`{"code": "123456"}`),
+			userFn: func() (*auth.User, error) {
+				return &auth.User{IsCodeAllowed: true}, nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return nil, auth.ErrBadRequest("cannot create token")
+			},
+			tokenSignFn: func() (string, error) {
+				return "jwt-token", nil
+			},
+			tokenValidationFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: codeHash, State: auth.JWTPreAuthorized}, nil
+			},
+			loginHistoryFn: func() error {
+				return nil
+			},
+		},
+		{
+			name:           "Persist login history failure",
+			statusCode:     http.StatusBadRequest,
+			loggerCount:    1,
+			messagingCalls: 0,
+			errMessage:     "cannot save history",
+			reqBody:        []byte(`{"code": "123456"}`),
+			userFn: func() (*auth.User, error) {
+				return &auth.User{IsCodeAllowed: true}, nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "jwt-token", nil
+			},
+			tokenValidationFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: codeHash, State: auth.JWTPreAuthorized}, nil
+			},
+			loginHistoryFn: func() error {
+				return auth.ErrBadRequest("cannot save history")
+			},
+		},
+		{
+			name:           "Token signing failure",
+			statusCode:     http.StatusBadRequest,
+			loggerCount:    1,
+			messagingCalls: 0,
+			errMessage:     "cannot sign token",
+			reqBody:        []byte(`{"code": "123456"}`),
+			userFn: func() (*auth.User, error) {
+				return &auth.User{IsCodeAllowed: true}, nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "", auth.ErrBadRequest("cannot sign token")
+			},
+			tokenValidationFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: codeHash, State: auth.JWTPreAuthorized}, nil
+			},
+			loginHistoryFn: func() error {
+				return nil
+			},
+		},
+		{
+			name:           "Successful request",
+			statusCode:     http.StatusOK,
+			loggerCount:    0,
+			messagingCalls: 0,
+			errMessage:     "",
+			reqBody:        []byte(`{"code": "123456"}`),
+			userFn: func() (*auth.User, error) {
+				return &auth.User{IsCodeAllowed: true}, nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "jwt-token", nil
+			},
+			tokenValidationFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: codeHash, State: auth.JWTPreAuthorized}, nil
+			},
+			loginHistoryFn: func() error {
+				return nil
+			},
 		},
 	}
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Errorf("test [%s] is not implemented", tc.name)
+			router := mux.NewRouter()
+			logger := &test.Logger{}
+			userRepo := &test.UserRepository{
+				ByIdentityFn: tc.userFn,
+			}
+			loginHistoryRepo := &test.LoginHistoryRepository{
+				CreateFn: tc.loginHistoryFn,
+			}
+			repoMngr := &test.RepositoryManager{
+				UserFn: func() auth.UserRepository {
+					return userRepo
+				},
+				LoginHistoryFn: func() auth.LoginHistoryRepository {
+					return loginHistoryRepo
+				},
+			}
+			tokenSvc := &test.TokenService{
+				ValidateFn: tc.tokenValidationFn,
+				CreateFn:   tc.tokenCreateFn,
+				SignFn:     tc.tokenSignFn,
+			}
+			messagingSvc := &test.MessagingService{}
+			otpSvc := otp.NewOTP()
+			svc := NewService(
+				WithLogger(&test.Logger{}),
+				WithTokenService(tokenSvc),
+				WithRepoManager(repoMngr),
+				WithMessaging(messagingSvc),
+				WithOTP(otpSvc),
+			)
+
+			req, err := http.NewRequest(
+				"POST",
+				"/api/v1/login/verify-code",
+				bytes.NewBuffer(tc.reqBody),
+			)
+			if err != nil {
+				t.Fatal("failed to create request:", err)
+			}
+
+			test.SetAuthHeaders(req)
+
+			SetupHTTPHandler(svc, router, tokenSvc, logger)
+
+			rr := httptest.NewRecorder()
+			router.ServeHTTP(rr, req)
+
+			if rr.Code != tc.statusCode {
+				t.Errorf("incorrect status code, want %v got %v", tc.statusCode, rr.Code)
+				t.Error(rr.Body.String())
+			}
+
+			if messagingSvc.Calls.Send != tc.messagingCalls {
+				t.Errorf("incorrect MessagingService.Send() call count, want %v got %v",
+					tc.messagingCalls, messagingSvc.Calls.Send)
+			}
+
+			err = test.ValidateErrMessage(tc.errMessage, rr.Body)
+			if err != nil {
+				t.Error(err)
+			}
 		})
 	}
 }

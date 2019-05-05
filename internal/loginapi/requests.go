@@ -15,6 +15,10 @@ type loginRequest struct {
 	Type     string `json:"type"`
 }
 
+type verifyCodeRequest struct {
+	Code string `json:"code"`
+}
+
 func (r *loginRequest) UserAttribute() string {
 	switch r.Type {
 	case "email":
@@ -39,6 +43,20 @@ func decodeLoginRequest(r *http.Request) (*loginRequest, error) {
 
 	if req.UserAttribute() == "" {
 		return nil, auth.ErrBadRequest("identity type must be email or phone")
+	}
+
+	return &req, nil
+}
+
+func decodeVerifyCodeRequest(r *http.Request) (*verifyCodeRequest, error) {
+	var (
+		req verifyCodeRequest
+		err error
+	)
+
+	err = json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		return nil, errors.Wrap(auth.ErrBadRequest("invalid JSON request"), err.Error())
 	}
 
 	return &req, nil

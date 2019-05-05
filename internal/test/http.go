@@ -56,7 +56,7 @@ func ValidateErrMessage(expectedMsg string, body *bytes.Buffer) error {
 	}
 
 	if errResponse["error"]["message"] != expectedMsg {
-		return errors.Errorf("incorrect error resposne, want '%s' got '%s'",
+		return errors.Errorf("incorrect error response, want '%s' got '%s'",
 			expectedMsg, errResponse["error"]["message"])
 	}
 
