@@ -16,7 +16,7 @@ import (
 )
 
 func TestLoginAPI_Login(t *testing.T) {
-	validPassword := "$2a$10$zURdae3ekOWKobmadhWdROZLolGAIWrCEzjSfegV6Y/nsxJ1wqM2y"  // nolint
+	validPassword := "$2a$10$zURdae3ekOWKobmadhWdROZLolGAIWrCEzjSfegV6Y/nsxJ1wqM2y" // nolint
 
 	tt := []struct {
 		name           string
@@ -216,23 +216,151 @@ func TestLoginAPI_Login(t *testing.T) {
 
 func TestLoginAPI_DeviceChallenge(t *testing.T) {
 	tt := []struct {
-		name string
+		name            string
+		statusCode      int
+		loggerCount     int
+		messagingCalls  int
+		errMessage      string
+		webauthnFn      func() ([]byte, error)
+		userFn          func() (*auth.User, error)
+		tokenValidateFn func() (*auth.Token, error)
 	}{
 		{
-			name: "Invalid token failure",
+			name:           "Invalid token failure",
+			statusCode:     http.StatusUnauthorized,
+			loggerCount:    1,
+			messagingCalls: 0,
+			errMessage:     "token state is not supported",
+			webauthnFn: func() ([]byte, error) {
+				return []byte(""), nil
+			},
+			userFn: func() (*auth.User, error) {
+				return &auth.User{}, nil
+			},
+			tokenValidateFn: func() (*auth.Token, error) {
+				return &auth.Token{State: auth.JWTAuthorized}, nil
+			},
+		},
+		{
+			name:           "User query failure",
+			statusCode:     http.StatusInternalServerError,
+			loggerCount:    1,
+			messagingCalls: 0,
+			errMessage:     "An internal error occurred",
+			webauthnFn: func() ([]byte, error) {
+				return []byte(""), nil
+			},
+			userFn: func() (*auth.User, error) {
+				return nil, errors.New("database connection failed")
+			},
+			tokenValidateFn: func() (*auth.Token, error) {
+				return &auth.Token{State: auth.JWTPreAuthorized}, nil
+			},
+		},
+		{
+			name:           "Webauthn failure",
+			statusCode:     http.StatusInternalServerError,
+			loggerCount:    1,
+			messagingCalls: 0,
+			errMessage:     "An internal error occurred",
+			webauthnFn: func() ([]byte, error) {
+				return nil, errors.New("failed to created challenge")
+			},
+			userFn: func() (*auth.User, error) {
+				return &auth.User{}, nil
+			},
+			tokenValidateFn: func() (*auth.Token, error) {
+				return &auth.Token{State: auth.JWTPreAuthorized}, nil
+			},
+		},
+		{
+			name:           "Successful request",
+			statusCode:     http.StatusOK,
+			loggerCount:    0,
+			messagingCalls: 0,
+			errMessage:     "",
+			webauthnFn: func() ([]byte, error) {
+				return []byte(""), nil
+			},
+			userFn: func() (*auth.User, error) {
+				return &auth.User{}, nil
+			},
+			tokenValidateFn: func() (*auth.Token, error) {
+				return &auth.Token{State: auth.JWTPreAuthorized}, nil
+			},
 		},
 	}
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Error("whoops")
+			router := mux.NewRouter()
+			logger := &test.Logger{}
+			userRepo := &test.UserRepository{
+				ByIdentityFn: tc.userFn,
+			}
+			repoMngr := &test.RepositoryManager{
+				UserFn: func() auth.UserRepository {
+					return userRepo
+				},
+			}
+			tokenSvc := &test.TokenService{
+				ValidateFn: tc.tokenValidateFn,
+			}
+			messagingSvc := &test.MessagingService{}
+			webauthnSvc := &test.WebAuthnService{
+				BeginLoginFn: tc.webauthnFn,
+			}
+			svc := NewService(
+				WithLogger(&test.Logger{}),
+				WithTokenService(tokenSvc),
+				WithRepoManager(repoMngr),
+				WithMessaging(messagingSvc),
+				WithWebAuthn(webauthnSvc),
+			)
+
+			req, err := http.NewRequest("GET", "/api/v1/login/verify-device", nil)
+			if err != nil {
+				t.Fatal("failed to create request:", err)
+			}
+
+			test.SetAuthHeaders(req)
+
+			SetupHTTPHandler(svc, router, tokenSvc, logger)
+
+			rr := httptest.NewRecorder()
+			router.ServeHTTP(rr, req)
+
+			if rr.Code != tc.statusCode {
+				t.Errorf("incorrect status code, want %v got %v", tc.statusCode, rr.Code)
+				t.Error(rr.Body.String())
+			}
+
+			if messagingSvc.Calls.Send != tc.messagingCalls {
+				t.Errorf("incorrect MessagingService.Send() call count, want %v got %v",
+					tc.messagingCalls, messagingSvc.Calls.Send)
+			}
+
+			err = test.ValidateErrMessage(tc.errMessage, rr.Body)
+			if err != nil {
+				t.Error(err)
+			}
 		})
 	}
 }
 
 func TestLoginAPI_VerifyDevice(t *testing.T) {
 	tt := []struct {
-		name string
+		name           string
+		statusCode     int
+		loggerCount    int
+		errMessage     string
+		reqBody        []byte
+		messagingCalls int
+		webauthnFn     func() error
+		userFn         func() (*auth.User, error)
+		tokenCreateFn  func() (*auth.Token, error)
+		tokenSignFn    func() (string, error)
+		loginHistoryFn func() error
 	}{
 		{
 			name: "Invalid token failure",

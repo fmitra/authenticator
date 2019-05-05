@@ -6,11 +6,13 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
+	"github.com/fmitra/authenticator/internal/httpapi"
 )
 
 type service struct {
@@ -55,12 +57,47 @@ func (s *service) Login(w http.ResponseWriter, r *http.Request) (interface{}, er
 // DeviceChallenge requests a challenge to be signed by the client.
 // This is a pre step in order to verify a User's Device.
 func (s *service) DeviceChallenge(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	return nil, errors.New("not implemented")
+	ctx := r.Context()
+	userID := httpapi.GetUserID(r)
+
+	user, err := s.repoMngr.User().ByIdentity(ctx, "ID", userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.webauthn.BeginLogin(ctx, user)
 }
 
 // VerifyDevice verifies a User's authenticity through a signing device.
 func (s *service) VerifyDevice(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	return nil, errors.New("not implemented")
+	ctx := r.Context()
+	userID := httpapi.GetUserID(r)
+
+	user, err := s.repoMngr.User().ByIdentity(ctx, "ID", userID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.webauthn.FinishLogin(ctx, user, r)
+	if err != nil {
+		return nil, err
+	}
+
+	jwtToken, err := s.token.Create(ctx, user, auth.JWTAuthorized)
+	if err != nil {
+		return nil, err
+	}
+
+	loginHistory := &auth.LoginHistory{
+		UserID:    userID,
+		TokenID:   jwtToken.Id,
+		ExpiresAt: time.Unix(jwtToken.ExpiresAt, 0),
+	}
+	if err = s.repoMngr.LoginHistory().Create(ctx, loginHistory); err != nil {
+		return nil, err
+	}
+
+	return s.respond(ctx, w, user, jwtToken)
 }
 
 // VerifyCode verifies a User's authenticity through a validating TOTP or

@@ -489,11 +489,7 @@ func TestSignUpAPI_VerifyCode(t *testing.T) {
 				t.Fatal("failed to create request:", err)
 			}
 
-			req.Header.Set("AUTHORIZATION", "JWTTOKEN")
-			req.AddCookie(&http.Cookie{
-				Name:  "CLIENTID",
-				Value: "client-id",
-			})
+			test.SetAuthHeaders(req)
 
 			SetupHTTPHandler(svc, router, tokenSvc, logger)
 

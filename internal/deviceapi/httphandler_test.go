@@ -135,7 +135,7 @@ func TestDeviceAPI_Create(t *testing.T) {
 			}
 
 			if tc.authHeader {
-				setAuthHeaders(req)
+				test.SetAuthHeaders(req)
 			}
 
 			SetupHTTPHandler(svc, router, tokenSvc, logger)
@@ -282,7 +282,7 @@ func TestDeviceAPI_Verify(t *testing.T) {
 			}
 
 			if tc.authHeader {
-				setAuthHeaders(req)
+				test.SetAuthHeaders(req)
 			}
 
 			SetupHTTPHandler(svc, router, tokenSvc, logger)
@@ -406,7 +406,7 @@ func TestDeviceAPI_Remove(t *testing.T) {
 			}
 
 			if tc.authHeader {
-				setAuthHeaders(req)
+				test.SetAuthHeaders(req)
 			}
 
 			SetupHTTPHandler(svc, router, tokenSvc, logger)
@@ -429,17 +429,4 @@ func TestDeviceAPI_Remove(t *testing.T) {
 			}
 		})
 	}
-}
-
-func setAuthHeaders(r *http.Request) {
-	cookie := http.Cookie{
-		Name:     "CLIENTID",
-		Value:    "client-id",
-		MaxAge:   0,
-		Secure:   true,
-		HttpOnly: true,
-		Raw:      "client-id",
-	}
-	r.Header.Set("AUTHORIZATION", "JWTTOKEN")
-	r.AddCookie(&cookie)
 }
