@@ -49,7 +49,8 @@ func GetToken(r *http.Request) *auth.Token {
 // and we are unable to marshal it, we return an internal error.
 func JSONResponse(w http.ResponseWriter, v interface{}, statusCode int) {
 	if v == nil {
-		response(w, []byte(""), statusCode)
+		response(w, []byte("{}"), statusCode)
+		return
 	}
 
 	b, ok := v.([]byte)
