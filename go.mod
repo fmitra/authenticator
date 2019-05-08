@@ -13,13 +13,15 @@ require (
 	github.com/gorilla/mux v1.7.1
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/lib/pq v1.1.1
-	github.com/mitchellh/mapstructure v1.1.2 // indirect
 	github.com/nyaruka/phonenumbers v1.0.40
+	github.com/oklog/run v1.0.0
 	github.com/oklog/ulid v1.3.1
 	github.com/onsi/ginkgo v1.8.0 // indirect
 	github.com/onsi/gomega v1.5.0 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/satori/go.uuid v1.2.0 // indirect
+	github.com/spf13/pflag v1.0.3
+	github.com/spf13/viper v1.3.2
 	github.com/stretchr/testify v1.3.0 // indirect
 	golang.org/x/crypto v0.0.0-20190506204251-e1dfcc566284
 	golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c // indirect
