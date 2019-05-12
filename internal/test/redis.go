@@ -2,24 +2,20 @@ package test
 
 import (
 	"fmt"
+	"math/rand"
 	"strconv"
+	"time"
 
 	"github.com/go-redis/redis"
 )
 
-// RedisDB is a redis DB number. We allocate
-// a separate DB for each package test to avoid
-// race conditions with teardown methods.
-type RedisDB int
-
-const (
-	RedisTokenSvc RedisDB = iota
-	RedisWebAuthn
-)
-
 // NewRedisDB returns a redis DB for testing.
-func NewRedisDB(dbNo RedisDB) (*redis.Client, error) {
-	redisURL := fmt.Sprintf("redis://:swordfish@localhost:6379/%s", strconv.Itoa(int(dbNo)))
+// We allocate a random DB to avoid race conditions
+// in teardown/setup methods.
+func NewRedisDB() (*redis.Client, error) {
+	rand.Seed(time.Now().UnixNano())
+	dbNo := rand.Intn(16)
+	redisURL := fmt.Sprintf("redis://:swordfish@localhost:6379/%s", strconv.Itoa(dbNo))
 
 	redisConfig, err := redis.ParseURL(redisURL)
 	if err != nil {

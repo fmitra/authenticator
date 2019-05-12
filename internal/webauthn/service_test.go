@@ -47,7 +47,7 @@ func TestWebAuthnSvc_ConfiguresService(t *testing.T) {
 }
 
 func TestWebAuthnSvc_BeginSignUp(t *testing.T) {
-	redisDB, err := test.NewRedisDB(test.RedisWebAuthn)
+	redisDB, err := test.NewRedisDB()
 	if err != nil {
 		t.Fatal(err, "failed to create test redis database")
 	}
@@ -106,7 +106,7 @@ func TestWebAuthnSvc_BeginSignUp(t *testing.T) {
 }
 
 func TestWebAuthnSvc_FinishSignUpErrorHandling(t *testing.T) {
-	redisDB, err := test.NewRedisDB(test.RedisWebAuthn)
+	redisDB, err := test.NewRedisDB()
 	if err != nil {
 		t.Fatal(err, "failed to create test redis database")
 	}
@@ -165,7 +165,7 @@ func TestWebAuthnSvc_FinishSignUpErrorHandling(t *testing.T) {
 }
 
 func TestWebAuthnSvc_BeginLogin(t *testing.T) {
-	redisDB, err := test.NewRedisDB(test.RedisWebAuthn)
+	redisDB, err := test.NewRedisDB()
 	if err != nil {
 		t.Fatal(err, "failed to create test redis database")
 	}
@@ -251,7 +251,7 @@ func TestWebAuthnSvc_BeginLogin(t *testing.T) {
 }
 
 func TestWebAuthnSvc_FinishLoginErrorHandling(t *testing.T) {
-	redisDB, err := test.NewRedisDB(test.RedisWebAuthn)
+	redisDB, err := test.NewRedisDB()
 	if err != nil {
 		t.Fatal(err, "failed to create test redis database")
 	}
@@ -421,7 +421,7 @@ func TestWebAuthnSvc_FinishLoginErrorHandling(t *testing.T) {
 }
 
 func TestWebAuthnSvc_FinishSignUpSuccess(t *testing.T) {
-	redisDB, err := test.NewRedisDB(test.RedisWebAuthn)
+	redisDB, err := test.NewRedisDB()
 	if err != nil {
 		t.Fatal(err, "failed to create test redis database")
 	}
@@ -491,7 +491,7 @@ func TestWebAuthnSvc_FinishSignUpSuccess(t *testing.T) {
 }
 
 func TestWebAuthnSvc_FinishLoginSuccess(t *testing.T) {
-	redisDB, err := test.NewRedisDB(test.RedisWebAuthn)
+	redisDB, err := test.NewRedisDB()
 	if err != nil {
 		t.Fatal(err, "failed to create test redis database")
 	}

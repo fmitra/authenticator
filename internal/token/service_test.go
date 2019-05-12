@@ -38,7 +38,7 @@ func NewTestTokenSvc(db Rediser) auth.TokenService {
 }
 
 func TestTokenSvc_CreateAuthorized(t *testing.T) {
-	db, err := test.NewRedisDB(test.RedisTokenSvc)
+	db, err := test.NewRedisDB()
 	if err != nil {
 		t.Fatal("faliled to create test database:", err)
 	}
@@ -90,7 +90,7 @@ func TestTokenSvc_CreateAuthorized(t *testing.T) {
 }
 
 func TestTokenSvc_CreatePreAuthorized(t *testing.T) {
-	db, err := test.NewRedisDB(test.RedisTokenSvc)
+	db, err := test.NewRedisDB()
 	if err != nil {
 		t.Fatal("faliled to create test database:", err)
 	}
@@ -111,7 +111,7 @@ func TestTokenSvc_CreatePreAuthorized(t *testing.T) {
 }
 
 func TestTokenSvc_InvalidateAfterRevocation(t *testing.T) {
-	db, err := test.NewRedisDB(test.RedisTokenSvc)
+	db, err := test.NewRedisDB()
 	if err != nil {
 		t.Fatal("faliled to create test database:", err)
 	}
@@ -154,7 +154,7 @@ func TestTokenSvc_InvalidateAfterRevocation(t *testing.T) {
 }
 
 func TestTokenSvc_InvalidateAfterExpiry(t *testing.T) {
-	db, err := test.NewRedisDB(test.RedisTokenSvc)
+	db, err := test.NewRedisDB()
 	if err != nil {
 		t.Fatal("faliled to create test database:", err)
 	}
@@ -197,7 +197,7 @@ func TestTokenSvc_InvalidateAfterExpiry(t *testing.T) {
 }
 
 func TestTokenSvc_InvalidateNoUserID(t *testing.T) {
-	db, err := test.NewRedisDB(test.RedisTokenSvc)
+	db, err := test.NewRedisDB()
 	if err != nil {
 		t.Fatal("faliled to create test database:", err)
 	}
@@ -234,7 +234,7 @@ func TestTokenSvc_InvalidateNoUserID(t *testing.T) {
 }
 
 func TestTokenSvc_InvalidateClientIDMismatch(t *testing.T) {
-	db, err := test.NewRedisDB(test.RedisTokenSvc)
+	db, err := test.NewRedisDB()
 	if err != nil {
 		t.Fatal("failed to create test database:", err)
 	}
