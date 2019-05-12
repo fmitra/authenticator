@@ -9,14 +9,17 @@ import (
 	"github.com/oklog/ulid"
 
 	auth "github.com/fmitra/authenticator"
+	"github.com/fmitra/authenticator/internal/test"
 )
 
 func TestUserRepository_Create(t *testing.T) {
-	c, err := NewTestClient("user_repo_create_test")
+	pgDB, err := test.NewPGDB()
 	if err != nil {
 		t.Fatal("failed to create test database:", err)
 	}
-	defer DropTestDB(c, "user_repo_create_test")
+	defer pgDB.DropDB()
+
+	c := TestClient(pgDB.DB)
 
 	tt := []struct {
 		name      string
@@ -123,11 +126,13 @@ func TestUserRepository_Create(t *testing.T) {
 }
 
 func TestUserRepository_ByIdentity(t *testing.T) {
-	c, err := NewTestClient("user_repo_by_identity_test")
+	pgDB, err := test.NewPGDB()
 	if err != nil {
-		t.Fatal(err, "failed to create test database")
+		t.Fatal("failed to create test database:", err)
 	}
-	defer DropTestDB(c, "user_repo_by_identity_test")
+	defer pgDB.DropDB()
+
+	c := TestClient(pgDB.DB)
 
 	user := auth.User{
 		Password:  "swordfish",
@@ -202,11 +207,12 @@ func TestUserRepository_ByIdentity(t *testing.T) {
 }
 
 func TestUserRepository_Update(t *testing.T) {
-	c, err := NewTestClient("user_repo_update_test")
+	pgDB, err := test.NewPGDB()
 	if err != nil {
-		t.Fatal(err, "failed to create test database")
+		t.Fatal("failed to create test database:", err)
 	}
-	defer DropTestDB(c, "user_repo_update_test")
+	defer pgDB.DropDB()
+	c := TestClient(pgDB.DB)
 
 	user := auth.User{
 		Password:  "swordfish",
@@ -259,11 +265,12 @@ func TestUserRepository_Update(t *testing.T) {
 }
 
 func TestUserRepository_ReCreateFailure(t *testing.T) {
-	c, err := NewTestClient("user_repo_recreate_err_test")
+	pgDB, err := test.NewPGDB()
 	if err != nil {
 		t.Fatal("failed to create test database:", err)
 	}
-	defer DropTestDB(c, "user_repo_recreate_err_test")
+	defer pgDB.DropDB()
+	c := TestClient(pgDB.DB)
 
 	tt := []struct {
 		name        string
@@ -369,11 +376,12 @@ func TestUserRepository_ReCreateFailure(t *testing.T) {
 }
 
 func TestUserRepository_ReCreateSuccess(t *testing.T) {
-	c, err := NewTestClient("user_repo_recreate_ok_test")
+	pgDB, err := test.NewPGDB()
 	if err != nil {
 		t.Fatal("failed to create test database:", err)
 	}
-	defer DropTestDB(c, "user_repo_recreate_ok_test")
+	defer pgDB.DropDB()
+	c := TestClient(pgDB.DB)
 
 	user := auth.User{
 		Password:  "swordfish",

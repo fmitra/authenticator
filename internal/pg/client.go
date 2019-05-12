@@ -30,19 +30,7 @@ type Client struct {
 	userQ          map[string]string
 }
 
-// Open connects to PostgreSQL.
-func (c *Client) Open(dataSourceName string) error {
-	var err error
-
-	c.logger.Log("level", "debug", "msg", "connecting to db")
-	if c.db, err = sql.Open("postgres", dataSourceName); err != nil {
-		return errors.Wrap(err, "failed to open postgres connection")
-	}
-	if err = c.db.Ping(); err != nil {
-		return errors.Wrap(err, "postgres connection check failed")
-	}
-	c.logger.Log("level", "debug", "msg", "connected to db")
-
+func (c *Client) createQueries() {
 	c.loginHistoryQ = map[string]string{
 		"byUserID": `
 			SELECT user_id, token_id, is_revoked, expires_at, created_at, updated_at
@@ -156,13 +144,6 @@ func (c *Client) Open(dataSourceName string) error {
 			RETURNING created_at, updated_at
 		`,
 	}
-
-	return nil
-}
-
-// Close closes PostgreSQL connection.
-func (c *Client) Close() error {
-	return c.db.Close()
 }
 
 // NewWithTransaction returns a new client with a transaction. All

@@ -236,7 +236,7 @@ func TestTokenSvc_InvalidateNoUserID(t *testing.T) {
 func TestTokenSvc_InvalidateClientIDMismatch(t *testing.T) {
 	db, err := test.NewRedisDB(test.RedisTokenSvc)
 	if err != nil {
-		t.Fatal("faliled to create test database:", err)
+		t.Fatal("failed to create test database:", err)
 	}
 	defer db.Close()
 

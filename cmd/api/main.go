@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"io"
 	"math/rand"
@@ -20,7 +21,6 @@ import (
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
-	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/deviceapi"
 	"github.com/fmitra/authenticator/internal/loginapi"
 	"github.com/fmitra/authenticator/internal/otp"
@@ -93,20 +93,19 @@ func main() {
 		password.WithMaxLength(viper.GetInt("password.max-length")),
 	)
 
-	var repoMngr auth.RepositoryManager
+	var pgDB *sql.DB
 	{
-		pgClient := pg.NewClient(
-			pg.WithLogger(logger),
-			pg.WithEntropy(entropy),
-			pg.WithPassword(passwordSvc),
-		)
-		if err = pgClient.Open(viper.GetString("pg.conn-string")); err != nil {
+		pgDB, err := sql.Open("postgres", viper.GetString("pg.conn-string"))
+		if err != nil {
 			logger.Log("msg", "postgres connection failed", "err", err)
 			os.Exit(1)
 		}
-		repoMngr = pgClient
+		if err = pgDB.Ping(); err != nil {
+			logger.Log("msg", "postgres did not respond", "err", err)
+			os.Exit(1)
+		}
 		defer func() {
-			if err = pgClient.Close(); err != nil {
+			if err = pgDB.Close(); err != nil {
 				logger.Log("msg", "failed to close postgres connection", "err", err)
 			}
 		}()
@@ -133,6 +132,13 @@ func main() {
 		}
 		defer closeRedis()
 	}
+
+	repoMngr := pg.NewClient(
+		pg.WithLogger(logger),
+		pg.WithEntropy(entropy),
+		pg.WithPassword(passwordSvc),
+		pg.WithDB(pgDB),
+	)
 
 	otpSvc := otp.NewOTP(
 		otp.WithCodeLength(viper.GetInt("otp.code-length")),

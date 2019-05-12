@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"database/sql"
 	"io"
 
 	"github.com/go-kit/kit/log"
@@ -20,6 +21,8 @@ func NewClient(options ...ConfigOption) *Client {
 	for _, opt := range options {
 		opt(&c)
 	}
+
+	c.createQueries()
 
 	// Each repository has an embedded client to ensure they
 	// use the same connection and are able to share transactions.
@@ -52,5 +55,12 @@ func WithEntropy(entropy io.Reader) ConfigOption {
 func WithPassword(p auth.PasswordService) ConfigOption {
 	return func(c *Client) {
 		c.userRepository.password = p
+	}
+}
+
+// WithDB configures the client with a Postgres DB.
+func WithDB(db *sql.DB) ConfigOption {
+	return func(c *Client) {
+		c.db = db
 	}
 }

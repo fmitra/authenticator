@@ -427,11 +427,13 @@ func TestWebAuthnSvc_FinishSignUpSuccess(t *testing.T) {
 	}
 	defer redisDB.Close()
 
-	repoMngr, err := pg.NewTestClient("webauthn_finish_signup_test")
+	pgDB, err := test.NewPGDB()
 	if err != nil {
 		t.Fatal("failed to create test database:", err)
 	}
-	defer pg.DropTestDB(repoMngr, "webauthn_finish_signup_test")
+	defer pgDB.DropDB()
+
+	repoMngr := pg.TestClient(pgDB.DB)
 
 	ctx := context.Background()
 	user := &auth.User{
@@ -495,11 +497,13 @@ func TestWebAuthnSvc_FinishLoginSuccess(t *testing.T) {
 	}
 	defer redisDB.Close()
 
-	repoMngr, err := pg.NewTestClient("webauthn_finish_login_test")
+	pgDB, err := test.NewPGDB()
 	if err != nil {
 		t.Fatal("failed to create test database:", err)
 	}
-	defer pg.DropTestDB(repoMngr, "webauthn_finish_login_test")
+	defer pgDB.DropDB()
+
+	repoMngr := pg.TestClient(pgDB.DB)
 
 	ctx := context.Background()
 	user := &auth.User{

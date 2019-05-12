@@ -9,14 +9,17 @@ import (
 	"github.com/oklog/ulid"
 
 	auth "github.com/fmitra/authenticator"
+	"github.com/fmitra/authenticator/internal/test"
 )
 
 func TestLoginHistoryRepository_Create(t *testing.T) {
-	c, err := NewTestClient("login_repo_create_test")
+	pgDB, err := test.NewPGDB()
 	if err != nil {
 		t.Fatal("failed to create test database:", err)
 	}
-	defer DropTestDB(c, "login_repo_create_test")
+	defer pgDB.DropDB()
+
+	c := TestClient(pgDB.DB)
 
 	ctx := context.Background()
 	user := auth.User{
@@ -58,11 +61,13 @@ func TestLoginHistoryRepository_Create(t *testing.T) {
 }
 
 func TestLoginHistoryRepository_ByUserID(t *testing.T) {
-	c, err := NewTestClient("login_repo_by_userid_test")
+	pgDB, err := test.NewPGDB()
 	if err != nil {
 		t.Fatal("failed to create test database:", err)
 	}
-	defer DropTestDB(c, "login_repo_by_userid_test")
+	defer pgDB.DropDB()
+
+	c := TestClient(pgDB.DB)
 
 	ctx := context.Background()
 	user := auth.User{
@@ -132,11 +137,13 @@ func TestLoginHistoryRepository_ByUserID(t *testing.T) {
 }
 
 func TestLoginHistoryRepository_Update(t *testing.T) {
-	c, err := NewTestClient("login_repo_update_test")
+	pgDB, err := test.NewPGDB()
 	if err != nil {
 		t.Fatal("failed to create test database:", err)
 	}
-	defer DropTestDB(c, "login_repo_update_test")
+	defer pgDB.DropDB()
+
+	c := TestClient(pgDB.DB)
 
 	ctx := context.Background()
 	user := auth.User{

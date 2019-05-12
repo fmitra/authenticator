@@ -286,11 +286,13 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 }
 
 func TestSignUpAPI_SignUpExistingUser(t *testing.T) {
-	repoMngr, err := pg.NewTestClient("signupapi_signup_test")
+	pgDB, err := test.NewPGDB()
 	if err != nil {
 		t.Fatal("failed to create test database:", err)
 	}
-	defer pg.DropTestDB(repoMngr, "signupapi_signup_test")
+	defer pgDB.DropDB()
+
+	repoMngr := pg.TestClient(pgDB.DB)
 
 	ctx := context.Background()
 	user := &auth.User{

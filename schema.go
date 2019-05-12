@@ -1,5 +1,4 @@
-// Package pg provides implementations of authenticator domain repository interfaces.
-package pg
+package authenticator
 
 // Schema contains sql commands to setup the database to work for the authenticator app.
 const Schema = `

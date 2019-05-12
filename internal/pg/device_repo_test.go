@@ -7,6 +7,7 @@ import (
 	"time"
 
 	auth "github.com/fmitra/authenticator"
+	"github.com/fmitra/authenticator/internal/test"
 )
 
 const publicKey = `
@@ -19,11 +20,12 @@ vbgxw/pVTSIPc2Y/sQIDAQAB
 `
 
 func TestDeviceRepository_Create(t *testing.T) {
-	c, err := NewTestClient("device_repo_create_test")
+	pgDB, err := test.NewPGDB()
 	if err != nil {
 		t.Fatal("failed to create test database:", err)
 	}
-	defer DropTestDB(c, "device_repo_create_test")
+	defer pgDB.DropDB()
+	c := TestClient(pgDB.DB)
 
 	ctx := context.Background()
 	user := auth.User{
@@ -65,11 +67,12 @@ func TestDeviceRepository_Create(t *testing.T) {
 }
 
 func TestDeviceRepository_ByID(t *testing.T) {
-	c, err := NewTestClient("device_repo_byid_test")
+	pgDB, err := test.NewPGDB()
 	if err != nil {
 		t.Fatal("failed to create test database:", err)
 	}
-	defer DropTestDB(c, "device_repo_byid_test")
+	defer pgDB.DropDB()
+	c := TestClient(pgDB.DB)
 
 	ctx := context.Background()
 	user := auth.User{
@@ -107,11 +110,12 @@ func TestDeviceRepository_ByID(t *testing.T) {
 }
 
 func TestDeviceRepository_ByUserID(t *testing.T) {
-	c, err := NewTestClient("device_repo_by_userid_test")
+	pgDB, err := test.NewPGDB()
 	if err != nil {
 		t.Fatal("failed to create test database:", err)
 	}
-	defer DropTestDB(c, "device_repo_by_userid_test")
+	defer pgDB.DropDB()
+	c := TestClient(pgDB.DB)
 
 	ctx := context.Background()
 	user := auth.User{
@@ -153,11 +157,12 @@ func TestDeviceRepository_ByUserID(t *testing.T) {
 }
 
 func TestDeviceRepository_ByClientID(t *testing.T) {
-	c, err := NewTestClient("device_repo_by_client_test")
+	pgDB, err := test.NewPGDB()
 	if err != nil {
 		t.Fatal("failed to create test database:", err)
 	}
-	defer DropTestDB(c, "device_repo_by_client_test")
+	defer pgDB.DropDB()
+	c := TestClient(pgDB.DB)
 
 	ctx := context.Background()
 	user := auth.User{
@@ -196,11 +201,12 @@ func TestDeviceRepository_ByClientID(t *testing.T) {
 }
 
 func TestDeviceRepository_Update(t *testing.T) {
-	c, err := NewTestClient("device_repo_update_test")
+	pgDB, err := test.NewPGDB()
 	if err != nil {
 		t.Fatal("failed to create test database:", err)
 	}
-	defer DropTestDB(c, "device_repo_update_test")
+	defer pgDB.DropDB()
+	c := TestClient(pgDB.DB)
 
 	ctx := context.Background()
 	user := auth.User{
@@ -263,11 +269,12 @@ func TestDeviceRepository_Update(t *testing.T) {
 }
 
 func TestDeviceRepository_Remove(t *testing.T) {
-	c, err := NewTestClient("device_repo_remove_test")
+	pgDB, err := test.NewPGDB()
 	if err != nil {
 		t.Fatal("failed to create test database:", err)
 	}
-	defer DropTestDB(c, "device_repo_remove_test")
+	defer pgDB.DropDB()
+	c := TestClient(pgDB.DB)
 
 	ctx := context.Background()
 	user := auth.User{
