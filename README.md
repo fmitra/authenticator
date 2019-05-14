@@ -93,6 +93,29 @@ Following topics are still being planned out
 * Password reset
 * Token expiry/refresh
 
+## Development
+
+For a default development set up:
+
+Generate default config
+
+```
+make dev
+```
+
+Start Postgres and Redis
+
+```
+docker-compose up -d
+```
+
+Build and run project
+
+```
+go build ./cmd/api
+./api --config=./config.json
+```
+
 ## Alternatives
 
 * [Auth0](https://auth0.com/) Packages authentication as a service but results in leaving

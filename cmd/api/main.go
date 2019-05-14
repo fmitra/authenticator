@@ -12,10 +12,12 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"strings"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/handlers"
 	"github.com/oklog/run"
 	"github.com/oklog/ulid"
 	flag "github.com/spf13/pflag"
@@ -46,12 +48,13 @@ func main() {
 	fs := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	{
 		fs.String("api.http-addr", ":8080", "Address to listen on")
+		fs.String("api.allowed-origins", "*", "Comma separated list of allowed origins")
 		fs.String("pg.conn-string", "", "Postgres connection string")
 		fs.String("redis.conn-string", "", "Redis connection string")
 		fs.Int("password.min-length", 8, "Minimum password length")
 		fs.Int("password.max-length", 1000, "Maximum password length")
 		fs.Int("otp.code-length", 6, "OTP code length")
-		fs.Duration("token.expiresIn", time.Minute*20, "JWT token expiry time")
+		fs.Duration("token.expires-in", time.Minute*20, "JWT token expiry time")
 		fs.String("token.issuer", "authenticator", "JWT token issuer")
 		fs.String("token.secret", "", "JWT token secret")
 		fs.String("webauthn.display-name", "Authenticator", "Webauthn display name")
@@ -95,7 +98,7 @@ func main() {
 
 	var pgDB *sql.DB
 	{
-		pgDB, err := sql.Open("postgres", viper.GetString("pg.conn-string"))
+		pgDB, err = sql.Open("postgres", viper.GetString("pg.conn-string"))
 		if err != nil {
 			logger.Log("msg", "postgres connection failed", "err", err)
 			os.Exit(1)
@@ -198,7 +201,17 @@ func main() {
 
 	server := http.Server{
 		Addr:         viper.GetString("api.http-addr"),
-		Handler:      router,
+		Handler:      handlers.CORS(
+			handlers.AllowedHeaders([]string{
+				"X-Requested-With",
+				"Content-Type",
+				"Origin",
+			}),
+			handlers.AllowedMethods([]string{"GET", "POST", "PUT", "OPTIONS", "HEAD"}),
+			handlers.AllowedOrigins(strings.Split(
+				viper.GetString("api.allowed-origins"), ","),
+			),
+		)(router),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  30 * time.Second,

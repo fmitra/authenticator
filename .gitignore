@@ -1,7 +1,10 @@
 coverage.txt
+config.json
 
 .DS_Store
 .idea
 
 vendor
 _vendor*
+
+/api

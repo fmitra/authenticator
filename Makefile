@@ -1,3 +1,6 @@
+dev:
+	cp config.example.json config.json
+
 fmt:
 	gofmt -w -s ./
 

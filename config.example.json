@@ -1,0 +1,29 @@
+{
+  "api": {
+    "http-addr": ":8081",
+    "allowed-origins": "*"
+  },
+  "pg": {
+    "conn-string": "user=auth password=swordfish host=localhost port=5432 dbname=authenticator_test connect_timeout=3 sslmode=disable"
+  },
+  "redis": {
+    "conn-string": "redis://:swordfish@localhost:6379/1"
+  },
+  "password": {
+    "min-length": 8,
+    "max-length": 1000
+  },
+  "otp": {
+    "code-length": 6
+  },
+  "token": {
+    "expires-in": "20m",
+    "issuer": "authenticator",
+    "secret": "secret"
+  },
+  "webauthn": {
+    "display-name": "Authenticator",
+    "domain": "authenticator.local",
+    "request-origin": "authenticator.local"
+  }
+}
