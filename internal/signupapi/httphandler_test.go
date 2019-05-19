@@ -435,25 +435,6 @@ func TestSignUpAPI_VerifyCode(t *testing.T) {
 			},
 			messagingCalls: 0,
 		},
-		//		{
-		//			name:        "Code validated",
-		//			statusCode:  http.StatusOK,
-		//			loggerCount: 0,
-		//			reqBody:     []byte(`{"code": "123456"}`),
-		//			userFn: func() (*auth.User, error) {
-		//				return &auth.User{IsCodeAllowed: true}, nil
-		//			},
-		//			tokenValidateFn: func() (*auth.Token, error) {
-		//				return &auth.Token{CodeHash: codeHash, State: auth.JWTPreAuthorized}, nil
-		//			},
-		//			tokenCreateFn: func() (*auth.Token, error) {
-		//				return &auth.Token{}, nil
-		//			},
-		//			tokenSignFn: func() (string, error) {
-		//				return "jwt-token", nil
-		//			},
-		//			messagingCalls: 0,
-		//		},
 	}
 
 	for _, tc := range tt {
