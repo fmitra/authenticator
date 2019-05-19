@@ -17,6 +17,11 @@ import (
 	"github.com/fmitra/authenticator/internal/test"
 )
 
+// OTP Code hash. Validates to 123456.
+const codeHash = "ba3253876aed6bc22d4a6ff53d8406c6ad864195ed144ab5" +
+	"c87621b6c233b548baeae6956df346ec8c17f5ea10f35ee3cbc514797ed7d" +
+	"dd3145464e2a0bab413"
+
 func TestSignUpAPI_SignUp(t *testing.T) {
 	tt := []struct {
 		name            string
@@ -362,10 +367,6 @@ func TestSignUpAPI_SignUpExistingUser(t *testing.T) {
 }
 
 func TestSignUpAPI_VerifyCode(t *testing.T) {
-	codeHash := "ba3253876aed6bc22d4a6ff53d8406c6ad864195ed144ab5" +
-		"c87621b6c233b548baeae6956df346ec8c17f5ea10f35ee3cbc51479" +
-		"7ed7ddd3145464e2a0bab413"
-
 	tt := []struct {
 		name            string
 		statusCode      int
@@ -434,25 +435,25 @@ func TestSignUpAPI_VerifyCode(t *testing.T) {
 			},
 			messagingCalls: 0,
 		},
-		{
-			name:        "Code validated",
-			statusCode:  http.StatusOK,
-			loggerCount: 0,
-			reqBody:     []byte(`{"code": "123456"}`),
-			userFn: func() (*auth.User, error) {
-				return &auth.User{IsCodeAllowed: true}, nil
-			},
-			tokenValidateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: codeHash, State: auth.JWTPreAuthorized}, nil
-			},
-			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{}, nil
-			},
-			tokenSignFn: func() (string, error) {
-				return "jwt-token", nil
-			},
-			messagingCalls: 0,
-		},
+		//		{
+		//			name:        "Code validated",
+		//			statusCode:  http.StatusOK,
+		//			loggerCount: 0,
+		//			reqBody:     []byte(`{"code": "123456"}`),
+		//			userFn: func() (*auth.User, error) {
+		//				return &auth.User{IsCodeAllowed: true}, nil
+		//			},
+		//			tokenValidateFn: func() (*auth.Token, error) {
+		//				return &auth.Token{CodeHash: codeHash, State: auth.JWTPreAuthorized}, nil
+		//			},
+		//			tokenCreateFn: func() (*auth.Token, error) {
+		//				return &auth.Token{}, nil
+		//			},
+		//			tokenSignFn: func() (string, error) {
+		//				return "jwt-token", nil
+		//			},
+		//			messagingCalls: 0,
+		//		},
 	}
 
 	for _, tc := range tt {
@@ -507,5 +508,93 @@ func TestSignUpAPI_VerifyCode(t *testing.T) {
 					tc.messagingCalls, messagingSvc.Calls.Send)
 			}
 		})
+	}
+}
+
+func TestSignUpAPI_VerifyCodeSuccess(t *testing.T) {
+	pgDB, err := test.NewPGDB()
+	if err != nil {
+		t.Fatal("failed to create test database:", err)
+	}
+	defer pgDB.DropDB()
+
+	repoMngr := pg.TestClient(pgDB.DB)
+
+	ctx := context.Background()
+	user := &auth.User{
+		Password:  "swordfish",
+		TFASecret: "tfa_secret",
+		Email: sql.NullString{
+			String: "jane@example.com",
+			Valid:  true,
+		},
+		IsVerified:    false,
+		IsCodeAllowed: true,
+	}
+	err = repoMngr.User().Create(ctx, user)
+	if err != nil {
+		t.Fatal("failed to create uer:", err)
+	}
+
+	router := mux.NewRouter()
+	logger := &test.Logger{}
+	tokenSvc := &test.TokenService{
+		CreateFn: func() (*auth.Token, error) {
+			return &auth.Token{Code: "123456"}, nil
+		},
+		SignFn: func() (string, error) {
+			return "jwt-token", nil
+		},
+		ValidateFn: func() (*auth.Token, error) {
+			return &auth.Token{
+				CodeHash: codeHash,
+				State:    auth.JWTPreAuthorized,
+				UserID:   user.ID,
+			}, nil
+		},
+	}
+	messagingSvc := &test.MessagingService{}
+	otpSvc := otp.NewOTP()
+
+	svc := NewService(
+		WithLogger(&test.Logger{}),
+		WithTokenService(tokenSvc),
+		WithRepoManager(repoMngr),
+		WithMessaging(messagingSvc),
+		WithOTP(otpSvc),
+	)
+
+	req, err := http.NewRequest(
+		"POST",
+		"/api/v1/signup/verify",
+		bytes.NewBuffer([]byte(`{"code": "123456"}`)),
+	)
+	if err != nil {
+		t.Fatal("failed to create request:", err)
+	}
+
+	test.SetAuthHeaders(req)
+
+	SetupHTTPHandler(svc, router, tokenSvc, logger)
+
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("incorrect status code, want %v got %v", http.StatusOK, rr.Code)
+	}
+
+	newUser, err := repoMngr.User().ByIdentity(ctx, "Email", user.Email.String)
+	if err != nil {
+		t.Fatal("failed to retrieve user:", err)
+	}
+
+	if !newUser.IsVerified {
+		t.Error("user was not verified")
+	}
+
+	if messagingSvc.Calls.Send != 1 {
+		t.Errorf("incorrect MessagingService.Send() call count, want 1 got %v",
+			messagingSvc.Calls.Send)
 	}
 }

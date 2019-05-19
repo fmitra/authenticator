@@ -81,3 +81,17 @@ func WithOTP(o auth.OTPService) ConfigOption {
 		s.otp = o
 	}
 }
+
+// WithCookieDomain configures the service with the domain for a secure cookie.
+func WithCookieDomain(domain string) ConfigOption {
+	return func(s *service) {
+		s.cookieDomain = domain
+	}
+}
+
+// WithCookieMaxAge sets the max age for an HTTP cookie. Defaults to 7 days.
+func WithCookieMaxAge(age int) ConfigOption {
+	return func(s *service) {
+		s.cookieMaxAge = age
+	}
+}

@@ -10,14 +10,14 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
-	"strings"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-redis/redis"
-	"github.com/gorilla/mux"
 	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
 	"github.com/oklog/run"
 	"github.com/oklog/ulid"
 	flag "github.com/spf13/pflag"
@@ -49,6 +49,8 @@ func main() {
 	{
 		fs.String("api.http-addr", ":8080", "Address to listen on")
 		fs.String("api.allowed-origins", "*", "Comma separated list of allowed origins")
+		fs.String("api.cookie-domain", "", "Domain to set HTTP cookie")
+		fs.Int("api.cookie-max-age", 605800, "Max age of cookie, in seconds")
 		fs.String("pg.conn-string", "", "Postgres connection string")
 		fs.String("redis.conn-string", "", "Redis connection string")
 		fs.Int("password.min-length", 8, "Minimum password length")
@@ -155,6 +157,8 @@ func main() {
 		token.WithIssuer(viper.GetString("token.issuer")),
 		token.WithSecret(viper.GetString("token.secret")),
 		token.WithOTP(otpSvc),
+		token.WithCookieMaxAge(viper.GetInt("api.cookie-max-age")),
+		token.WithCookieDomain(viper.GetString("api.cookie-domain")),
 	)
 
 	webauthnSvc, err := webauthn.NewService(
@@ -194,23 +198,29 @@ func main() {
 	)
 
 	router := mux.NewRouter()
+	router.HandleFunc("/healthcheck", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	})
 
 	loginapi.SetupHTTPHandler(loginAPI, router, tokenSvc, logger)
 	signupapi.SetupHTTPHandler(signupAPI, router, tokenSvc, logger)
 	deviceapi.SetupHTTPHandler(deviceAPI, router, tokenSvc, logger)
 
+	logger.Log("origins", strings.Split(viper.GetString("api.allowed-origins"), ","))
 	server := http.Server{
-		Addr:         viper.GetString("api.http-addr"),
-		Handler:      handlers.CORS(
-			handlers.AllowedHeaders([]string{
-				"X-Requested-With",
-				"Content-Type",
-				"Origin",
-			}),
-			handlers.AllowedMethods([]string{"GET", "POST", "PUT", "OPTIONS", "HEAD"}),
+		Addr: viper.GetString("api.http-addr"),
+		Handler: handlers.CORS(
 			handlers.AllowedOrigins(strings.Split(
 				viper.GetString("api.allowed-origins"), ","),
 			),
+			handlers.AllowedHeaders([]string{
+				"X-Requested-With",
+				"Content-Type",
+				"Authorization",
+			}),
+			handlers.AllowCredentials(),
+			handlers.AllowedMethods([]string{"GET", "POST", "PUT", "OPTIONS", "HEAD"}),
 		)(router),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,

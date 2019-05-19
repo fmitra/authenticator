@@ -71,6 +71,7 @@ func (r *UserRepository) Create(ctx context.Context, user *auth.User) error {
 	}
 
 	user.ID = userID.String()
+	user.IsCodeAllowed = true
 	row := r.client.queryRowContext(
 		ctx,
 		r.client.userQ["insert"],

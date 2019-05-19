@@ -1,7 +1,9 @@
 {
   "api": {
     "http-addr": ":8081",
-    "allowed-origins": "*"
+    "allowed-origins": "https://authenticator.local",
+    "cookie-domain": "authenticator.local",
+    "cookie-max-age": 605800
   },
   "pg": {
     "conn-string": "user=auth password=swordfish host=localhost port=5432 dbname=authenticator_test connect_timeout=3 sslmode=disable"

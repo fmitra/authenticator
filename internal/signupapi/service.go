@@ -59,7 +59,7 @@ func (s *service) SignUp(w http.ResponseWriter, r *http.Request) (interface{}, e
 		return nil, err
 	}
 
-	jwtToken, err := s.token.Create(ctx, user, auth.JWTPreAuthorized)
+	jwtToken, err := s.token.Create(ctx, newUser, auth.JWTPreAuthorized)
 	if err != nil {
 		return nil, err
 	}
@@ -89,6 +89,10 @@ func (s *service) Verify(w http.ResponseWriter, r *http.Request) (interface{}, e
 
 	jwtToken, err := s.token.Create(ctx, user, auth.JWTAuthorized)
 	if err != nil {
+		return nil, err
+	}
+
+	if err = s.markUserVerified(ctx, user); err != nil {
 		return nil, err
 	}
 
@@ -129,8 +133,7 @@ func (s *service) reCreateUser(ctx context.Context, userID string, newUser *auth
 		user.Phone = newUser.Phone
 		user.Password = newUser.Password
 
-		err = client.User().ReCreate(ctx, user)
-		if err != nil {
+		if err = client.User().ReCreate(ctx, user); err != nil {
 			return nil, errors.Wrap(err, "cannot re-create user")
 		}
 
@@ -165,6 +168,32 @@ func (s *service) respond(ctx context.Context, w http.ResponseWriter, user *auth
 	return []byte(fmt.Sprintf(`
 		{"token": "%s", "clientID": "%s"}
 	`, tokenStr, jwtToken.ClientID)), nil
+}
+
+func (s *service) markUserVerified(ctx context.Context, user *auth.User) error {
+	client, err := s.repoMngr.NewWithTransaction(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to start transaction")
+	}
+
+	entity, err := client.WithAtomic(func() (interface{}, error) {
+		user, err := client.User().GetForUpdate(ctx, user.ID)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get user for update")
+		}
+
+		user.IsVerified = true
+		if err = client.User().Update(ctx, user); err != nil {
+			return nil, errors.Wrap(err, "failed to save verified user")
+		}
+
+		return user, nil
+	})
+	if err != nil {
+		return err
+	}
+	user = entity.(*auth.User)
+	return nil
 }
 
 func isUserVerified(user *auth.User, err error) bool {

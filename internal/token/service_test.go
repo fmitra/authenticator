@@ -32,6 +32,8 @@ func NewTestTokenSvc(db Rediser) auth.TokenService {
 		WithSecret("my-signing-secret"),
 		WithIssuer("authenticator"),
 		WithOTP(otp.NewOTP()),
+		WithCookieDomain("authenticator.local"),
+		WithCookieMaxAge(1000),
 	)
 
 	return tokenSvc

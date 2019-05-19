@@ -34,13 +34,15 @@ type Rediser interface {
 // service is an implementation of auth.TokenService
 // backed by redis.
 type service struct {
-	logger      log.Logger
-	tokenExpiry time.Duration
-	entropy     io.Reader
-	secret      []byte
-	issuer      string
-	db          Rediser
-	otp         auth.OTPService
+	logger       log.Logger
+	tokenExpiry  time.Duration
+	entropy      io.Reader
+	secret       []byte
+	issuer       string
+	db           Rediser
+	otp          auth.OTPService
+	cookieMaxAge int
+	cookieDomain string
 }
 
 // Create creates a new, signed JWT token for a User.
@@ -167,7 +169,9 @@ func (s *service) Cookie(ctx context.Context, token *auth.Token) *http.Cookie {
 	cookie := http.Cookie{
 		Name:     ClientIDCookie,
 		Value:    token.ClientID,
-		MaxAge:   0,
+		MaxAge:   s.cookieMaxAge,
+		Domain:   s.cookieDomain,
+		Path:     "/",
 		Secure:   true,
 		HttpOnly: true,
 	}
