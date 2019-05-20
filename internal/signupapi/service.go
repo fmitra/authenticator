@@ -143,7 +143,8 @@ func (s *service) reCreateUser(ctx context.Context, userID string, newUser *auth
 		return err
 	}
 
-	newUser = entity.(*auth.User)
+	*newUser = *entity.(*auth.User)
+
 	return nil
 }
 

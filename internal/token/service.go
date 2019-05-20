@@ -8,6 +8,7 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -108,6 +109,10 @@ func (s *service) Sign(ctx context.Context, token *auth.Token) (string, error) {
 // and originating from a valid client. On success it will return the unpacked
 // Token struct.
 func (s *service) Validate(ctx context.Context, signedToken string, clientID string) (*auth.Token, error) {
+	if !strings.HasPrefix(signedToken, "Bearer ") {
+		return nil, auth.ErrInvalidToken("bearer token expected")
+	}
+
 	tokenParser := func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.Errorf("unexpected signing method %v", token.Header["alg"])
@@ -116,6 +121,7 @@ func (s *service) Validate(ctx context.Context, signedToken string, clientID str
 		return s.secret, nil
 	}
 
+	signedToken = strings.TrimPrefix(signedToken, "Bearer ")
 	unpackedToken, err := jwt.Parse(signedToken, tokenParser)
 	if err != nil {
 		return nil, errors.Wrap(auth.ErrInvalidToken("token is invalid"), err.Error())

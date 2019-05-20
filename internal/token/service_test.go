@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha512"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"math/rand"
 	"testing"
@@ -133,6 +134,7 @@ func TestTokenSvc_InvalidateAfterRevocation(t *testing.T) {
 		t.Fatal("failed to sign token:", err)
 	}
 
+	jwtToken = fmt.Sprintf("Bearer %s", jwtToken)
 	_, err = tokenSvc.Validate(ctx, jwtToken, token.ClientID)
 	if err != nil {
 		t.Error("failed to validate token:", err)
@@ -186,6 +188,7 @@ func TestTokenSvc_InvalidateAfterExpiry(t *testing.T) {
 		t.Fatal("failed to sign token:", err)
 	}
 
+	jwtToken = fmt.Sprintf("Bearer %s", jwtToken)
 	_, err = tokenSvc.Validate(ctx, jwtToken, token.ClientID)
 	if err != nil {
 		t.Error("failed to validate token:", err)
@@ -195,6 +198,33 @@ func TestTokenSvc_InvalidateAfterExpiry(t *testing.T) {
 	_, err = tokenSvc.Validate(ctx, jwtToken, token.ClientID)
 	if err == nil {
 		t.Error("expired token should return error")
+	}
+}
+
+func TestTokenSvc_InvalidateNotBearer(t *testing.T) {
+	db, err := test.NewRedisDB()
+	if err != nil {
+		t.Fatal("faliled to create test database:", err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	tokenSvc := NewTestTokenSvc(db)
+
+	_, err = tokenSvc.Validate(ctx, "jwt-token", "client-id")
+	domainErr := auth.DomainError(err)
+	if domainErr == nil {
+		t.Fatal("expected domain error")
+	}
+
+	if domainErr.Code() != auth.EInvalidToken {
+		t.Errorf("incorrect error code, want %s got %s",
+			auth.EInvalidToken, domainErr.Code())
+	}
+
+	if domainErr.Message() != "bearer token expected" {
+		t.Errorf("incorrect error code, want %s got %s",
+			"bearer token expected", domainErr.Message())
 	}
 }
 
@@ -266,6 +296,7 @@ func TestTokenSvc_InvalidateClientIDMismatch(t *testing.T) {
 		t.Fatal("failed to sign token:", err)
 	}
 
+	jwtToken = fmt.Sprintf("Bearer %s", jwtToken)
 	_, err = tokenSvc.Validate(ctx, jwtToken, token.ClientID)
 	if err != nil {
 		t.Error("failed to validate token:", err)
