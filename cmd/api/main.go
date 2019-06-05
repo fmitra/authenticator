@@ -207,7 +207,6 @@ func main() {
 	signupapi.SetupHTTPHandler(signupAPI, router, tokenSvc, logger)
 	deviceapi.SetupHTTPHandler(deviceAPI, router, tokenSvc, logger)
 
-	logger.Log("origins", strings.Split(viper.GetString("api.allowed-origins"), ","))
 	server := http.Server{
 		Addr: viper.GetString("api.http-addr"),
 		Handler: handlers.CORS(
