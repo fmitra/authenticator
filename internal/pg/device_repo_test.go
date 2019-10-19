@@ -303,7 +303,7 @@ func TestDeviceRepository_Remove(t *testing.T) {
 		t.Fatal("failed to create device:", err)
 	}
 
-	err = c.Device().Remove(ctx, device.ID, "non-existant-user-id")
+	err = c.Device().Remove(ctx, device.ID, "non-existent-user-id")
 	if err == nil {
 		t.Error("expected error response, not nil")
 	}

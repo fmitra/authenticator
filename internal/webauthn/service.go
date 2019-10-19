@@ -225,6 +225,5 @@ func deviceID(devices []*auth.Device, credentialID []byte) string {
 			}
 		}
 	}
-
 	return deviceID
 }

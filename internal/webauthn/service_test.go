@@ -417,7 +417,6 @@ func TestWebAuthnSvc_FinishLoginErrorHandling(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestWebAuthnSvc_FinishSignUpSuccess(t *testing.T) {

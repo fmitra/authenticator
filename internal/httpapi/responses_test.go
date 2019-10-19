@@ -61,6 +61,8 @@ func TestHTTPAPI_JSONResponse(t *testing.T) {
 			JSONResponse(w, tc.response, tc.statusIn)
 
 			resp := w.Result()
+			defer resp.Body.Close()
+
 			body, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
 				t.Fatal("failed to read body:", err)
@@ -112,6 +114,8 @@ func TestHTTPAPI_ErrorResponse(t *testing.T) {
 			ErrorResponse(w, tc.err)
 
 			resp := w.Result()
+			defer resp.Body.Close()
+
 			body, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
 				t.Fatal("failed to read body:", err)

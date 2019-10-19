@@ -33,7 +33,7 @@ func (r *UserRepository) ByIdentity(ctx context.Context, attribute, value string
 	case "ID":
 		q = "byID"
 	default:
-		return nil, errors.Errorf("%s is not a valid query paramter", attribute)
+		return nil, errors.Errorf("%s is not a valid query parameter", attribute)
 	}
 
 	row := r.client.queryRowContext(ctx, r.client.userQ[q], value)

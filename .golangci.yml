@@ -5,7 +5,15 @@ linters:
   enable-all: true
   disable:
     - interfacer
+    - testpackage
     - dupl
+    - wsl
+    - gocognit
+    - goerr113
+    - godot
+    - gomnd
+    - funlen
+    - godox
 
 linters-settings:
   errcheck:

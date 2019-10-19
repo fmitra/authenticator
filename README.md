@@ -116,6 +116,13 @@ go build ./cmd/api
 ./api --config=./config.json
 ```
 
+Test and lint project
+
+```
+make test
+make lint
+```
+
 ## Alternatives
 
 * [Auth0](https://auth0.com/) Packages authentication as a service but results in leaving

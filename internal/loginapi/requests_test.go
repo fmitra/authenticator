@@ -164,5 +164,4 @@ func TestLoginAPI_VerifyCodeRequest(t *testing.T) {
 			}
 		})
 	}
-
 }

@@ -53,7 +53,7 @@ type RepositoryManager struct {
 	}
 }
 
-// LoginHistory mocks auth.LoginHistoryRepository.
+// LoginHistoryRepository mocks auth.LoginHistoryRepository.
 type LoginHistoryRepository struct {
 	ByUserIDFn     func() ([]*auth.LoginHistory, error)
 	CreateFn       func() error
@@ -117,7 +117,7 @@ type WebAuthnLib struct {
 	}
 }
 
-// WebAuthnSerfvice mocks auth.WebAuthnService.
+// WebAuthnService mocks auth.WebAuthnService.
 type WebAuthnService struct {
 	BeginSignUpFn  func() ([]byte, error)
 	FinishSignUpFn func() (*auth.Device, error)
