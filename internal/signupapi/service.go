@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
@@ -163,6 +164,16 @@ func (s *service) respond(ctx context.Context, w http.ResponseWriter, user *auth
 	http.SetCookie(w, s.token.Cookie(ctx, jwtToken))
 
 	if jwtToken.Code != "" {
+		// Enable in config.json: api.debug
+		level.Debug(s.logger).Log(
+			"service", "SignUp",
+			"msg", "signup code generated",
+			"code", jwtToken.Code,
+			"user_id", user.ID,
+			"email", user.Email.String,
+			"phone", user.Phone.String,
+		)
+
 		s.message.Send(ctx, user, jwtToken.Code)
 	}
 

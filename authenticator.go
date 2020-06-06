@@ -130,12 +130,13 @@ type Token struct {
 	// jwt.StandardClaims provides standard JWT fields
 	// such as Audience, ExpiresAt, Id, Issuer.
 	jwt.StandardClaims
-	// ClientID is the unhashed ID stored used to help
-	// validate token request source.
+	// ClientID is the unhashed ID stored securely on the client and used
+	// to validate the token request source. It is not embeded in the
+	// the JWT token body.
 	ClientID string `json:"-"`
 	// ClientIDHash is hash of an ID stored in the client for which
-	// the token was delivered too. A token is only valid
-	// when delivered alongside the unhashed ClientID.
+	// the token was delivered too. A token is only valid when the
+	// hash's corresponding ClientID is delivered alongside the JWT token.
 	ClientIDHash string `json:"client_id"`
 	// UserID is the User's ID.
 	UserID string `json:"user_id"`
@@ -146,10 +147,16 @@ type Token struct {
 	// State is the current state of the user at the time
 	// the token was issued.
 	State TokenState `json:"state"`
-	// CodeHash is the hash of a randomly generated code.
-	// This field is omitted in authorized tokens.
+	// CodeHash is the hash of a randomly generated code used
+	// to validate an OTP code and escalate the token to an
+	// authorized token. This field is omitted in authorized
+	// tokens.
 	CodeHash string `json:"code,omitempty"`
-	// Code is the unhashed value of CodeHash
+	// Code is the unhashed value of CodeHash. This value is
+	// not persisted and returned to the client outside of the JWT
+	// response through an alternative mechanism (e.g. Email). It is
+	// validated by ensuring the SHA512 hash of the value matches the
+	// CodeHash embeded in the token.
 	Code string `json:"-"`
 }
 

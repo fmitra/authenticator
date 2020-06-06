@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 	"github.com/go-redis/redis"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -47,6 +48,7 @@ func main() {
 	var configPath string
 	fs := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	{
+		fs.Bool("api.debug", false, "Enable debug logging")
 		fs.String("api.http-addr", ":8080", "Address to listen on")
 		fs.String("api.allowed-origins", "*", "Comma separated list of allowed origins")
 		fs.String("api.cookie-domain", "", "Domain to set HTTP cookie")
@@ -85,6 +87,12 @@ func main() {
 	if err = viper.BindPFlags(fs); err != nil {
 		logger.Log("msg", "failed to load cli flags", "err", err)
 		os.Exit(1)
+	}
+
+	if viper.GetBool("api.debug") {
+		logger = level.NewFilter(logger, level.AllowDebug())
+	} else {
+		logger = level.NewFilter(logger, level.AllowInfo())
 	}
 
 	var entropy io.Reader
