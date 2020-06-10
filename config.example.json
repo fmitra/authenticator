@@ -27,6 +27,6 @@
   "webauthn": {
     "display-name": "Authenticator",
     "domain": "authenticator.local",
-    "request-origin": "authenticator.local"
+    "request-origin": "https://authenticator.local"
   }
 }

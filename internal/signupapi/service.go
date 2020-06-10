@@ -166,8 +166,8 @@ func (s *service) respond(ctx context.Context, w http.ResponseWriter, user *auth
 	if jwtToken.Code != "" {
 		// Enable in config.json: api.debug
 		level.Debug(s.logger).Log(
-			"service", "SignUp",
-			"msg", "signup code generated",
+			"source", "SignUp.respond",
+			"message", "signup code generated",
 			"code", jwtToken.Code,
 			"user_id", user.ID,
 			"email", user.Email.String,

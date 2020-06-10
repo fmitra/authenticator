@@ -1,6 +1,32 @@
-FORMAT: 1A
+# Authenticator API
 
-## SignUp API
+
+## Contents
+
+* [Sign Up API](#signup-api)
+
+  * [Initate registration](#initiate-registration)
+  * [Verify registration](#verify-registration)
+
+* [Login API](#login-api)
+
+  * [Initiate login](#initiate-login)
+  * [Login with code](#login-with-code)
+  * [Login with device](#login-with-device)
+  * [Request device challenge](#request-device-challenge)
+
+* [Device API](#device-api)
+
+  * [Initiate device registration](#initiate-device)
+  * [Verify device](#verify-device)
+  * [Remove device](#remove-device)
+
+* [Token API](#token-api)
+
+  * [Revoke token](#revoke-token)
+  * [Verify token](#verify-token)
+
+## <a name="signup-api">SignUp API</a>
 
 Provides endpoints to manage user registration. It is a 2-step API and a pre-requisite
 in order to obtain a authentication token to access protected resources.
@@ -9,39 +35,43 @@ A client initiates registration with a POST request to `api/v1/signup` and compl
 registration with a subsequent POST request to `api/v1/signup/verify` in which they
 validate a response we return to them from their initial request.
 
-### Initiate registration [POST /api/v1/signup]
+### <a name="initiate-registration">Initiate registration [POST /api/v1/signup]</a>
 
 A user provides either an email or phone number for us to tidentify them. On success
 we will send a random code to their contact address and a JWT token with status `unverified`.
 
-+ Request (application/json)
+* Request (application/json)
 
-    + Parameters
+  * Parameters
 
-        + email (optional, string) - Email address of the user.
-        + phone (optional, string) - Phone number of the user.
+      * email (optional, string) - Email address of the user.
+      * phone (optional, string) - Phone number of the user.
 
-+ Response 201 (application/json)
+* Response 201 (application/json)
 
-        {
-          "token": ""
-        }
+```
+{
+  "token": ""
+}
+```
 
-+ Response 400 (application/json)
+* Response 400 (application/json)
 
-        {
-            "error": {
-                "invalidField": "Email address is invalid"
-            }
-        }
+```
+{
+  "error": {
+    "invalidField": "Email address is invalid"
+  }
+}
+```
 
-### Verify registration [POST /api/v1/signup/verify]
+### <a name="verify-registration">Verify registration [POST /api/v1/signup/verify]</a>
 
 A user proves their identity to us by sending back the randomly generated code we
 delivered to them. On success they will receive a JWT token asserting their status
 as an authorized user.
 
-## Login API
+## <a name="login-api">Login API</a>
 
 Provides endpoints to manage user authentication. It is a 2-step API where a client
 initiates login with a POST request to `api/v1/login`. After the initial request, they
@@ -70,7 +100,7 @@ A user holding a JWT token with status `identified` may request this endpoint to
 a challenge value to sign. The signed value must be POSTed back to our service to
 complete authentication.
 
-+ Response 200 (application/json)
+* Response 200 (application/json)
 
         {
           "publicKey": {
@@ -85,7 +115,7 @@ complete authentication.
           },
         }
 
-## Device API
+## <a name="device-api">Device API</a>
 
 Provides endpoints to manage WebAuthn capable devices for a User.
 
@@ -94,17 +124,113 @@ Provides endpoints to manage WebAuthn capable devices for a User.
 A user requests to register a new device using their `authorized` JWT token and receives
 a WebAuthn challenge response.
 
+* Response 200 (application/json)
+
+```
+{
+  "publicKey": {
+    "challenge": "b9aqYRIe/grw/Z4QfK1QvhYxrgsD3Cm743sFdrKdphI=",
+    "rp": {
+      "name": "Authenticator",
+      "id": "authenticator.local"
+    },
+    "user": {
+      "name": "ddddd@ddd.com",
+      "displayName": "ddddd@ddd.com",
+      "id": "MDFFQUREMjM4WFNaSkVUSDk4QUVEVkIyWVo="
+    },
+    "pubKeyCredParams": [
+      {
+        "type": "public-key",
+        "alg": -7
+      },
+      {
+        "type": "public-key",
+        "alg": -35
+      },
+      {
+        "type": "public-key",
+        "alg": -36
+      },
+      {
+        "type": "public-key",
+        "alg": -257
+      },
+      {
+        "type": "public-key",
+        "alg": -258
+      },
+      {
+        "type": "public-key",
+        "alg": -259
+      },
+      {
+        "type": "public-key",
+        "alg": -37
+      },
+      {
+        "type": "public-key",
+        "alg": -38
+      },
+      {
+        "type": "public-key",
+        "alg": -39
+      },
+      {
+        "type": "public-key",
+        "alg": -8
+      }
+    ],
+    "authenticatorSelection": {
+      "authenticatorAttachment": "cross-platform",
+      "requireResidentKey": false,
+      "userVerification": "preferred"
+    },
+    "timeout": 60000,
+    "attestation": "direct"
+  }
+}
+```
+
+* Response 400 (application/json)
+
+```
+{
+  "error": {
+    "code": "webauthn",
+    "message": "Error validating origin"
+  }
+}
+```
+
 ### Complete device registration [POST /api/v1/device/verify]
 
 A user completes device registration by signing a WebAuthn server challenge with their
 device.
+
+* Response 201 (application/json)
+
+```
+{}
+```
+
+* Response 400 (application/json)
+
+```
+{
+  "error": {
+    "code": "webauthn",
+    "message": "Error validating origin"
+  }
+}
+```
 
 ### Remove device [DELETE /api/v1/device/:device_id]
 
 A user removes a device from their account. Removed devices can no longer be used
 for authentication.
 
-## Token API
+## <a name="token-api">Token API</a>
 
 Provides endpoints to manage a User's token.
 
@@ -117,7 +243,7 @@ A user revokes a token, rendering it invalid for authentication.
 A user confirms the currently used token is valid. This endpoint intends to be used
 internally by other trusted services to verify a User's authentication.
 
-## User API
+## <a name="user-api">User API</a>
 
 Provides endpoints to manage a User's account.
 
