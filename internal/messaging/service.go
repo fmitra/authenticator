@@ -26,6 +26,10 @@ type service struct {
 	emailLib Emailer
 }
 
+// Queue queues a message to be delivered to a User.
+func (s *service) Queue(ctx context.Context, user *auth.User, message string) {
+}
+
 // Send sends a message to a User.
 func (s *service) Send(ctx context.Context, user *auth.User, message string) {
 }

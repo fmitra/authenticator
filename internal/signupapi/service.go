@@ -174,7 +174,7 @@ func (s *service) respond(ctx context.Context, w http.ResponseWriter, user *auth
 			"phone", user.Phone.String,
 		)
 
-		s.message.Send(ctx, user, jwtToken.Code)
+		s.message.Queue(ctx, user, jwtToken.Code)
 	}
 
 	return []byte(fmt.Sprintf(`

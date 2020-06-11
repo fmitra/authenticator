@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestMessagingSvc_SMS(t *testing.T) {
+func TestMessagingSvc_Queue(t *testing.T) {
 	tt := []struct {
 		name string
 	}{

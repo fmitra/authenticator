@@ -202,9 +202,9 @@ func TestLoginAPI_Login(t *testing.T) {
 				t.Error(rr.Body.String())
 			}
 
-			if messagingSvc.Calls.Send != tc.messagingCalls {
-				t.Errorf("incorrect MessagingService.Send() call count, want %v got %v",
-					tc.messagingCalls, messagingSvc.Calls.Send)
+			if messagingSvc.Calls.Queue != tc.messagingCalls {
+				t.Errorf("incorrect MessagingService.Queue() call count, want %v got %v",
+					tc.messagingCalls, messagingSvc.Calls.Queue)
 			}
 
 			err = test.ValidateErrMessage(tc.errMessage, rr.Body)
@@ -336,9 +336,9 @@ func TestLoginAPI_DeviceChallenge(t *testing.T) {
 				t.Error(rr.Body.String())
 			}
 
-			if messagingSvc.Calls.Send != tc.messagingCalls {
-				t.Errorf("incorrect MessagingService.Send() call count, want %v got %v",
-					tc.messagingCalls, messagingSvc.Calls.Send)
+			if messagingSvc.Calls.Queue != tc.messagingCalls {
+				t.Errorf("incorrect MessagingService.Queue() call count, want %v got %v",
+					tc.messagingCalls, messagingSvc.Calls.Queue)
 			}
 
 			err = test.ValidateErrMessage(tc.errMessage, rr.Body)
@@ -578,9 +578,9 @@ func TestLoginAPI_VerifyDevice(t *testing.T) {
 				t.Error(rr.Body.String())
 			}
 
-			if messagingSvc.Calls.Send != tc.messagingCalls {
-				t.Errorf("incorrect MessagingService.Send() call count, want %v got %v",
-					tc.messagingCalls, messagingSvc.Calls.Send)
+			if messagingSvc.Calls.Queue != tc.messagingCalls {
+				t.Errorf("incorrect MessagingService.Queue() call count, want %v got %v",
+					tc.messagingCalls, messagingSvc.Calls.Queue)
 			}
 
 			err = test.ValidateErrMessage(tc.errMessage, rr.Body)
@@ -826,9 +826,9 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 				t.Error(rr.Body.String())
 			}
 
-			if messagingSvc.Calls.Send != tc.messagingCalls {
-				t.Errorf("incorrect MessagingService.Send() call count, want %v got %v",
-					tc.messagingCalls, messagingSvc.Calls.Send)
+			if messagingSvc.Calls.Queue != tc.messagingCalls {
+				t.Errorf("incorrect MessagingService.Queue() call count, want %v got %v",
+					tc.messagingCalls, messagingSvc.Calls.Queue)
 			}
 
 			err = test.ValidateErrMessage(tc.errMessage, rr.Body)
