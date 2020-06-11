@@ -71,7 +71,7 @@ func main() {
 			os.Exit(0)
 		}
 		if err != nil {
-			logger.Log("msg", "failed to parse cli flags", "err", err)
+			logger.Log("message", "failed to parse cli flags", "error", err, "source", "cmd/api")
 			os.Exit(1)
 		}
 	}
@@ -80,12 +80,12 @@ func main() {
 		viper.SetConfigFile(configPath)
 		err = viper.ReadInConfig()
 		if err != nil {
-			logger.Log("msg", "failed to load config file", "err", err)
+			logger.Log("message", "failed to load config file", "error", err, "source", "cmd/api")
 			os.Exit(1)
 		}
 	}
 	if err = viper.BindPFlags(fs); err != nil {
-		logger.Log("msg", "failed to load cli flags", "err", err)
+		logger.Log("message", "failed to load cli flags", "error", err, "source", "cmd/api")
 		os.Exit(1)
 	}
 
@@ -110,16 +110,24 @@ func main() {
 	{
 		pgDB, err = sql.Open("postgres", viper.GetString("pg.conn-string"))
 		if err != nil {
-			logger.Log("msg", "postgres connection failed", "err", err)
+			logger.Log(
+				"message", "postgres connection failed",
+				"error", err,
+				"source", "cmd/api",
+			)
 			os.Exit(1)
 		}
 		if err = pgDB.Ping(); err != nil {
-			logger.Log("msg", "postgres did not respond", "err", err)
+			logger.Log("message", "postgres did not respond", "error", err, "source", "cmd/api")
 			os.Exit(1)
 		}
 		defer func() {
 			if err = pgDB.Close(); err != nil {
-				logger.Log("msg", "failed to close postgres connection", "err", err)
+				logger.Log(
+					"message", "failed to close postgres connection",
+					"error", err,
+					"source", "cmd/api",
+				)
 			}
 		}()
 	}
@@ -128,18 +136,22 @@ func main() {
 	{
 		redisConf, err := redis.ParseURL(viper.GetString("redis.conn-string"))
 		if err != nil {
-			logger.Log("msg", "invalid redis configuration", "err", err)
+			logger.Log("message", "invalid redis configuration", "error", err, "source", "cmd/api")
 			os.Exit(1)
 		}
 		redisDB = redis.NewClient(redisConf)
 		closeRedis := func() {
 			if err = redisDB.Close(); err != nil {
-				logger.Log("msg", "failed to close redis connection", "err", err)
+				logger.Log(
+					"message", "failed to close redis connection",
+					"error", err,
+					"source", "cmd/api",
+				)
 			}
 		}
 
 		if _, err = redisDB.Ping().Result(); err != nil {
-			logger.Log("msg", "redis connection failed", "err", err)
+			logger.Log("message", "redis connection failed", "error", err, "source", "cmd/api")
 			closeRedis()
 			os.Exit(1)
 		}
@@ -177,7 +189,7 @@ func main() {
 		webauthn.WithRepoManager(repoMngr),
 	)
 	if err != nil {
-		logger.Log("msg", "failed to build webauthn service", "err", err)
+		logger.Log("message", "failed to build webauthn service", "error", err, "source", "cmd/api")
 		os.Exit(1)
 	}
 
@@ -242,20 +254,32 @@ func main() {
 			signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 			return fmt.Errorf("signal received: %v", <-sig)
 		}, func(err error) {
-			logger.Log("msg", "program was interrupted", "err", err)
+			logger.Log("message", "program was interrupted", "error", err, "source", "cmd/api")
 			cancel()
 		})
 	}
 	{
 		g.Add(func() error {
-			logger.Log("msg", "API server is starting", "addr", server.Addr)
+			logger.Log(
+				"message", "API server is starting",
+				"address", server.Addr,
+				"source", "cmd/api",
+			)
 			return server.ListenAndServe()
 		}, func(err error) {
-			logger.Log("msg", "API server was interrupted", "err", err)
-			logger.Log("msg", "API server shut down", "err", server.Shutdown(ctx))
+			logger.Log(
+				"message", "API server was interrupted",
+				"error", err,
+				"source", "cmd/api",
+			)
+			logger.Log(
+				"message", "API server shut down",
+				"error", server.Shutdown(ctx),
+				"source", "cmd/api",
+			)
 		})
 	}
 
 	err = g.Run()
-	logger.Log("msg", "actors stopped", "err", err)
+	logger.Log("message", "actors stopped", "error", err, "source", "cmd/api")
 }
