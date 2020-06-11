@@ -81,8 +81,8 @@ as a new authorized user.
 
   * Headers
 
-      * Authorization: `Bearer {jwtToken}`
-      * Cookie: `CLIENTID={clientID}`
+      * Authorization: `Bearer <jwtToken>`
+      * Cookie: `CLIENTID=<clientID>`
 
 * Response 201 (application/json)
 
@@ -155,8 +155,8 @@ a WebAuthn challenge response.
 
   * Headers
 
-      * Authorization: `Bearer {jwtToken}`
-      * Cookie: `CLIENTID={clientID}`
+      * Authorization: `Bearer <jwtToken>`
+      * Cookie: `CLIENTID=<clientID>`
 
 * Response 200 (application/json)
 
@@ -255,8 +255,8 @@ device.
 
   * Headers
 
-      * Authorization: `Bearer {jwtToken}`
-      * Cookie: `CLIENTID={clientID}`
+      * Authorization: `Bearer <jwtToken>`
+      * Cookie: `CLIENTID=<clientID>`
 
 * Response 201 (application/json)
 

@@ -131,7 +131,7 @@ type Token struct {
 	// such as Audience, ExpiresAt, Id, Issuer.
 	jwt.StandardClaims
 	// ClientID is the unhashed ID stored securely on the client and used
-	// to validate the token request source. It is not embeded in the
+	// to validate the token request source. It is not embedded in the
 	// the JWT token body.
 	ClientID string `json:"-"`
 	// ClientIDHash is hash of an ID stored in the client for which
@@ -156,7 +156,7 @@ type Token struct {
 	// not persisted and returned to the client outside of the JWT
 	// response through an alternative mechanism (e.g. Email). It is
 	// validated by ensuring the SHA512 hash of the value matches the
-	// CodeHash embeded in the token.
+	// CodeHash embedded in the token.
 	Code string `json:"-"`
 }
 
