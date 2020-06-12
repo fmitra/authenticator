@@ -15,6 +15,17 @@ import (
 // to authorization (ex. TOTP code is required)
 type TokenState string
 
+// DeliveryMethod represents a mechanism to send messages
+// to users.
+type DeliveryMethod string
+
+const (
+	// Phone is a delivery method for text messages.
+	Phone DeliveryMethod = "phone"
+	// Email is a delivery method for email.
+	Email = "email"
+)
+
 const (
 	// Issuer is the default issuer of a JWT token.
 	Issuer = "authenticator"
@@ -163,12 +174,12 @@ type Token struct {
 // Message is a message to be delivered to a user.
 type Message struct {
 	// Delivery type of the message (e.g. phone or email).
-	Delivery string `json:"delivery"`
+	Delivery DeliveryMethod
 	// Content of the message.
-	Content string `json:"content"`
+	Content string
 	// Delivery address of the user (e.g. phone or email).
-	Address string        `json:"address"`
-	Expires time.Duration `json:"expires"`
+	Address   string
+	ExpiresAt time.Time
 }
 
 // MessageRepository represents a local storage for outgoing messages.

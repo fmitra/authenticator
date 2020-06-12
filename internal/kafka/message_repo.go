@@ -3,9 +3,10 @@ package kafka
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"time"
 
+	"github.com/linkedin/goavro/v2"
 	kafkaLib "github.com/segmentio/kafka-go"
 
 	auth "github.com/fmitra/authenticator"
@@ -16,21 +17,35 @@ import (
 type MessageRepository struct {
 	reader *kafkaLib.Reader
 	writer *kafkaLib.Writer
+	codec  *goavro.Codec
 }
 
 // NewMessageRepository returns a new implementation of auth.MessageRepository.
-func NewMessageRepository(client *Client) auth.MessageRepository {
+func NewMessageRepository(client *Client) (auth.MessageRepository, error) {
+	codec, err := goavro.NewCodec(MessageSchema)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create message codec: %w", err)
+	}
+
 	return &MessageRepository{
 		reader: client.OTPReader,
 		writer: client.OTPWriter,
-	}
+		codec:  codec,
+	}, nil
 }
 
 // Publish writes a message to topic `authenticator.messages.otp`.
 func (r *MessageRepository) Publish(ctx context.Context, msg *auth.Message) error {
-	b, err := json.Marshal(msg)
+	nativeMsg := map[string]interface{}{
+		"delivery":   msg.Delivery,
+		"content":    msg.Content,
+		"address":    msg.Address,
+		"expires_at": msg.ExpiresAt.Truncate(time.Microsecond),
+	}
+
+	b, err := r.codec.BinaryFromNative(nil, nativeMsg)
 	if err != nil {
-		return fmt.Errorf("failed to marshal message: %w", err)
+		return fmt.Errorf("failed to convert msg to binary: %w", err)
 	}
 
 	return r.writer.WriteMessages(ctx, kafkaLib.Message{
@@ -54,14 +69,23 @@ func (r *MessageRepository) Recent(ctx context.Context) (<-chan *auth.Message, <
 				break
 			}
 
-			var msg auth.Message
-			{
-				err = json.Unmarshal(kafkaMsg.Value, &msg)
-				if err != nil {
-					errc <- fmt.Errorf("failed to  unmarshal message: %w", err)
-					return
-				}
+			decoded, _, err := r.codec.NativeFromBinary(kafkaMsg.Value)
+			if err != nil {
+				errc <- fmt.Errorf("failed to unmarshal message: %w", err)
+				return
 			}
+
+			dataMap, ok := decoded.(map[string]interface{})
+			if !ok {
+				errc <- fmt.Errorf("failed to read message: %w", err)
+				return
+			}
+
+			var msg auth.Message
+			msg.ExpiresAt = dataMap["expires_at"].(time.Time)
+			msg.Address = dataMap["address"].(string)
+			msg.Content = dataMap["content"].(string)
+			msg.Delivery = auth.DeliveryMethod(dataMap["delivery"].(string))
 
 			select {
 			case <-ctx.Done():
