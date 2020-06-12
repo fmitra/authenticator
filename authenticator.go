@@ -160,6 +160,30 @@ type Token struct {
 	Code string `json:"-"`
 }
 
+// Message is a message to be delivered to a user.
+type Message struct {
+	// Delivery type of the message (e.g. phone or email).
+	Delivery string `json:"delivery"`
+	// Content of the message.
+	Content string `json:"content"`
+	// Delivery address of the user (e.g. phone or email).
+	Address string        `json:"address"`
+	Expires time.Duration `json:"expires"`
+}
+
+// MessageRepository represents a local storage for outgoing messages.
+// This service will deliver OTP codes via email or SMS if enabled for the user.
+type MessageRepository interface {
+	// Publish prepares a message for a user. The Kafka backed implementation
+	// of this repository accomplishes this by writing the message to the OTP Kafka
+	// topic.
+	Publish(ctx context.Context, msg *Message) error
+	// Recent retrieves a list of messages. The Kafka backed implementation of this
+	// repository accomplishes this by reading from the OTP Kafka topic and
+	// writing the results into a channel.
+	Recent(ctx context.Context) (<-chan *Message, <-chan error)
+}
+
 // LoginHistoryRepository represents a local storage for LoginHistory.
 type LoginHistoryRepository interface {
 	// ByUserID retrieves recent LoginHistory associated with a User's ID.
