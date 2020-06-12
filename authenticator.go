@@ -277,10 +277,8 @@ type OTPService interface {
 
 // MessagingService sends messages through email or SMS.
 type MessagingService interface {
-	// Queue queues a message to be delivered to a user.
-	Queue(ctx context.Context, user *User, message string)
 	// Send sends a message to a user.
-	Send(ctx context.Context, user *User, message string)
+	Send(ctx context.Context, user *User, message string) error
 }
 
 // LoginAPI provides HTTP handlers for user authentication.

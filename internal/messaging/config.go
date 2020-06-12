@@ -1,15 +1,32 @@
 package messaging
 
 import (
+	"context"
+
 	"github.com/go-kit/kit/log"
 
 	auth "github.com/fmitra/authenticator"
 )
 
+const (
+	// defaultWorkers represents the default number of workers to process a queue.
+	defaultWorkers = 4
+	// defaultEmailLimit the max amount of email messages we may send at a time.
+	defaultEmailLimit = "5/s"
+	// defaultSMSLimit is the max amount of SMS messages we may send at a time.
+	defaultSMSLimit = "1/s"
+)
+
 // NewService returns a new implementation of auth.MessagingService.
-func NewService(options ...ConfigOption) auth.MessagingService {
+func NewService(ctx context.Context, smsLib SMSer, emailLib Emailer, options ...ConfigOption) auth.MessagingService {
 	s := service{
-		logger: log.NewNopLogger(),
+		smsLib:       smsLib,
+		emailLib:     emailLib,
+		totalWorkers: defaultWorkers,
+		emailLimit:   defaultEmailLimit,
+		smsLimit:     defaultSMSLimit,
+		messageQueue: make(chan func()),
+		logger:       log.NewNopLogger(),
 	}
 
 	for _, opt := range options {
@@ -29,16 +46,28 @@ func WithLogger(l log.Logger) ConfigOption {
 	}
 }
 
-// WithSMSLib configures the service with a SMS sending library.
-func WithSMSLib(lib SMSer) ConfigOption {
+// WithWorkers determines the total number of workers to process
+// a message queue.
+func WithWorkers(w int) ConfigOption {
 	return func(s *service) {
-		s.smsLib = lib
+		s.totalWorkers = w
 	}
 }
 
-// WithEmailLib configures the service with an email sending library.
-func WithEmailLib(lib Emailer) ConfigOption {
+// WithSMSLimit sets a limit for the max amount of SMS messages we may send
+// at a time.
+func WithSMSLimit(limit string) ConfigOption {
+	// TODO Add validation and return an error if the format is invalid
 	return func(s *service) {
-		s.emailLib = lib
+		s.smsLimit = limit
+	}
+}
+
+// WithEmailLimit sets a limit for the max amount of email messages we may send
+// at a time.
+func WithEmailLimit(limit string) ConfigOption {
+	// TODO Add validation and return an error if the format is invalid
+	return func(s *service) {
+		s.emailLimit = limit
 	}
 }

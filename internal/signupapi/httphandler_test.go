@@ -282,9 +282,9 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 					tc.userCreateCalls, userRepo.Calls.Create)
 			}
 
-			if messagingSvc.Calls.Queue != tc.messagingCalls {
-				t.Errorf("incorrect MessagingService.Queue() call count, want %v got %v",
-					tc.messagingCalls, messagingSvc.Calls.Queue)
+			if messagingSvc.Calls.Send != tc.messagingCalls {
+				t.Errorf("incorrect MessagingService.Send() call count, want %v got %v",
+					tc.messagingCalls, messagingSvc.Calls.Send)
 			}
 		})
 	}
@@ -360,9 +360,9 @@ func TestSignUpAPI_SignUpExistingUser(t *testing.T) {
 		t.Error("user ID not reset on re-creation")
 	}
 
-	if messagingSvc.Calls.Queue != 1 {
-		t.Errorf("incorrect MessagingService.Queue() call count, want 1 got %v",
-			messagingSvc.Calls.Queue)
+	if messagingSvc.Calls.Send != 1 {
+		t.Errorf("incorrect MessagingService.Send() call count, want 1 got %v",
+			messagingSvc.Calls.Send)
 	}
 }
 
@@ -484,9 +484,9 @@ func TestSignUpAPI_VerifyCode(t *testing.T) {
 				t.Errorf("incorrect status code, want %v got %v", tc.statusCode, rr.Code)
 			}
 
-			if messagingSvc.Calls.Queue != tc.messagingCalls {
-				t.Errorf("incorrect MessagingService.Queue() call count, want %v got %v",
-					tc.messagingCalls, messagingSvc.Calls.Queue)
+			if messagingSvc.Calls.Send != tc.messagingCalls {
+				t.Errorf("incorrect MessagingService.Send() call count, want %v got %v",
+					tc.messagingCalls, messagingSvc.Calls.Send)
 			}
 		})
 	}
@@ -574,8 +574,8 @@ func TestSignUpAPI_VerifyCodeSuccess(t *testing.T) {
 		t.Error("user was not verified")
 	}
 
-	if messagingSvc.Calls.Queue != 1 {
-		t.Errorf("incorrect MessagingService.Queue() call count, want 1 got %v",
-			messagingSvc.Calls.Queue)
+	if messagingSvc.Calls.Send != 1 {
+		t.Errorf("incorrect MessagingService.Send() call count, want 1 got %v",
+			messagingSvc.Calls.Send)
 	}
 }

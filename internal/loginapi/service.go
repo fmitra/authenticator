@@ -148,7 +148,9 @@ func (s *service) respond(ctx context.Context, w http.ResponseWriter, user *auth
 	http.SetCookie(w, s.token.Cookie(ctx, jwtToken))
 
 	if jwtToken.Code != "" {
-		s.message.Queue(ctx, user, jwtToken.Code)
+		if err = s.message.Send(ctx, user, jwtToken.Code); err != nil {
+			return nil, err
+		}
 	}
 
 	return []byte(fmt.Sprintf(`

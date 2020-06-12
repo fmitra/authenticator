@@ -15,11 +15,9 @@ import (
 
 // MessagingService mocks auth.MessagingService interface.
 type MessagingService struct {
-	QueueFn func()
-	SendFn  func()
-	Calls   struct {
-		Queue int
-		Send  int
+	SendFn func() error
+	Calls  struct {
+		Send int
 	}
 }
 
@@ -517,18 +515,11 @@ func (m *Rediser) Close() error {
 	return nil
 }
 
-// Queue mock.
-func (m *MessagingService) Queue(ctx context.Context, user *auth.User, message string) {
-	m.Calls.Queue++
-	if m.QueueFn != nil {
-		m.QueueFn()
-	}
-}
-
 // Send mock.
-func (m *MessagingService) Send(ctx context.Context, user *auth.User, message string) {
+func (m *MessagingService) Send(ctx context.Context, user *auth.User, message string) error {
 	m.Calls.Send++
 	if m.SendFn != nil {
-		m.SendFn()
+		return m.SendFn()
 	}
+	return nil
 }
