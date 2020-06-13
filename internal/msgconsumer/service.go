@@ -3,9 +3,7 @@ package msgconsumer
 
 import (
 	"context"
-	"fmt"
-	"strconv"
-	"strings"
+	"time"
 
 	"github.com/go-kit/kit/log"
 
@@ -24,7 +22,7 @@ type SMSer interface {
 
 // Emailer exposes an API to send email messages.
 type Emailer interface {
-	Email(ctx context.Context, email string, message string)
+	Email(ctx context.Context, email string, message string) error
 }
 
 // Service consumes messages from a Kafka topic into a channel
@@ -33,8 +31,6 @@ type service struct {
 	logger       log.Logger
 	smsLib       SMSer
 	emailLib     Emailer
-	emailLimit   string
-	smsLimit     string
 	totalWorkers int
 	messageQueue chan *auth.Message
 	messageRepo  auth.MessageRepository
@@ -66,44 +62,46 @@ func (s *service) Run(ctx context.Context) error {
 
 // startWorkers starts a finite number of workers to deliver messages found
 // in the message queue.
-func (s *service) startWorkers() {
+func (s *service) startWorkers(ctx context.Context) {
 	for i := 0; i < s.totalWorkers; i++ {
 		go func() {
 			for msg := range s.messageQueue {
-				s.processMessage(msg)
+				s.processMessage(ctx, msg)
 			}
 		}()
 	}
 }
 
 // processMessage delivers a message through email or SMS.
-func (s *service) processMessage(m *auth.Message) {
-}
+func (s *service) processMessage(ctx context.Context, msg *auth.Message) {
+	logger := log.With(
+		s.logger,
+		"source", "msgconsumer.processMessage",
+		"address", msg.Address,
+		"delivery", msg.Delivery,
+	)
+	isExpired := time.Now().After(msg.ExpiresAt)
 
-func parseThrottle(t string) (int, string, error) {
-	var duration string
-	var limit int
-
-	split := strings.Split(t, "/")
-	if len(split) != 2 {
-		return limit, duration, fmt.Errorf("throttle format requires limit and duration (e.g. 5/m)")
+	if isExpired {
+		logger.Log("message", "dropping expired message")
+		return
 	}
 
-	limit, err := strconv.Atoi(split[0])
-	if err != nil {
-		return limit, duration, fmt.Errorf("limit must be an integer")
+	var err error
+	if msg.Delivery == auth.Phone {
+		err = s.smsLib.SMS(ctx, msg.Address, msg.Content)
+	} else {
+		err = s.emailLib.Email(ctx, msg.Address, msg.Content)
 	}
 
-	duration = split[1]
-	isDurationValid := map[string]bool{
-		"m": true,
-		"s": true,
-		"h": true,
-		"d": true,
-	}
-	if !isDurationValid[duration] {
-		return limit, duration, fmt.Errorf("duration must be one of m, s, h, d")
+	if err == nil {
+		return
 	}
 
-	return limit, duration, nil
+	// Continue to retry the message until expiry.
+	logger.Log("message", "retrying message", "error", err)
+
+	if err := s.messageRepo.Publish(ctx, msg); err != nil {
+		logger.Log("message", "failed to retry message", "error", err)
+	}
 }

@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestMessagingSvc_Send(t *testing.T) {
+func TestMsgPublisher_Send(t *testing.T) {
 	tt := []struct {
 		name string
 	}{
