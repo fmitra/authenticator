@@ -1,10 +1,10 @@
-package messaging
+package msgpublisher
 
 import (
 	"testing"
 )
 
-func TestMessagingSvc_Queue(t *testing.T) {
+func TestMessagingSvc_Send(t *testing.T) {
 	tt := []struct {
 		name string
 	}{
@@ -13,6 +13,12 @@ func TestMessagingSvc_Queue(t *testing.T) {
 		},
 		{
 			name: "Fails to send SMS",
+		},
+		{
+			name: "Sends email",
+		},
+		{
+			name: "Fails to send email",
 		},
 	}
 

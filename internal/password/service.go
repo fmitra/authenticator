@@ -1,3 +1,4 @@
+// Package password provides password management through bcrypt.
 package password
 
 import (

@@ -1,3 +1,4 @@
+// Package otp provides 2FA codes generation.
 package otp
 
 import (

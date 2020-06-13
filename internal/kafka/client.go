@@ -1,4 +1,4 @@
-// Package kafka provides a client for Kafka.
+// Package kafka contains repositories backed by Kafka.
 package kafka
 
 import (

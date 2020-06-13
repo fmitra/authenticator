@@ -1,4 +1,3 @@
-// Package kafka contains repositories backed by Kafka.
 package kafka
 
 import (
