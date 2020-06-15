@@ -12,11 +12,12 @@ import (
 const defaultWorkers = 4
 
 // New returns a new Consumer
-func New(ctx context.Context, smsLib SMSer, emailLib Emailer, options ...ConfigOption) (Consumer, error) {
+func New(ctx context.Context, r auth.MessageRepository, smsLib SMSer, emailLib Emailer, options ...ConfigOption) (Consumer, error) {
 	s := service{
 		logger:       log.NewNopLogger(),
 		totalWorkers: defaultWorkers,
 		messageQueue: make(chan *auth.Message),
+		messageRepo:  r,
 		smsLib:       smsLib,
 		emailLib:     emailLib,
 	}

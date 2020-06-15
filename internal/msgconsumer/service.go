@@ -90,7 +90,7 @@ func (s *service) processMessage(ctx context.Context, msg *auth.Message) {
 	var err error
 	if msg.Delivery == auth.Phone {
 		err = s.smsLib.SMS(ctx, msg.Address, msg.Content)
-	} else {
+	} else if msg.Delivery == auth.Email {
 		err = s.emailLib.Email(ctx, msg.Address, msg.Content)
 	}
 
