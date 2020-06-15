@@ -2,6 +2,8 @@
 package kafka
 
 import (
+	"context"
+
 	kafkaLib "github.com/segmentio/kafka-go"
 )
 
@@ -10,11 +12,21 @@ const (
 	topicOTP = "authenticator.messages.otp"
 )
 
+// Writer exposes kafka-go's writer API.
+type Writer interface {
+	WriteMessages(ctx context.Context, msgs ...kafkaLib.Message) error
+}
+
+// Reader exposes kafka-go's reader API.
+type Reader interface {
+	ReadMessage(ctx context.Context) (kafkaLib.Message, error)
+}
+
 // Client contains a pair of Kafka reader and writers
 // for every topic we are interested in.
 type Client struct {
-	OTPReader *kafkaLib.Reader
-	OTPWriter *kafkaLib.Writer
+	OTPReader Reader
+	OTPWriter Writer
 }
 
 // NewClient returns a new Client.

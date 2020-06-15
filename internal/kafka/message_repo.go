@@ -14,8 +14,8 @@ import (
 // MessageRepository allows us to read and write to an OTP
 // Kafka topic.
 type MessageRepository struct {
-	reader *kafkaLib.Reader
-	writer *kafkaLib.Writer
+	reader Reader
+	writer Writer
 	codec  *goavro.Codec
 }
 
@@ -36,7 +36,7 @@ func NewMessageRepository(client *Client) (auth.MessageRepository, error) {
 // Publish writes a message to topic `authenticator.messages.otp`.
 func (r *MessageRepository) Publish(ctx context.Context, msg *auth.Message) error {
 	nativeMsg := map[string]interface{}{
-		"delivery":   msg.Delivery,
+		"delivery":   string(msg.Delivery),
 		"content":    msg.Content,
 		"address":    msg.Address,
 		"expires_at": msg.ExpiresAt.Truncate(time.Microsecond),

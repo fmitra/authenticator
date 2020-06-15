@@ -13,6 +13,16 @@ import (
 	auth "github.com/fmitra/authenticator"
 )
 
+// MessageRepository mocks auth.MessageRepository interface.
+type MessageRepository struct {
+	PublishFn func(ctx context.Context, msg *auth.Message) error
+	RecentFn  func(ctx context.Context) (<-chan *auth.Message, <-chan error)
+	Calls     struct {
+		Publish int
+		Recent  int
+	}
+}
+
 // MessagingService mocks auth.MessagingService interface.
 type MessagingService struct {
 	SendFn func() error
@@ -522,4 +532,26 @@ func (m *MessagingService) Send(ctx context.Context, user *auth.User, message st
 		return m.SendFn()
 	}
 	return nil
+}
+
+// Publish mock.
+func (m *MessageRepository) Publish(ctx context.Context, msg *auth.Message) error {
+	m.Calls.Publish++
+	if m.PublishFn != nil {
+		return m.PublishFn(ctx, msg)
+	}
+	return nil
+}
+
+// Recent mock.
+func (m *MessageRepository) Recent(ctx context.Context) (<-chan *auth.Message, <-chan error) {
+	m.Calls.Recent++
+	if m.RecentFn != nil {
+		return m.RecentFn(ctx)
+	}
+
+	msgc := make(chan *auth.Message)
+	errc := make(chan error, 1)
+
+	return msgc, errc
 }
