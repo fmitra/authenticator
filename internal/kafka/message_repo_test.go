@@ -122,7 +122,7 @@ func TestMessageRepo_Recent(t *testing.T) {
 	}
 
 	// Set a timeout otherwise the repo will stream from Kafka indefinitely.
-	ctx, cancel := context.WithTimeout(context.Background(), time.Microsecond)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	msgc, errc := messageRepo.Recent(ctx)
