@@ -11,8 +11,8 @@ import (
 // defaultWorkers represents the default number of workers to process a queue.
 const defaultWorkers = 4
 
-// New returns a new Consumer
-func New(ctx context.Context, r auth.MessageRepository, smsLib SMSer, emailLib Emailer, options ...ConfigOption) (Consumer, error) {
+// NewService returns a new Consumer
+func NewService(ctx context.Context, r auth.MessageRepository, smsLib SMSer, emailLib Emailer, options ...ConfigOption) (Consumer, error) {
 	s := service{
 		logger:       log.NewNopLogger(),
 		totalWorkers: defaultWorkers,
