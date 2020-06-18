@@ -5,9 +5,12 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"math/rand"
+	"net/url"
 	"time"
 
 	"github.com/pkg/errors"
+	otpLib "github.com/pquerna/otp"
+	"github.com/pquerna/otp/totp"
 
 	auth "github.com/fmitra/authenticator"
 )
@@ -16,9 +19,10 @@ import (
 type OTP struct {
 	// codeLength is the length of a randomly generated code.
 	codeLength int
+	totpIssuer string
 }
 
-// RandomCode creates a random code and hash
+// RandomCode creates a random code and hash.
 func (o *OTP) RandomCode() (code string, hash string, err error) {
 	rand.Seed(time.Now().UnixNano())
 
@@ -37,6 +41,37 @@ func (o *OTP) RandomCode() (code string, hash string, err error) {
 	return c, h, nil
 }
 
+// TOTPSecret assigns a TOTP secret for a user for use in code generation.
+func (o *OTP) TOTPSecret(u *auth.User) (string, error) {
+	key, err := totp.Generate(totp.GenerateOpts{
+		Issuer:      o.totpIssuer,
+		AccountName: u.DefaultName(),
+	})
+	if err != nil {
+		return "", errors.Wrap(err, "failed to generate secret")
+	}
+	return key.Secret(), nil
+}
+
+// TOTPQRString returns a string containing account details
+// for TOTP code generation.
+func (o *OTP) TOTPQRString(u *auth.User) string {
+	// otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&issuer=Example
+	v := url.Values{}
+	v.Set("secret", u.TFASecret)
+	v.Set("issuer", o.totpIssuer)
+	v.Set("algorithm", otpLib.AlgorithmSHA1.String())
+	v.Set("period", "30")
+	v.Set("digits", "6")
+	otpauth := url.URL{
+		Scheme:   "otpauth",
+		Host:     "totp",
+		Path:     "/" + o.totpIssuer + ":" + u.DefaultName(),
+		RawQuery: v.Encode(),
+	}
+	return otpauth.String()
+}
+
 // Validate checks if a User OTP code is valid. User's may submit
 // a randomly generated code sent to them through email or SMS,
 // or provide a TOTP token.
@@ -47,7 +82,7 @@ func (o *OTP) Validate(user *auth.User, code string, hash string) error {
 	)
 
 	if user.IsTOTPAllowed {
-		isTOTPValid = o.isTOTPValid(code)
+		isTOTPValid = o.isTOTPValid(code, user.TFASecret)
 	}
 
 	if user.IsCodeAllowed {
@@ -70,9 +105,8 @@ func (o *OTP) isRandomCodeValid(code string, hash string) bool {
 	return h == hash
 }
 
-func (o *OTP) isTOTPValid(code string) bool {
-	// TODO Implement this
-	return false
+func (o *OTP) isTOTPValid(code, secret string) bool {
+	return totp.Validate(code, secret)
 }
 
 func hashString(value string) (string, error) {

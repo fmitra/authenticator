@@ -24,10 +24,18 @@ func NewOTP(options ...ConfigOption) auth.OTPService {
 // ConfigOption configures the validator
 type ConfigOption func(*OTP)
 
-// WithCodeLength configures th service with a length
+// WithCodeLength configures the service with a length
 // for random code generation.
 func WithCodeLength(length int) ConfigOption {
 	return func(s *OTP) {
 		s.codeLength = length
+	}
+}
+
+// WithIssuer configures the service with a TOTP issuing
+// domain.
+func WithIssuer(issuer string) ConfigOption {
+	return func(s *OTP) {
+		s.totpIssuer = issuer
 	}
 }

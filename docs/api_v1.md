@@ -124,18 +124,20 @@ complete authentication.
 
 * Response 200 (application/json)
 
-        {
-          "publicKey": {
-            "challenge": "",
-            "rp": "",
-            "user": "",
-            "pubKeyCredParams": "",
-            "authenticatorSelection": "",
-            "timeout": "",
-            "excludeCredentials": "",
-            "attestation": "",
-          },
-        }
+```
+{
+  "publicKey": {
+    "challenge": "",
+    "rp": "",
+    "user": "",
+    "pubKeyCredParams": "",
+    "authenticatorSelection": "",
+    "timeout": "",
+    "excludeCredentials": "",
+    "attestation": "",
+  },
+}
+```
 
 ## <a name="device-api">Device API</a>
 
@@ -302,6 +304,6 @@ Provides endpoints to manage a User's account.
 Toggle settings to enforce MFA through SMS/email delivery of randomly generated codes,
 TOTP generator, or WebAuthn device.
 
-### Update password [PATCH /api/v1/user/reset-password]
+### Update password [PATCH /api/v1/user/:user_id]
 
 Change's a user's password.

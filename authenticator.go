@@ -19,6 +19,19 @@ type TokenState string
 // to users.
 type DeliveryMethod string
 
+// Permission represents the permissions available to a User's
+// JWT token. All tokens come with a default permission.
+type Permission string
+
+const (
+	// DefaultPermission is the default permission set on all valid
+	// JWT tokens.
+	DefaultPermission Permission = "default"
+	// UpdateUser allows a holder of the token to update parts of
+	// their profile (e.g. change/reset a password, disable a MFA method)
+	UpdateUser Permission = "update_user"
+)
+
 const (
 	// Phone is a delivery method for text messages.
 	Phone DeliveryMethod = "phone"
@@ -91,6 +104,14 @@ type User struct {
 	UpdatedAt  time.Time
 }
 
+// DefaultName returns the default name for a user (email or phone).
+func (u *User) DefaultName() string {
+	if u.Email.String != "" {
+		return u.Email.String
+	}
+	return u.Phone.String
+}
+
 // Device represents a device capable of attesting to a User's
 // identity. Examples options include a FIDO U2F key or
 // fingerprint sensor.
@@ -155,6 +176,8 @@ type Token struct {
 	Email string `json:"email"`
 	// Phone is a User's phone number.
 	Phone string `json:"phone_number"`
+	// Permissions granted to the User's JWT token.
+	Permission Permission `json:"permission"`
 	// State is the current state of the user at the time
 	// the token was issued.
 	State TokenState `json:"state"`
@@ -304,6 +327,10 @@ type PasswordService interface {
 
 // OTPService manages the protocol for SMS/Email 2FA codes and TOTP codes.
 type OTPService interface {
+	// TOTPQRString returns a URL string used for TOTP code generation.
+	TOTPQRString(u *User) string
+	// TOTPSecret creates a TOTP secret for code generation.
+	TOTPSecret(u *User) (string, error)
 	// RandomCode creates a random code and hash.
 	RandomCode() (code string, hash string, err error)
 	// Validate checks if a User OTP code is valid.
@@ -358,9 +385,14 @@ type DeviceAPI interface {
 type TokenAPI interface {
 	// Revoke revokes a User's token for a logged in session.
 	Revoke(w http.ResponseWriter, r *http.Request) (interface{}, error)
-	// Verify verifies a Usre's token is authenticate and
+	// Verify verifies a User's token is authenticated and
 	// valid. A valid token is not expired and not revoked.
 	Verify(w http.ResponseWriter, r *http.Request) (interface{}, error)
+	// Refresh refreshes a non-expired token with a new expiriry time.
+	// Refreshed tokens always have default permissions.
+	Refresh(w http.ResponseWriter, r *http.Request) (interface{}, error)
+	// Upgrade upgrades the permissions of a token.
+	Upgrade(w http.ResponseWriter, r *http.Request) (interface{}, error)
 }
 
 // UserAPI proivdes HTTP handlers to configure a registered User's

@@ -20,11 +20,7 @@ func (u *User) WebAuthnID() []byte {
 
 // WebAuthnName returns the User's name.
 func (u *User) WebAuthnName() string {
-	displayName := u.Email.String
-	if u.Email.String == "" {
-		displayName = u.Phone.String
-	}
-	return displayName
+	return u.DefaultName()
 }
 
 // WebAuthnDisplayName returns the User's display name.
