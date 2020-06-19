@@ -84,7 +84,7 @@ func (s *service) Verify(w http.ResponseWriter, r *http.Request) (interface{}, e
 		return nil, err
 	}
 
-	if err = s.otp.Validate(user, req.Code, token.CodeHash); err != nil {
+	if err = s.otp.ValidateOTP(req.Code, token.CodeHash); err != nil {
 		return nil, err
 	}
 

@@ -13,6 +13,22 @@ import (
 	auth "github.com/fmitra/authenticator"
 )
 
+// OTPService mocks auth.OTPService interface.
+type OTPService struct {
+	TOTPQRStringFn func(u *auth.User) string
+	TOTPSecretFn   func(u *auth.User) (string, error)
+	RandomCodeFn   func() (string, string, error)
+	ValidateOTPFn  func(code, hash string) error
+	ValidateTOTPFn func(u *auth.User, code string) error
+	Calls          struct {
+		TOTPQRString int
+		TOTPSecret   int
+		RandomCode   int
+		ValidateOTP  int
+		ValidateTOTP int
+	}
+}
+
 // MessageRepository mocks auth.MessageRepository interface.
 type MessageRepository struct {
 	PublishFn func(ctx context.Context, msg *auth.Message) error
@@ -554,4 +570,44 @@ func (m *MessageRepository) Recent(ctx context.Context) (<-chan *auth.Message, <
 	errc := make(chan error, 1)
 
 	return msgc, errc
+}
+
+func (s *OTPService) TOTPQRString(u *auth.User) string {
+	s.Calls.TOTPQRString++
+	if s.TOTPQRStringFn != nil {
+		return s.TOTPQRStringFn(u)
+	}
+	return ""
+}
+
+func (s *OTPService) TOTPSecret(u *auth.User) (string, error) {
+	s.Calls.TOTPSecret++
+	if s.TOTPSecretFn != nil {
+		return s.TOTPSecretFn(u)
+	}
+	return "", nil
+}
+
+func (s *OTPService) RandomCode() (string, string, error) {
+	s.Calls.RandomCode++
+	if s.RandomCodeFn != nil {
+		return s.RandomCodeFn()
+	}
+	return "", "", nil
+}
+
+func (s *OTPService) ValidateOTP(code, hash string) error {
+	s.Calls.ValidateOTP++
+	if s.ValidateOTPFn != nil {
+		return s.ValidateOTPFn(code, hash)
+	}
+	return nil
+}
+
+func (s *OTPService) ValidateTOTP(u *auth.User, code string) error {
+	s.Calls.ValidateTOTP++
+	if s.ValidateTOTPFn != nil {
+		return s.ValidateTOTPFn(u, code)
+	}
+	return nil
 }

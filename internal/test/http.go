@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 
 	"github.com/gorilla/mux"
@@ -56,8 +57,7 @@ func ValidateErrMessage(expectedMsg string, body *bytes.Buffer) error {
 	}
 
 	if errResponse["error"]["message"] != expectedMsg {
-		return errors.Errorf("incorrect error response, want '%s' got '%s'",
-			expectedMsg, errResponse["error"]["message"])
+		return errors.New(cmp.Diff(expectedMsg, errResponse["error"]["message"]))
 	}
 
 	return nil

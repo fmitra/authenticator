@@ -19,17 +19,23 @@ type TokenState string
 // to users.
 type DeliveryMethod string
 
-// Permission represents the permissions available to a User's
-// JWT token. All tokens come with a default permission.
-type Permission string
+// TFAOptions represents options a user may use to complete
+// 2FA.
+type TFAOptions string
 
 const (
-	// DefaultPermission is the default permission set on all valid
-	// JWT tokens.
-	DefaultPermission Permission = "default"
-	// UpdateUser allows a holder of the token to update parts of
-	// their profile (e.g. change/reset a password, disable a MFA method)
-	UpdateUser Permission = "update_user"
+	// OTPEmail allows a user to complete TFA with an OTP
+	// code delivered via email.
+	OTPEmail = "otp_email"
+	// OTPPhone allows a user to complete TFA with an OTP
+	// code delivered via phone.
+	OTPPhone = "otp_phone"
+	// TOTP allows a user to complete TFA with a TOTP
+	// device or application.
+	TOTP = "totp"
+	// Webauthn allows a user to complete TFA with a Webauthn
+	// device.
+	Webauthn = "webauthn"
 )
 
 const (
@@ -68,7 +74,7 @@ const (
 
 const (
 	// JWTPreAuthorized represents the state of a user before completing
-	// the MFA step of signup or login.
+	// the TFA step of signup or login.
 	JWTPreAuthorized TokenState = "pre_authorized"
 	// JWTAuthorized represents a the state of a user after completing
 	// the final step of login or signup.
@@ -176,15 +182,12 @@ type Token struct {
 	Email string `json:"email"`
 	// Phone is a User's phone number.
 	Phone string `json:"phone_number"`
-	// Permissions granted to the User's JWT token.
-	Permission Permission `json:"permission"`
 	// State is the current state of the user at the time
 	// the token was issued.
 	State TokenState `json:"state"`
 	// CodeHash is the hash of a randomly generated code used
 	// to validate an OTP code and escalate the token to an
-	// authorized token. This field is omitted in authorized
-	// tokens.
+	// authorized token.
 	CodeHash string `json:"code,omitempty"`
 	// Code is the unhashed value of CodeHash. This value is
 	// not persisted and returned to the client outside of the JWT
@@ -192,6 +195,9 @@ type Token struct {
 	// validated by ensuring the SHA512 hash of the value matches the
 	// CodeHash embedded in the token.
 	Code string `json:"-"`
+	// TFAOptions represents available options a user may use to complete
+	// 2FA.
+	TFAOptions []TFAOptions `json:"tfa_options"`
 }
 
 // Message is a message to be delivered to a user.
@@ -332,9 +338,11 @@ type OTPService interface {
 	// TOTPSecret creates a TOTP secret for code generation.
 	TOTPSecret(u *User) (string, error)
 	// RandomCode creates a random code and hash.
-	RandomCode() (code string, hash string, err error)
-	// Validate checks if a User OTP code is valid.
-	Validate(user *User, code string, hash string) error
+	RandomCode() (code, hash string, err error)
+	// ValidateOTP checks if a User email/sms delivered OTP code is valid.
+	ValidateOTP(code, hash string) error
+	// ValidateTOTP checks if a User TOTP code is valid.
+	ValidateTOTP(user *User, code string) error
 }
 
 // MessagingService sends messages through email or SMS.
@@ -371,6 +379,51 @@ type SignUpAPI interface {
 	Verify(w http.ResponseWriter, r *http.Request) (interface{}, error)
 }
 
+// OTPAPI provides HTTP handlers to manage email/SMS OTP configuration for a User.
+type OTPAPI interface {
+	// Request requests an OTP code to be delivered to a user through an
+	// email address or phone number. If the address is not associated with the
+	// profile, the requested OTP code may be used to enable a new email/phone on
+	// the account. If the address is associated with their profile, it may be used
+	// to complete the login flow.
+	Request(w http.ResponseWriter, r *http.Request) (interface{}, error)
+	// Update validates a recently delivered OTP code in order to enable
+	// a new phone/email or replace the phone/email of a user's profile.
+	// By default, a newly enabled email/phone will be available as a viable
+	// OTP delivery channel unless the client explicitly requests otherwise.
+	Update(w http.ResponseWriter, r *http.Request) (interface{}, error)
+	// Disable disables a verified email or phone number from receiving OTP codes.
+	Disable(w http.ResponseWriter, r *http.Request) (interface{}, error)
+	// Enable enables a verified and disabled email or phone number to start
+	// receiving OTP codes again. This is useful if a user wants to maintain a backup
+	// delivery option after enabling other TFA options such as a Webauthn device
+	// or TOTP application.
+	Enable(w http.ResponseWriter, r *http.Request) (interface{}, error)
+	// Remove removes a verified email or phone number from the User's profile.
+	// Removed email addresses and phone numbers cannot be re-added without
+	// requesting a new OTP.
+	Remove(w http.ResponseWriter, r *http.Request) (interface{}, error)
+	// Resend allows an unauthenticated user to request an OTP code to be
+	// redelivered to them. Unauthenticated users may only have OTP codes
+	// delivered through select channels.
+	Resend(w http.ResponseWriter, r *http.Request) (interface{}, error)
+}
+
+// TOTPAPI provides HTTP handlers to manage TOTP configuration for a User.
+type TOTPAPI interface {
+	// Secret requests a TOTP secret to allow a user to generate TOTP codes
+	// via a supported application (e.g. Google Authenticator).
+	Secret(w http.ResponseWriter, r *http.Request) (interface{}, error)
+	// Verify enables TOTP as an TFA option for a user by accepting a
+	// TOTP code and validating it against the TFA secret configured
+	// on the user.
+	Verify(w http.ResponseWriter, r *http.Request) (interface{}, error)
+	// Remove disables TOTP as an TFA option for a user by accepting a
+	// TOTP code and validating it against the TFA secret configured
+	// on the user.
+	Remove(w http.ResponseWriter, r *http.Request) (interface{}, error)
+}
+
 // DeviceAPI provides HTTP handlers to manage Devices for a User.
 type DeviceAPI interface {
 	// Verify validates ownership of a new Device for a User.
@@ -391,16 +444,11 @@ type TokenAPI interface {
 	// Refresh refreshes a non-expired token with a new expiriry time.
 	// Refreshed tokens always have default permissions.
 	Refresh(w http.ResponseWriter, r *http.Request) (interface{}, error)
-	// Upgrade upgrades the permissions of a token.
-	Upgrade(w http.ResponseWriter, r *http.Request) (interface{}, error)
 }
 
 // UserAPI proivdes HTTP handlers to configure a registered User's
 // account.
 type UserAPI interface {
-	// UpdateMFA change's a User's authentication requirement. It can
-	// be used to enable/disable TOTP, code, or device authentication.
-	UpdateMFA(w http.ResponseWriter, r *http.Request) (interface{}, error)
 	// UpdatePassword change's a User's password.
 	UpdatePassword(w http.ResponseWriter, r *http.Request) (interface{}, error)
 }

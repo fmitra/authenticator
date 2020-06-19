@@ -117,7 +117,7 @@ func (s *service) VerifyCode(w http.ResponseWriter, r *http.Request) (interface{
 		return nil, err
 	}
 
-	if err = s.otp.Validate(user, req.Code, token.CodeHash); err != nil {
+	if err = s.otp.ValidateOTP(req.Code, token.CodeHash); err != nil {
 		return nil, err
 	}
 

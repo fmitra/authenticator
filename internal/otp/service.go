@@ -72,41 +72,28 @@ func (o *OTP) TOTPQRString(u *auth.User) string {
 	return otpauth.String()
 }
 
-// Validate checks if a User OTP code is valid. User's may submit
-// a randomly generated code sent to them through email or SMS,
-// or provide a TOTP token.
-func (o *OTP) Validate(user *auth.User, code string, hash string) error {
-	var (
-		isRandomCodeValid bool
-		isTOTPValid       bool
-	)
-
-	if user.IsTOTPAllowed {
-		isTOTPValid = o.isTOTPValid(code, user.TFASecret)
+// ValidateOTP checks if a User's OTP code is valid. User's may submit
+// a randomly generated code sent to them through email or SMS.
+func (o *OTP) ValidateOTP(code string, hash string) error {
+	h, err := hashString(code)
+	if err != nil {
+		return auth.ErrInvalidCode("code submission failed")
 	}
 
-	if user.IsCodeAllowed {
-		isRandomCodeValid = o.isRandomCodeValid(code, hash)
-	}
-
-	if !isRandomCodeValid && !isTOTPValid {
+	if h != hash {
 		return auth.ErrInvalidCode("incorrect code provided")
 	}
 
 	return nil
 }
 
-func (o *OTP) isRandomCodeValid(code string, hash string) bool {
-	h, err := hashString(code)
-	if err != nil {
-		return false
+// ValidateTOTP checks ifa User's TOTP is valid.
+func (o *OTP) ValidateTOTP(user *auth.User, code string) error {
+	if totp.Validate(code, user.TFASecret) {
+		return nil
 	}
 
-	return h == hash
-}
-
-func (o *OTP) isTOTPValid(code, secret string) bool {
-	return totp.Validate(code, secret)
+	return auth.ErrInvalidCode("incorrect code provided")
 }
 
 func hashString(value string) (string, error) {
