@@ -19,6 +19,9 @@ type service struct {
 	repoMngr auth.RepositoryManager
 }
 
+// Secret sets a new TOTP secret on a User's profile and delivers it back to the user
+// in the format of a TOTP URI string that is compatible with TOTP generators such as
+// Authy and Google Authenticator.
 func (s *service) Secret(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 	ctx := r.Context()
 	userID := httpapi.GetUserID(r)
@@ -67,6 +70,8 @@ func (s *service) Secret(w http.ResponseWriter, r *http.Request) (interface{}, e
 	`, totpQRStr)), nil
 }
 
+// Verify validates a recently generated TOTP code. If a code is valid, TOTP is enabled
+// for the user as valid 2FA option.
 func (s *service) Verify(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 	ctx := r.Context()
 	userID := httpapi.GetUserID(r)
@@ -84,6 +89,8 @@ func (s *service) Verify(w http.ResponseWriter, r *http.Request) (interface{}, e
 	return s.configureTOTP(ctx, r, user, isEnabled)
 }
 
+// Remove validates a recently generated TOTP code. If a code is valid, TOTP is disabled
+// for the user.
 func (s *service) Remove(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 	ctx := r.Context()
 	userID := httpapi.GetUserID(r)

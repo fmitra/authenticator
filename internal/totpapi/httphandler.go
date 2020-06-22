@@ -16,7 +16,7 @@ func SetupHTTPHandler(svc auth.TOTPAPI, router *mux.Router, tokenSvc auth.TokenS
 	var handler httpapi.JSONAPIHandler
 	{
 		handler = httpapi.AuthMiddleware(svc.Secret, tokenSvc, auth.JWTAuthorized)
-		handler = httpapi.ErrorLoggingMiddleware(handler, "TOTPAPI.Add", logger)
+		handler = httpapi.ErrorLoggingMiddleware(handler, "TOTPAPI.Secret", logger)
 		httpHandler := httpapi.ToHandlerFunc(handler, http.StatusOK)
 		router.HandleFunc("/api/v1/totp", httpHandler).Methods("Post")
 	}

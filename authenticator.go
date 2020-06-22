@@ -96,6 +96,12 @@ type User struct {
 	// IsCodeAllowed specifies a user may complete authentication
 	// by verifying receipt of a randomly generated code.
 	IsCodeAllowed bool
+	// IsPhoneAllowed specifies a user may complete authentication
+	// by verifying an OTP code delivered through SMS.
+	IsPhoneOTPAllowed bool
+	// IsEmailOTPAllowed specifies a user may complete authentication
+	// by verifying an OTP code delivered through email.
+	IsEmailOTPAllowed bool
 	// IsTOTPAllowed specifies a user may complete authentication
 	// by verifying a TOTP code.
 	IsTOTPAllowed bool
@@ -379,34 +385,26 @@ type SignUpAPI interface {
 	Verify(w http.ResponseWriter, r *http.Request) (interface{}, error)
 }
 
-// OTPAPI provides HTTP handlers to manage email/SMS OTP configuration for a User.
-type OTPAPI interface {
-	// Request requests an OTP code to be delivered to a user through an
-	// email address or phone number. If the address is not associated with the
-	// profile, the requested OTP code may be used to enable a new email/phone on
-	// the account. If the address is associated with their profile, it may be used
-	// to complete the login flow.
-	Request(w http.ResponseWriter, r *http.Request) (interface{}, error)
-	// Update validates a recently delivered OTP code in order to enable
-	// a new phone/email or replace the phone/email of a user's profile.
-	// By default, a newly enabled email/phone will be available as a viable
-	// OTP delivery channel unless the client explicitly requests otherwise.
-	Update(w http.ResponseWriter, r *http.Request) (interface{}, error)
-	// Disable disables a verified email or phone number from receiving OTP codes.
+// ContactAPI provides HTTP handlers to manage email/SMS configuration for a User.
+type ContactAPI interface {
+	// CheckAddress requests an OTP code to be delivered to a user through
+	// an email address or phone number.
+	CheckAddress(w http.ResponseWriter, r *http.Request) (interface{}, error)
+	// Disable disables a verified email or phone number on a user's profile
+	// from receiving OTP codes.
 	Disable(w http.ResponseWriter, r *http.Request) (interface{}, error)
-	// Enable enables a verified and disabled email or phone number to start
-	// receiving OTP codes again. This is useful if a user wants to maintain a backup
-	// delivery option after enabling other TFA options such as a Webauthn device
-	// or TOTP application.
-	Enable(w http.ResponseWriter, r *http.Request) (interface{}, error)
+	// Verify verifies an OTP code sent to an email or phone number. If
+	// delivery address is new to the user, we set it on the profile.
+	// By default, verified addresses are enabled for future OTP
+	// code delivery unless the client explicitly says otherwise.
+	Verify(w http.ResponseWriter, r *http.Request) (interface{}, error)
 	// Remove removes a verified email or phone number from the User's profile.
 	// Removed email addresses and phone numbers cannot be re-added without
 	// requesting a new OTP.
 	Remove(w http.ResponseWriter, r *http.Request) (interface{}, error)
-	// Resend allows an unauthenticated user to request an OTP code to be
-	// redelivered to them. Unauthenticated users may only have OTP codes
-	// delivered through select channels.
-	Resend(w http.ResponseWriter, r *http.Request) (interface{}, error)
+	// Send allows a user to request an OTP code to be delivered to them through
+	// a pre-approved channel.
+	Send(w http.ResponseWriter, r *http.Request) (interface{}, error)
 }
 
 // TOTPAPI provides HTTP handlers to manage TOTP configuration for a User.
