@@ -10,9 +10,9 @@ import (
 )
 
 type service struct {
-	logger log.Logger
-	otp auth.OTPService
-	message auth.MessagingService
+	logger   log.Logger
+	otp      auth.OTPService
+	message  auth.MessagingService
 	repoMngr auth.RepositoryManager
 }
 
@@ -23,10 +23,12 @@ func (s *service) CheckAddress(w http.ResponseWriter, r *http.Request) (interfac
 	return nil, nil
 }
 
-// Disable disables a verified email or phone number from receiving OTP codes.
+// Disable dissables a verified email or phone number from receiving OTP codes in
+// the future.
 func (s *service) Disable(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 	return nil, nil
 }
+
 // Verify verifies an OTP code sent to an email or phone number. If the delivery
 // address is new to the user, it will be set on the profile. By default, verified
 // addresses are enabled for future OTP code delivery unless the client explicitly

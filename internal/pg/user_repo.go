@@ -2,14 +2,13 @@ package pg
 
 import (
 	"context"
-	"net/mail"
 	"time"
 
-	"github.com/nyaruka/phonenumbers"
 	"github.com/oklog/ulid"
 	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
+	"github.com/fmitra/authenticator/internal/contactchecker"
 )
 
 // UserRepository is an implementation of auth.UserRepository.
@@ -228,8 +227,7 @@ func validateEmail(user *auth.User) error {
 		return nil
 	}
 
-	_, err := mail.ParseAddress(email)
-	if err != nil {
+	if !contactchecker.IsEmailValid(email) {
 		return auth.ErrInvalidField("email address is invalid")
 	}
 
@@ -243,16 +241,7 @@ func validatePhone(user *auth.User) error {
 		return nil
 	}
 
-	// We expect phone numbers to be supplied with valid country
-	// codes. Due to this, we leave country ISO values blank.
-	countryISO := ""
-	meta, err := phonenumbers.Parse(phone, countryISO)
-	if err != nil {
-		return auth.ErrInvalidField("phone number is invalid")
-	}
-
-	isValid := phonenumbers.IsValidNumber(meta)
-	if !isValid {
+	if !contactchecker.IsPhoneValid(phone) {
 		return auth.ErrInvalidField("phone number is invalid")
 	}
 

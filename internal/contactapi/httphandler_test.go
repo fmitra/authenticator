@@ -1,17 +1,17 @@
 package contactapi
 
 import (
-	"testing"
+	"bytes"
 	"context"
-	"os"
 	"database/sql"
 	"net/http"
 	"net/http/httptest"
-	"bytes"
+	"os"
+	"testing"
 
+	"github.com/go-kit/kit/log"
 	"github.com/google/go-cmp/cmp"
 	"github.com/gorilla/mux"
-	"github.com/go-kit/kit/log"
 
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/pg"
@@ -19,20 +19,20 @@ import (
 )
 
 func TestContactAPI_CheckAddress(t *testing.T) {
-	tt := []struct{
-		user auth.User
-		reqBody []byte
-		name string
-		errMessage string
-		statusCode int
-		tokenValidateFn func(userID string) func() (*auth.Token, error)
-		authHeader bool
+	tt := []struct {
+		user              auth.User
+		reqBody           []byte
+		name              string
+		errMessage        string
+		statusCode        int
+		tokenValidateFn   func(userID string) func() (*auth.Token, error)
+		authHeader        bool
 		isPhoneOTPAllowed bool
 		isEmailOTPAllowed bool
-		messagingCalls int
+		messagingCalls    int
 	}{
 		{
-			name: "Authentication error with no token",
+			name:       "Authentication error with no token",
 			statusCode: http.StatusUnauthorized,
 			authHeader: false,
 			errMessage: "user is not authenticated",
@@ -40,14 +40,14 @@ func TestContactAPI_CheckAddress(t *testing.T) {
 				Password: "swordfish",
 				Email: sql.NullString{
 					String: "jane@example.com",
-					Valid: true,
+					Valid:  true,
 				},
-				IsVerified: true,
+				IsVerified:        true,
 				IsPhoneOTPAllowed: false,
 				IsEmailOTPAllowed: true,
 			},
 			messagingCalls: 0,
-			reqBody: []byte(`{"address":"+15555555", "address_type":"phone"}`),
+			reqBody:        []byte(`{"address":"+15555555", "address_type":"phone"}`),
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil

@@ -33,6 +33,12 @@ func SetupHTTPHandler(svc auth.ContactAPI, router *mux.Router, tokenSvc auth.Tok
 		router.HandleFunc("/api/v1/contact/verify", httpHandler).Methods("Post")
 	}
 	{
+		handler = httpapi.AuthMiddleware(svc.Verify, tokenSvc, auth.JWTAuthorized)
+		handler = httpapi.ErrorLoggingMiddleware(handler, "ContactAPI.Remove", logger)
+		httpHandler := httpapi.ToHandlerFunc(handler, http.StatusOK)
+		router.HandleFunc("/api/v1/contact/remove", httpHandler).Methods("Post")
+	}
+	{
 		handler = httpapi.AuthMiddleware(svc.Remove, tokenSvc, auth.JWTAuthorized)
 		handler = httpapi.ErrorLoggingMiddleware(handler, "ContactAPI.Remove", logger)
 		httpHandler := httpapi.ToHandlerFunc(handler, http.StatusOK)
