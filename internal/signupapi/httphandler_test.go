@@ -410,7 +410,7 @@ func TestSignUpAPI_VerifyCode(t *testing.T) {
 			loggerCount: 1,
 			reqBody:     []byte(""),
 			userFn: func() (*auth.User, error) {
-				return &auth.User{IsCodeAllowed: true}, nil
+				return &auth.User{IsEmailOTPAllowed: true}, nil
 			},
 			tokenValidateFn: func() (*auth.Token, error) {
 				return &auth.Token{CodeHash: codeHash, State: auth.JWTPreAuthorized}, nil
@@ -429,7 +429,7 @@ func TestSignUpAPI_VerifyCode(t *testing.T) {
 			loggerCount: 1,
 			reqBody:     []byte(`{"code": "222444"}`),
 			userFn: func() (*auth.User, error) {
-				return &auth.User{IsCodeAllowed: true}, nil
+				return &auth.User{IsEmailOTPAllowed: true}, nil
 			},
 			tokenValidateFn: func() (*auth.Token, error) {
 				return &auth.Token{
@@ -523,8 +523,8 @@ func TestSignUpAPI_VerifyCodeSuccess(t *testing.T) {
 			String: "jane@example.com",
 			Valid:  true,
 		},
-		IsVerified:    false,
-		IsCodeAllowed: true,
+		IsVerified:        false,
+		IsEmailOTPAllowed: true,
 	}
 	err = repoMngr.User().Create(ctx, user)
 	if err != nil {

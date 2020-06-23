@@ -38,7 +38,7 @@ func (r *UserRepository) ByIdentity(ctx context.Context, attribute, value string
 	row := r.client.queryRowContext(ctx, r.client.userQ[q], value)
 	err := row.Scan(
 		&user.ID, &user.Phone, &user.Email, &user.Password, &user.TFASecret,
-		&user.IsCodeAllowed, &user.IsTOTPAllowed, &user.IsDeviceAllowed,
+		&user.IsEmailOTPAllowed, &user.IsPhoneOTPAllowed, &user.IsTOTPAllowed, &user.IsDeviceAllowed,
 		&user.IsVerified, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {
@@ -69,8 +69,15 @@ func (r *UserRepository) Create(ctx context.Context, user *auth.User) error {
 		return err
 	}
 
+	if user.Phone.String != "" {
+		user.IsPhoneOTPAllowed = true
+	}
+
+	if user.Email.String != "" {
+		user.IsEmailOTPAllowed = true
+	}
+
 	user.ID = userID.String()
-	user.IsCodeAllowed = true
 	row := r.client.queryRowContext(
 		ctx,
 		r.client.userQ["insert"],
@@ -79,7 +86,8 @@ func (r *UserRepository) Create(ctx context.Context, user *auth.User) error {
 		user.Email,
 		user.Password,
 		user.TFASecret,
-		user.IsCodeAllowed,
+		user.IsEmailOTPAllowed,
+		user.IsPhoneOTPAllowed,
 		user.IsTOTPAllowed,
 		user.IsDeviceAllowed,
 		user.IsVerified,
@@ -137,7 +145,7 @@ func (r *UserRepository) GetForUpdate(ctx context.Context, userID string) (*auth
 	row := r.client.queryRowContext(ctx, r.client.userQ["forUpdate"], userID)
 	err := row.Scan(
 		&user.ID, &user.Phone, &user.Email, &user.Password, &user.TFASecret,
-		&user.IsCodeAllowed, &user.IsTOTPAllowed, &user.IsDeviceAllowed,
+		&user.IsEmailOTPAllowed, &user.IsPhoneOTPAllowed, &user.IsTOTPAllowed, &user.IsDeviceAllowed,
 		&user.IsVerified, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {
@@ -159,7 +167,8 @@ func (r *UserRepository) update(ctx context.Context, userID string, user *auth.U
 		user.Email,
 		user.Password,
 		user.TFASecret,
-		user.IsCodeAllowed,
+		user.IsEmailOTPAllowed,
+		user.IsPhoneOTPAllowed,
 		user.IsTOTPAllowed,
 		user.IsDeviceAllowed,
 		user.IsVerified,

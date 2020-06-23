@@ -93,9 +93,6 @@ type User struct {
 	Password string
 	// TFASecret is a a secret string used to generate 2FA TOTP codes.
 	TFASecret string
-	// IsCodeAllowed specifies a user may complete authentication
-	// by verifying receipt of a randomly generated code.
-	IsCodeAllowed bool
 	// IsPhoneAllowed specifies a user may complete authentication
 	// by verifying an OTP code delivered through SMS.
 	IsPhoneOTPAllowed bool

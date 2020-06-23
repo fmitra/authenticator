@@ -617,7 +617,7 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 			reqBody:        []byte(`{"code": "123456"}`),
 			errMessage:     "token state is not supported",
 			userFn: func() (*auth.User, error) {
-				return &auth.User{IsCodeAllowed: true}, nil
+				return &auth.User{IsEmailOTPAllowed: true}, nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
 				return &auth.Token{}, nil
@@ -663,7 +663,7 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 			errMessage:     "incorrect code provided",
 			reqBody:        []byte(`{"code": "222222"}`),
 			userFn: func() (*auth.User, error) {
-				return &auth.User{IsCodeAllowed: true}, nil
+				return &auth.User{IsEmailOTPAllowed: true}, nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
 				return &auth.Token{}, nil
@@ -686,7 +686,7 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 			errMessage:     "cannot create token",
 			reqBody:        []byte(`{"code": "123456"}`),
 			userFn: func() (*auth.User, error) {
-				return &auth.User{IsCodeAllowed: true}, nil
+				return &auth.User{IsEmailOTPAllowed: true}, nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
 				return nil, auth.ErrBadRequest("cannot create token")
@@ -709,7 +709,7 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 			errMessage:     "cannot save history",
 			reqBody:        []byte(`{"code": "123456"}`),
 			userFn: func() (*auth.User, error) {
-				return &auth.User{IsCodeAllowed: true}, nil
+				return &auth.User{IsEmailOTPAllowed: true}, nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
 				return &auth.Token{}, nil
@@ -732,7 +732,7 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 			errMessage:     "cannot sign token",
 			reqBody:        []byte(`{"code": "123456"}`),
 			userFn: func() (*auth.User, error) {
-				return &auth.User{IsCodeAllowed: true}, nil
+				return &auth.User{IsEmailOTPAllowed: true}, nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
 				return &auth.Token{}, nil
@@ -755,7 +755,7 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 			errMessage:     "",
 			reqBody:        []byte(`{"code": "123456"}`),
 			userFn: func() (*auth.User, error) {
-				return &auth.User{IsCodeAllowed: true}, nil
+				return &auth.User{IsEmailOTPAllowed: true}, nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
 				return &auth.Token{}, nil

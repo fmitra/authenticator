@@ -95,11 +95,11 @@ func (s *service) CreateWithOTP(
 	}
 
 	var address string
-	if method == auth.Email && user.IsCodeAllowed {
+	if method == auth.Email && user.IsEmailOTPAllowed {
 		address = user.Email.String
 	}
 
-	if method == auth.Phone && user.IsCodeAllowed {
+	if method == auth.Phone && user.IsPhoneOTPAllowed {
 		address = user.Phone.String
 	}
 

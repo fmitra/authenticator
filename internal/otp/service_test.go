@@ -30,8 +30,8 @@ func TestOTPSvc_ValidateOTP(t *testing.T) {
 func TestOTPSvc_TOTPSecret(t *testing.T) {
 	svc := NewOTP(WithIssuer("authenticator.local"))
 	user := &auth.User{
-		IsTOTPAllowed: true,
-		IsCodeAllowed: false,
+		IsTOTPAllowed:     true,
+		IsEmailOTPAllowed: false,
 		Phone: sql.NullString{
 			String: "+15556521234",
 			Valid:  true,
@@ -51,9 +51,9 @@ func TestOTPSvc_TOTPSecret(t *testing.T) {
 func TestOTPSvc_TOTPQRString(t *testing.T) {
 	svc := NewOTP(WithIssuer("authenticator.local"))
 	user := &auth.User{
-		IsTOTPAllowed: true,
-		IsCodeAllowed: false,
-		TFASecret:     "VHON3V7ECQ3UNTGJ3GUGL4ATXEMD2TDK",
+		IsTOTPAllowed:     true,
+		IsEmailOTPAllowed: false,
+		TFASecret:         "VHON3V7ECQ3UNTGJ3GUGL4ATXEMD2TDK",
 		Phone: sql.NullString{
 			String: "+15556521234",
 			Valid:  true,

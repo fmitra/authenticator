@@ -104,26 +104,26 @@ func (c *Client) createQueries() {
 
 	c.userQ = map[string]string{
 		"forUpdate": `
-			SELECT id, phone, email, password, tfa_secret, is_code_allowed,
+			SELECT id, phone, email, password, tfa_secret, is_email_otp_allowed, is_sms_otp_allowed,
 				is_totp_allowed, is_device_allowed, is_verified, created_at, updated_at
 			FROM auth_user
 			WHERE id = $1
 			FOR UPDATE;
 		`,
 		"byPhone": `
-			SELECT id, phone, email, password, tfa_secret, is_code_allowed,
+			SELECT id, phone, email, password, tfa_secret, is_email_otp_allowed, is_sms_otp_allowed,
 				is_totp_allowed, is_device_allowed, is_verified, created_at, updated_at
 			FROM auth_user
 			WHERE phone = $1;
 		`,
 		"byEmail": `
-			SELECT id, phone, email, password, tfa_secret, is_code_allowed,
+			SELECT id, phone, email, password, tfa_secret, is_email_otp_allowed, is_sms_otp_allowed,
 				is_totp_allowed, is_device_allowed, is_verified, created_at, updated_at
 			FROM auth_user
 			WHERE email = $1;
 		`,
 		"byID": `
-			SELECT id, phone, email, password, tfa_secret, is_code_allowed,
+			SELECT id, phone, email, password, tfa_secret, is_email_otp_allowed, is_sms_otp_allowed,
 				is_totp_allowed, is_device_allowed, is_verified, created_at, updated_at
 			FROM auth_user
 			WHERE id = $1;
@@ -131,16 +131,16 @@ func (c *Client) createQueries() {
 		"update": `
 			UPDATE auth_user
 			SET phone=$2, email=$3, password=$4, tfa_secret=$5,
-				is_code_allowed=$6, is_totp_allowed=$7, is_device_allowed=$8,
-				is_verified=$9, created_at=$10, updated_at=$11, id=$12
+				is_email_otp_allowed=$6, is_sms_otp_allowed=$7, is_totp_allowed=$8, is_device_allowed=$9,
+				is_verified=$10, created_at=$11, updated_at=$12, id=$13
 			WHERE id=$1;
 		`,
 		"insert": `
 			INSERT INTO auth_user (
-				id, phone, email, password, tfa_secret, is_code_allowed, is_totp_allowed,
-					is_device_allowed, is_verified
+				id, phone, email, password, tfa_secret, is_email_otp_allowed, is_sms_otp_allowed,
+					is_totp_allowed, is_device_allowed, is_verified
 			)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 			RETURNING created_at, updated_at
 		`,
 	}

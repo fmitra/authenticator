@@ -101,7 +101,7 @@ func TestTokenSvc_CreatePreAuthorized(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	user := &auth.User{ID: "user_id", IsCodeAllowed: true}
+	user := &auth.User{ID: "user_id", IsEmailOTPAllowed: true}
 	tokenSvc := NewTestTokenSvc(db)
 
 	_, err = tokenSvc.Create(ctx, user, auth.JWTPreAuthorized)
@@ -119,8 +119,8 @@ func TestTokenSvc_CreateWithOTP(t *testing.T) {
 
 	ctx := context.Background()
 	user := &auth.User{
-		ID:            "user_id",
-		IsCodeAllowed: true,
+		ID:                "user_id",
+		IsPhoneOTPAllowed: true,
 		Phone: sql.NullString{
 			String: "+15555555555",
 			Valid:  true,
@@ -147,8 +147,8 @@ func TestTokenSvc_CreateWithOTPAndAddress(t *testing.T) {
 
 	ctx := context.Background()
 	user := &auth.User{
-		ID:            "user_id",
-		IsCodeAllowed: true,
+		ID:                "user_id",
+		IsEmailOTPAllowed: true,
 	}
 	tokenSvc := NewTestTokenSvc(db)
 
