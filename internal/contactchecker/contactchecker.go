@@ -6,6 +6,8 @@ import (
 	"net/mail"
 
 	"github.com/nyaruka/phonenumbers"
+
+	auth "github.com/fmitra/authenticator"
 )
 
 // IsPhoneValid checks if a phone string is a valid format.
@@ -25,4 +27,19 @@ func IsPhoneValid(phone string) bool {
 func IsEmailValid(email string) bool {
 	_, err := mail.ParseAddress(email)
 	return err == nil
+}
+
+// Validator returns ane mail or phoen validator.
+func Validator(method auth.DeliveryMethod) func(s string) bool {
+	if method == auth.Email {
+		return IsEmailValid
+	}
+
+	if method == auth.Phone {
+		return IsPhoneValid
+	}
+
+	return func(s string) bool {
+		return false
+	}
 }

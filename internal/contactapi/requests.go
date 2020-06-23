@@ -30,9 +30,8 @@ type deliveryRequest struct {
 
 func decodeDeliveryRequest(r *http.Request) (*deliveryRequest, error) {
 	var (
-		req        deliveryRequest
-		err        error
-		validateFn func(s string) bool
+		req deliveryRequest
+		err error
 	)
 
 	if r == nil || r.Body == nil {
@@ -51,15 +50,7 @@ func decodeDeliveryRequest(r *http.Request) (*deliveryRequest, error) {
 		return nil, auth.ErrInvalidField("delivery_method must be `phone` or `email`")
 	}
 
-	if req.DeliveryMethod == auth.Phone {
-		validateFn = contactchecker.IsPhoneValid
-	}
-
-	if req.DeliveryMethod == auth.Email {
-		validateFn = contactchecker.IsEmailValid
-	}
-
-	if !validateFn(req.Address) {
+	if !contactchecker.Validator(req.DeliveryMethod)(req.Address) {
 		return nil, auth.ErrInvalidField("address format is invalid")
 	}
 

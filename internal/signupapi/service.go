@@ -14,6 +14,7 @@ import (
 
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/httpapi"
+	"github.com/fmitra/authenticator/internal/otp"
 )
 
 type service struct {
@@ -60,7 +61,12 @@ func (s *service) SignUp(w http.ResponseWriter, r *http.Request) (interface{}, e
 		return nil, err
 	}
 
-	jwtToken, err := s.token.Create(ctx, newUser, auth.JWTPreAuthorized)
+	method := auth.Phone
+	if req.Type == "emai" {
+		method = auth.Email
+	}
+
+	jwtToken, err := s.token.CreateWithOTP(ctx, newUser, auth.JWTPreAuthorized, method)
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +169,7 @@ func (s *service) respond(ctx context.Context, w http.ResponseWriter, user *auth
 
 	http.SetCookie(w, s.token.Cookie(ctx, jwtToken))
 
-	if jwtToken.Code != "" {
+	if jwtToken.CodeHash != "" {
 		// Enable in config.json: api.debug
 		level.Debug(s.logger).Log(
 			"source", "SignUp.respond",
@@ -174,7 +180,12 @@ func (s *service) respond(ctx context.Context, w http.ResponseWriter, user *auth
 			"phone", user.Phone.String,
 		)
 
-		if err = s.message.Send(ctx, user, jwtToken.Code); err != nil {
+		h, err := otp.FromOTPHash(jwtToken.CodeHash)
+		if err != nil {
+			return nil, errors.Wrap(err, "invalid OTP created")
+		}
+
+		if err = s.message.Send(ctx, jwtToken.Code, h.Address, h.DeliveryMethod); err != nil {
 			return nil, err
 		}
 	}

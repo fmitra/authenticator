@@ -360,7 +360,7 @@ type OTPService interface {
 // MessagingService sends messages through email or SMS.
 type MessagingService interface {
 	// Send sends a message to a user.
-	Send(ctx context.Context, user *User, message string) error
+	Send(ctx context.Context, message, addr string, method DeliveryMethod) error
 }
 
 // LoginAPI provides HTTP handlers for user authentication.

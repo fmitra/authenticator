@@ -9,6 +9,7 @@ import (
 	"github.com/go-kit/kit/log"
 
 	auth "github.com/fmitra/authenticator"
+	"github.com/fmitra/authenticator/internal/contactchecker"
 )
 
 // service is an implementation of auth.MessagingService.
@@ -21,16 +22,15 @@ type service struct {
 
 // Send sends a message to a User. Behind the scenes, it publishes a message
 // to a Kafka topic with all the relevant user details for delivery (e.g. phone/email).
-func (s *service) Send(ctx context.Context, user *auth.User, content string) error {
-	deliveryMethod := auth.Phone
-	if !user.Phone.Valid {
-		deliveryMethod = auth.Email
+func (s *service) Send(ctx context.Context, content, addr string, method auth.DeliveryMethod) error {
+	if !contactchecker.Validator(method)(addr) {
+		return fmt.Errorf("invalid delivery method")
 	}
 
 	msg := auth.Message{
-		Delivery:  deliveryMethod,
+		Delivery:  method,
 		Content:   content,
-		Address:   user.Phone.String,
+		Address:   addr,
 		ExpiresAt: time.Now().Add(s.expireAfter),
 	}
 

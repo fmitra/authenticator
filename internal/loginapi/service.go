@@ -148,7 +148,8 @@ func (s *service) respond(ctx context.Context, w http.ResponseWriter, user *auth
 	http.SetCookie(w, s.token.Cookie(ctx, jwtToken))
 
 	if jwtToken.Code != "" {
-		if err = s.message.Send(ctx, user, jwtToken.Code); err != nil {
+		// TODO Fix
+		if err = s.message.Send(ctx, jwtToken.Code, "", auth.Email); err != nil {
 			return nil, err
 		}
 	}

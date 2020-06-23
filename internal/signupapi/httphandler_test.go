@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -201,7 +204,7 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 				return nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{Code: "123456"}, nil
+				return &auth.Token{CodeHash: "123456:1:address:email", Code: "123456"}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "jwt-token", nil
@@ -223,8 +226,9 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 				},
 			}
 			tokenSvc := &test.TokenService{
-				CreateFn: tc.tokenCreateFn,
-				SignFn:   tc.tokenSignFn,
+				CreateFn:        tc.tokenCreateFn,
+				CreateWithOTPFn: tc.tokenCreateFn,
+				SignFn:          tc.tokenSignFn,
 			}
 			messagingSvc := &test.MessagingService{}
 			svc := NewService(
@@ -318,7 +322,10 @@ func TestSignUpAPI_SignUpExistingUser(t *testing.T) {
 	logger := &test.Logger{}
 	tokenSvc := &test.TokenService{
 		CreateFn: func() (*auth.Token, error) {
-			return &auth.Token{Code: "123456"}, nil
+			return &auth.Token{CodeHash: "123456:1:address:email", Code: "123456"}, nil
+		},
+		CreateWithOTPFn: func() (*auth.Token, error) {
+			return &auth.Token{CodeHash: "123456:1:address:email", Code: "123456"}, nil
 		},
 		SignFn: func() (string, error) {
 			return "jwt-token", nil
@@ -425,7 +432,14 @@ func TestSignUpAPI_VerifyCode(t *testing.T) {
 				return &auth.User{IsCodeAllowed: true}, nil
 			},
 			tokenValidateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: codeHash, State: auth.JWTPreAuthorized}, nil
+				return &auth.Token{
+					CodeHash: fmt.Sprintf(
+						"%s:%s:address:deliveryMethod",
+						codeHash,
+						strconv.FormatInt(time.Now().Add(time.Minute*5).Unix(), 10),
+					),
+					State: auth.JWTPreAuthorized,
+				}, nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
 				return &auth.Token{}, nil
@@ -440,7 +454,6 @@ func TestSignUpAPI_VerifyCode(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			router := mux.NewRouter()
-			logger := &test.Logger{}
 			userRepo := &test.UserRepository{
 				ByIdentityFn: tc.userFn,
 			}
@@ -475,6 +488,7 @@ func TestSignUpAPI_VerifyCode(t *testing.T) {
 
 			test.SetAuthHeaders(req)
 
+			logger := &test.Logger{}
 			SetupHTTPHandler(svc, router, tokenSvc, logger)
 
 			rr := httptest.NewRecorder()
@@ -518,19 +532,22 @@ func TestSignUpAPI_VerifyCodeSuccess(t *testing.T) {
 	}
 
 	router := mux.NewRouter()
-	logger := &test.Logger{}
 	tokenSvc := &test.TokenService{
 		CreateFn: func() (*auth.Token, error) {
-			return &auth.Token{Code: "123456"}, nil
+			return &auth.Token{}, nil
 		},
 		SignFn: func() (string, error) {
 			return "jwt-token", nil
 		},
 		ValidateFn: func() (*auth.Token, error) {
 			return &auth.Token{
-				CodeHash: codeHash,
-				State:    auth.JWTPreAuthorized,
-				UserID:   user.ID,
+				CodeHash: fmt.Sprintf(
+					"%s:%s:address:deliveryMethod",
+					codeHash,
+					strconv.FormatInt(time.Now().Add(time.Minute*5).Unix(), 10),
+				),
+				State:  auth.JWTPreAuthorized,
+				UserID: user.ID,
 			}, nil
 		},
 	}
@@ -556,6 +573,7 @@ func TestSignUpAPI_VerifyCodeSuccess(t *testing.T) {
 
 	test.SetAuthHeaders(req)
 
+	logger := &test.Logger{}
 	SetupHTTPHandler(svc, router, tokenSvc, logger)
 
 	rr := httptest.NewRecorder()
@@ -574,7 +592,7 @@ func TestSignUpAPI_VerifyCodeSuccess(t *testing.T) {
 		t.Error("user was not verified")
 	}
 
-	if messagingSvc.Calls.Send != 1 {
+	if messagingSvc.Calls.Send != 0 {
 		t.Errorf("incorrect MessagingService.Send() call count, want 1 got %v",
 			messagingSvc.Calls.Send)
 	}

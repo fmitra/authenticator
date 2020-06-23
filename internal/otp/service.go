@@ -53,25 +53,6 @@ func (o *OTP) OTPCode(address string, method auth.DeliveryMethod) (code string, 
 	return c, h, nil
 }
 
-// RandomCode creates a random code and hash.
-func (o *OTP) RandomCode() (code string, hash string, err error) {
-	rand.Seed(time.Now().UnixNano())
-
-	b := make([]rune, o.codeLength)
-	opts := []rune("0123456789")
-	for i := range b {
-		b[i] = opts[rand.Intn(len(opts))]
-	}
-
-	c := string(b)
-	h, err := hashString(c)
-	if err != nil {
-		return "", "", errors.Wrap(err, "failed to hash code")
-	}
-
-	return c, h, nil
-}
-
 // TOTPSecret assigns a TOTP secret for a user for use in code generation.
 func (o *OTP) TOTPSecret(u *auth.User) (string, error) {
 	key, err := totp.Generate(totp.GenerateOpts{
