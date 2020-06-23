@@ -4,8 +4,11 @@ package otp
 import (
 	"crypto/sha512"
 	"encoding/hex"
+	"fmt"
 	"math/rand"
 	"net/url"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -15,11 +18,39 @@ import (
 	auth "github.com/fmitra/authenticator"
 )
 
+// Hash contains a hash of a OTP code and other variables
+// to identify characteristics of the code.
+type Hash struct {
+	CodeHash       string
+	Expiry         int64
+	Address        string
+	DeliveryMethod auth.DeliveryMethod
+}
+
 // OTP is a credential validator for User OTP codes.
 type OTP struct {
 	// codeLength is the length of a randomly generated code.
 	codeLength int
 	totpIssuer string
+}
+
+// OTPCode creates a random code and hash.
+func (o *OTP) OTPCode(address string, method auth.DeliveryMethod) (code string, hash string, err error) {
+	rand.Seed(time.Now().UnixNano())
+
+	b := make([]rune, o.codeLength)
+	opts := []rune("0123456789")
+	for i := range b {
+		b[i] = opts[rand.Intn(len(opts))]
+	}
+
+	c := string(b)
+	h, err := toOTPHash(c, address, method)
+	if err != nil {
+		return "", "", err
+	}
+
+	return c, h, nil
 }
 
 // RandomCode creates a random code and hash.
@@ -75,12 +106,22 @@ func (o *OTP) TOTPQRString(u *auth.User) string {
 // ValidateOTP checks if a User's OTP code is valid. User's may submit
 // a randomly generated code sent to them through email or SMS.
 func (o *OTP) ValidateOTP(code string, hash string) error {
+	otp, err := FromOTPHash(hash)
+	if err != nil {
+		return err
+	}
+
+	now := time.Now().Unix()
+	if now >= otp.Expiry {
+		return auth.ErrInvalidCode("code is expired")
+	}
+
 	h, err := hashString(code)
 	if err != nil {
 		return auth.ErrInvalidCode("code submission failed")
 	}
 
-	if h != hash {
+	if h != otp.CodeHash {
 		return auth.ErrInvalidCode("incorrect code provided")
 	}
 
@@ -104,4 +145,47 @@ func hashString(value string) (string, error) {
 	}
 
 	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
+func toOTPHash(code, address string, method auth.DeliveryMethod) (string, error) {
+	codeHash, err := hashString(code)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to hash code")
+	}
+
+	expiry := time.Now().Add(time.Minute * 5).Unix()
+
+	// format: <hash>:<expiriy>:<address>:<deliveryMethod>
+	return fmt.Sprintf(
+		"%s:%s:%s:%s",
+		codeHash,
+		strconv.FormatInt(expiry, 10),
+		address,
+		string(method),
+	), nil
+}
+
+// FromOTPHash parses an OTP hash string to individual parts.
+func FromOTPHash(otpHash string) (*Hash, error) {
+	split := strings.Split(otpHash, ":")
+	if len(split) != 4 {
+		return nil, errors.New("incorrect hash")
+	}
+
+	expiry, err := strconv.ParseInt(split[1], 10, 64)
+	if err != nil {
+		return nil, errors.Wrap(err, "invalid expiry time")
+	}
+
+	o := &Hash{}
+	hash := split[0]
+	address := split[2]
+	method := auth.DeliveryMethod(split[3])
+
+	o.CodeHash = hash
+	o.Address = address
+	o.DeliveryMethod = method
+	o.Expiry = expiry
+
+	return o, nil
 }

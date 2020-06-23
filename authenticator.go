@@ -302,6 +302,10 @@ type TokenService interface {
 	// Create creates a new authorized or pre-authorized JWT token.
 	// On success, it returns the token.
 	Create(ctx context.Context, user *User, state TokenState) (*Token, error)
+	// CreateWithOTP creates a new authorized or pre-authorized JWT token
+	// with embedded OTP code for 2FA verification.
+	CreateWithOTP(ctx context.Context, user *User, state TokenState, method DeliveryMethod) (*Token, error)
+	CreateWithOTPAndAddress(ctx context.Context, user *User, state TokenState, method DeliveryMethod, addr string) (*Token, error)
 	// Sign creates a signed JWT token string from a token struct.
 	Sign(ctx context.Context, token *Token) (string, error)
 	// Validate checks that a JWT token is signed by us, unexpired,
@@ -312,6 +316,8 @@ type TokenService interface {
 	Revoke(ctx context.Context, tokenID string, duration time.Duration) error
 	// Cookie returns a secure cookie to accompany a token.
 	Cookie(ctx context.Context, token *Token) *http.Cookie
+	// Refresh refreshes an expiring token.
+	Refresh(ctx context.Context, token *Token, refreshKey string) (*Token, error)
 }
 
 // WebAuthnService manages the protocol for WebAuthn authentication.
@@ -343,8 +349,8 @@ type OTPService interface {
 	TOTPQRString(u *User) string
 	// TOTPSecret creates a TOTP secret for code generation.
 	TOTPSecret(u *User) (string, error)
-	// RandomCode creates a random code and hash.
-	RandomCode() (code, hash string, err error)
+	// OTPCode creates a random OTP code and hash.
+	OTPCode(address string, method DeliveryMethod) (code, hash string, err error)
 	// ValidateOTP checks if a User email/sms delivered OTP code is valid.
 	ValidateOTP(code, hash string) error
 	// ValidateTOTP checks if a User TOTP code is valid.

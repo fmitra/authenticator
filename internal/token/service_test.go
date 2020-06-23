@@ -3,6 +3,7 @@ package token
 import (
 	"context"
 	"crypto/sha512"
+	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -103,7 +104,55 @@ func TestTokenSvc_CreatePreAuthorized(t *testing.T) {
 	user := &auth.User{ID: "user_id", IsCodeAllowed: true}
 	tokenSvc := NewTestTokenSvc(db)
 
-	token, err := tokenSvc.Create(ctx, user, auth.JWTPreAuthorized)
+	_, err = tokenSvc.Create(ctx, user, auth.JWTPreAuthorized)
+	if err != nil {
+		t.Fatal("failed to create token:", err)
+	}
+}
+
+func TestTokenSvc_CreateWithOTP(t *testing.T) {
+	db, err := test.NewRedisDB()
+	if err != nil {
+		t.Fatal("faliled to create test database:", err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	user := &auth.User{
+		ID:            "user_id",
+		IsCodeAllowed: true,
+		Phone: sql.NullString{
+			String: "+15555555555",
+			Valid:  true,
+		},
+	}
+	tokenSvc := NewTestTokenSvc(db)
+
+	token, err := tokenSvc.CreateWithOTP(ctx, user, auth.JWTPreAuthorized, auth.Phone)
+	if err != nil {
+		t.Fatal("failed to create token:", err)
+	}
+
+	if token.Code == "" || token.CodeHash == "" {
+		t.Fatal("otp codes should be generated for pre-authorized tokens")
+	}
+}
+
+func TestTokenSvc_CreateWithOTPAndAddress(t *testing.T) {
+	db, err := test.NewRedisDB()
+	if err != nil {
+		t.Fatal("faliled to create test database:", err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	user := &auth.User{
+		ID:            "user_id",
+		IsCodeAllowed: true,
+	}
+	tokenSvc := NewTestTokenSvc(db)
+
+	token, err := tokenSvc.CreateWithOTPAndAddress(ctx, user, auth.JWTPreAuthorized, auth.Phone, "jane@example.com")
 	if err != nil {
 		t.Fatal("failed to create token:", err)
 	}

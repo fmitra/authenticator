@@ -12,7 +12,7 @@ import (
 func TestOTPSvc_ValidateOTP(t *testing.T) {
 	codeLength := 10
 	svc := NewOTP(WithCodeLength(codeLength))
-	code, hash, err := svc.RandomCode()
+	code, hash, err := svc.OTPCode("jane@example.com", auth.Email)
 	if err != nil {
 		t.Fatal("failed to create code:", err)
 	}

@@ -46,7 +46,7 @@ type service struct {
 	cookieDomain string
 }
 
-// Create creates a new, signed JWT token for a User.
+// Create creates a new, unsigned JWT token for a User.
 // On success it returns a token and the unhashed ClientID.
 func (s *service) Create(ctx context.Context, user *auth.User, state auth.TokenState) (*auth.Token, error) {
 	tokenULID, err := ulid.New(ulid.Now(), s.entropy)
@@ -76,14 +76,38 @@ func (s *service) Create(ctx context.Context, user *auth.User, state auth.TokenS
 		State:        state,
 	}
 
-	// OTP codes are embedded into JWT tokens in pre-authorization steps.
-	// If this feature is disabled or the user is receiving an authorized token,
-	// we can skip the next step and just return the token.
-	if state == auth.JWTAuthorized || !user.IsCodeAllowed {
-		return &token, nil
+	return &token, nil
+}
+
+// CreateWithOTP creaets a new, unsigned JWT token for a User with
+// an embedded OTP code to be sent to a user's address. On success it
+// returns a token and the unhashed client ID.
+func (s *service) CreateWithOTP(
+	ctx context.Context, user *auth.User, state auth.TokenState, method auth.DeliveryMethod,
+) (*auth.Token, error) {
+	token, err := s.Create(ctx, user, state)
+	if err != nil {
+		return nil, err
 	}
 
-	code, codeHash, err := s.otp.RandomCode()
+	if method != auth.Phone && method != auth.Email {
+		return nil, auth.ErrInvalidField("invalid delivery method")
+	}
+
+	var address string
+	if method == auth.Email && user.IsCodeAllowed {
+		address = user.Email.String
+	}
+
+	if method == auth.Phone && user.IsCodeAllowed {
+		address = user.Phone.String
+	}
+
+	if address == "" {
+		return nil, auth.ErrInvalidField("delivery address is not valid")
+	}
+
+	code, codeHash, err := s.otp.OTPCode(address, method)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to generate OTP code")
 	}
@@ -91,7 +115,37 @@ func (s *service) Create(ctx context.Context, user *auth.User, state auth.TokenS
 	token.Code = code
 	token.CodeHash = codeHash
 
-	return &token, nil
+	return token, nil
+}
+
+// CreateWithOTP creaets a new, unsigned JWT token for a User with
+// an embedded OTP code to be sent to any address. On success it
+// returns a token and the unhashed client ID.
+func (s *service) CreateWithOTPAndAddress(
+	ctx context.Context, user *auth.User, state auth.TokenState, method auth.DeliveryMethod, addr string,
+) (*auth.Token, error) {
+	token, err := s.Create(ctx, user, state)
+	if err != nil {
+		return nil, err
+	}
+
+	if method != auth.Phone && method != auth.Email {
+		return nil, auth.ErrInvalidField("invalid delivery method")
+	}
+
+	if addr == "" {
+		return nil, auth.ErrInvalidField("address cannot be blank")
+	}
+
+	code, codeHash, err := s.otp.OTPCode(addr, method)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to generate OTP code")
+	}
+
+	token.Code = code
+	token.CodeHash = codeHash
+
+	return token, nil
 }
 
 // Sign creates a signed JWT token string from a token struct.
@@ -183,6 +237,10 @@ func (s *service) Cookie(ctx context.Context, token *auth.Token) *http.Cookie {
 	}
 
 	return &cookie
+}
+
+func (s *service) Refresh(ctx context.Context, token *auth.Token, refreshKey string) (*auth.Token, error) {
+	return nil, errors.New("not implemented")
 }
 
 func (s *service) isClientIDValid(clientID, clientIDHash string) bool {

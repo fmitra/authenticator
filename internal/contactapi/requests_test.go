@@ -95,10 +95,10 @@ func TestContactAPI_CheckAddressRequest(t *testing.T) {
 
 func TestContactAPI_VerifyRequest(t *testing.T) {
 	tt := []struct {
-		name         string
 		request      []byte
-		isOTPEnabled bool
+		name         string
 		code         string
+		isOTPEnabled bool
 		hasError     bool
 	}{
 		{
