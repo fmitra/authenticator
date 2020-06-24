@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/go-kit/kit/log"
 	"github.com/google/go-cmp/cmp"
@@ -20,16 +23,16 @@ import (
 
 func TestContactAPI_CheckAddress(t *testing.T) {
 	tt := []struct {
-		user              auth.User
-		reqBody           []byte
-		name              string
-		errMessage        string
-		statusCode        int
-		tokenValidateFn   func(userID string) func() (*auth.Token, error)
-		authHeader        bool
-		isPhoneOTPAllowed bool
-		isEmailOTPAllowed bool
-		messagingCalls    int
+		user            auth.User
+		reqBody         []byte
+		name            string
+		errMessage      string
+		statusCode      int
+		tokenValidateFn func(userID string) func() (*auth.Token, error)
+		tokenCreateFn   func() (*auth.Token, error)
+		tokenSignFn     func() (string, error)
+		authHeader      bool
+		messagingCalls  int
 	}{
 		{
 			name:       "Authentication error with no token",
@@ -42,12 +45,124 @@ func TestContactAPI_CheckAddress(t *testing.T) {
 					String: "jane@example.com",
 					Valid:  true,
 				},
-				IsVerified:        true,
-				IsPhoneOTPAllowed: false,
-				IsEmailOTPAllowed: true,
+				IsVerified: true,
 			},
 			messagingCalls: 0,
-			reqBody:        []byte(`{"address":"+15555555", "address_type":"phone"}`),
+			reqBody:        []byte(`{"address":"+15555555", "delivery_method":"phone"}`),
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "token", nil
+			},
+			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
+				return func() (*auth.Token, error) {
+					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
+				}
+			},
+		},
+		{
+			name:       "Authentication error with bad token",
+			statusCode: http.StatusUnauthorized,
+			authHeader: true,
+			errMessage: "bad token",
+			user: auth.User{
+				Password: "swordfish",
+				Email: sql.NullString{
+					String: "jane@example.com",
+					Valid:  true,
+				},
+				IsVerified: true,
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "token", nil
+			},
+			messagingCalls: 0,
+			reqBody:        []byte(`{"address":"+15555555", "delivery_method":"phone"}`),
+			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
+				return func() (*auth.Token, error) {
+					return nil, auth.ErrInvalidToken("bad token")
+				}
+			},
+		},
+		{
+			name:       "Authentication error with no token",
+			statusCode: http.StatusUnauthorized,
+			authHeader: false,
+			errMessage: "user is not authenticated",
+			user: auth.User{
+				Password: "swordfish",
+				Email: sql.NullString{
+					String: "jane@example.com",
+					Valid:  true,
+				},
+				IsVerified: true,
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "token", nil
+			},
+			messagingCalls: 0,
+			reqBody:        []byte(`{"address":"+15555555", "delivery_method":"phone"}`),
+			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
+				return func() (*auth.Token, error) {
+					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
+				}
+			},
+		},
+		{
+			name:       "Request error with invalid address",
+			statusCode: http.StatusBadRequest,
+			authHeader: true,
+			errMessage: "address format is invalid",
+			user: auth.User{
+				Password: "swordfish",
+				Email: sql.NullString{
+					String: "jane@example.com",
+					Valid:  true,
+				},
+				IsVerified: true,
+			},
+			messagingCalls: 0,
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "token", nil
+			},
+			reqBody: []byte(`{"address":"555", "delivery_method":"phone"}`),
+			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
+				return func() (*auth.Token, error) {
+					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
+				}
+			},
+		},
+		{
+			name:       "Successful request",
+			statusCode: http.StatusAccepted,
+			authHeader: true,
+			errMessage: "",
+			user: auth.User{
+				Password: "swordfish",
+				Email: sql.NullString{
+					String: "jane@example.com",
+					Valid:  true,
+				},
+				IsVerified: true,
+			},
+			messagingCalls: 1,
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "token", nil
+			},
+			reqBody: []byte(`{"address":"+6594867353", "delivery_method":"phone"}`),
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
@@ -74,7 +189,9 @@ func TestContactAPI_CheckAddress(t *testing.T) {
 			router := mux.NewRouter()
 			otpSvc := &test.OTPService{}
 			tokenSvc := &test.TokenService{
-				ValidateFn: tc.tokenValidateFn(tc.user.ID),
+				ValidateFn:                tc.tokenValidateFn(tc.user.ID),
+				CreateWithOTPAndAddressFn: tc.tokenCreateFn,
+				SignFn:                    tc.tokenSignFn,
 			}
 			msgSvc := &test.MessagingService{}
 			svc := NewService(
@@ -108,27 +225,342 @@ func TestContactAPI_CheckAddress(t *testing.T) {
 				t.Error(err)
 			}
 
-			user, err := repoMngr.User().ByIdentity(ctx, "ID", tc.user.ID)
+			_, err = repoMngr.User().ByIdentity(ctx, "ID", tc.user.ID)
 			if err != nil {
 				t.Error("unable to retrieve user:", err)
 			}
 
-			if user.IsPhoneOTPAllowed != tc.isPhoneOTPAllowed {
-				t.Error(cmp.Diff(user.IsPhoneOTPAllowed, tc.isPhoneOTPAllowed))
-			}
-
-			if user.IsEmailOTPAllowed != tc.isEmailOTPAllowed {
-				t.Error(cmp.Diff(user.IsEmailOTPAllowed, tc.isEmailOTPAllowed))
-			}
 			if msgSvc.Calls.Send != tc.messagingCalls {
-				t.Error(cmp.Diff(msgSvc.Calls.Send, tc.messagingCalls))
+				t.Error("messaging call count mismatch", cmp.Diff(msgSvc.Calls.Send, tc.messagingCalls))
 			}
 		})
 	}
 }
 
 func TestContactAPI_Verify(t *testing.T) {
-	t.Error("not implemented")
+	tt := []struct {
+		user              auth.User
+		reqBody           []byte
+		name              string
+		errMessage        string
+		statusCode        int
+		otpValidateFn     func(code, hash string) error
+		tokenValidateFn   func(userID string) func() (*auth.Token, error)
+		phone             string
+		email             string
+		isPhoneOTPAllowed bool
+		isEmailOTPAllowed bool
+		authHeader        bool
+	}{
+		{
+			name:       "Authentication error with no token",
+			statusCode: http.StatusUnauthorized,
+			authHeader: false,
+			errMessage: "user is not authenticated",
+			user: auth.User{
+				Password: "swordfish",
+				Email: sql.NullString{
+					String: "jane@example.com",
+					Valid:  true,
+				},
+				IsVerified: true,
+			},
+			email:             "jane@example.com",
+			phone:             "",
+			isPhoneOTPAllowed: false,
+			isEmailOTPAllowed: true,
+			reqBody:           []byte(`{"code":"123"}`),
+			otpValidateFn: func(code, hash string) error {
+				return nil
+			},
+			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
+				return func() (*auth.Token, error) {
+					return &auth.Token{
+						UserID: userID,
+						State:  auth.JWTAuthorized,
+						CodeHash: fmt.Sprintf(
+							"123456:%s:address:phone",
+							strconv.FormatInt(time.Now().Add(time.Minute*5).Unix(), 10),
+						),
+					}, nil
+				}
+			},
+		},
+		{
+			name:       "Authentication error with bad token",
+			statusCode: http.StatusUnauthorized,
+			authHeader: true,
+			errMessage: "bad token",
+			user: auth.User{
+				Password: "swordfish",
+				Email: sql.NullString{
+					String: "jane@example.com",
+					Valid:  true,
+				},
+				IsVerified: true,
+			},
+			email:             "jane@example.com",
+			phone:             "",
+			isPhoneOTPAllowed: false,
+			isEmailOTPAllowed: true,
+			reqBody:           []byte(`{"code":"123"}`),
+			otpValidateFn: func(code, hash string) error {
+				return nil
+			},
+			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
+				return func() (*auth.Token, error) {
+					return nil, auth.ErrInvalidToken("bad token")
+				}
+			},
+		},
+		{
+			name:       "Add phone and enable 2FA",
+			statusCode: http.StatusOK,
+			authHeader: true,
+			errMessage: "",
+			user: auth.User{
+				Password: "swordfish",
+				Email: sql.NullString{
+					String: "jane@example.com",
+					Valid:  true,
+				},
+				IsVerified: true,
+			},
+			email:             "jane@example.com",
+			phone:             "+6594867353",
+			isPhoneOTPAllowed: true,
+			isEmailOTPAllowed: true,
+			reqBody:           []byte(`{"code":"123"}`),
+			otpValidateFn: func(code, hash string) error {
+				return nil
+			},
+			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
+				return func() (*auth.Token, error) {
+					return &auth.Token{
+						UserID: userID,
+						State:  auth.JWTAuthorized,
+						CodeHash: fmt.Sprintf(
+							"123456:%s:+6594867353:phone",
+							strconv.FormatInt(time.Now().Add(time.Minute*5).Unix(), 10),
+						),
+					}, nil
+				}
+			},
+		},
+		{
+			name:       "Add phone and disable 2FA",
+			statusCode: http.StatusOK,
+			authHeader: true,
+			errMessage: "",
+			user: auth.User{
+				Password: "swordfish",
+				Email: sql.NullString{
+					String: "jane@example.com",
+					Valid:  true,
+				},
+				IsVerified: true,
+			},
+			email:             "jane@example.com",
+			phone:             "+6594867353",
+			isPhoneOTPAllowed: false,
+			isEmailOTPAllowed: true,
+			reqBody:           []byte(`{"code":"123", "is_disabled":true}`),
+			otpValidateFn: func(code, hash string) error {
+				return nil
+			},
+			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
+				return func() (*auth.Token, error) {
+					return &auth.Token{
+						UserID: userID,
+						State:  auth.JWTAuthorized,
+						CodeHash: fmt.Sprintf(
+							"123456:%s:+6594867353:phone",
+							strconv.FormatInt(time.Now().Add(time.Minute*5).Unix(), 10),
+						),
+					}, nil
+				}
+			},
+		},
+		{
+			name:       "Add email and disable 2FA",
+			statusCode: http.StatusOK,
+			authHeader: true,
+			errMessage: "",
+			user: auth.User{
+				Password: "swordfish",
+				Phone: sql.NullString{
+					String: "+6594867353",
+					Valid:  true,
+				},
+				IsVerified: true,
+			},
+			email:             "jane@example.com",
+			phone:             "+6594867353",
+			isPhoneOTPAllowed: true,
+			isEmailOTPAllowed: false,
+			reqBody:           []byte(`{"code":"123", "is_disabled":true}`),
+			otpValidateFn: func(code, hash string) error {
+				return nil
+			},
+			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
+				return func() (*auth.Token, error) {
+					return &auth.Token{
+						UserID: userID,
+						State:  auth.JWTAuthorized,
+						CodeHash: fmt.Sprintf(
+							"123456:%s:jane@example.com:email",
+							strconv.FormatInt(time.Now().Add(time.Minute*5).Unix(), 10),
+						),
+					}, nil
+				}
+			},
+		},
+		{
+			name:       "Add email and enable 2FA",
+			statusCode: http.StatusOK,
+			authHeader: true,
+			errMessage: "",
+			user: auth.User{
+				Password: "swordfish",
+				Phone: sql.NullString{
+					String: "+6594867353",
+					Valid:  true,
+				},
+				IsVerified: true,
+			},
+			email:             "jane@example.com",
+			phone:             "+6594867353",
+			isPhoneOTPAllowed: true,
+			isEmailOTPAllowed: true,
+			reqBody:           []byte(`{"code":"123"}`),
+			otpValidateFn: func(code, hash string) error {
+				return nil
+			},
+			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
+				return func() (*auth.Token, error) {
+					return &auth.Token{
+						UserID: userID,
+						State:  auth.JWTAuthorized,
+						CodeHash: fmt.Sprintf(
+							"123456:%s:jane@example.com:email",
+							strconv.FormatInt(time.Now().Add(time.Minute*5).Unix(), 10),
+						),
+					}, nil
+				}
+			},
+		},
+		{
+			name:       "Invalid OTP code",
+			statusCode: http.StatusBadRequest,
+			authHeader: true,
+			errMessage: "invalid code",
+			user: auth.User{
+				Password: "swordfish",
+				Phone: sql.NullString{
+					String: "+6594867353",
+					Valid:  true,
+				},
+				IsVerified: true,
+			},
+			email:             "",
+			phone:             "+6594867353",
+			isPhoneOTPAllowed: true,
+			isEmailOTPAllowed: false,
+			reqBody:           []byte(`{"code":"123"}`),
+			otpValidateFn: func(code, hash string) error {
+				return auth.ErrInvalidCode("invalid code")
+			},
+			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
+				return func() (*auth.Token, error) {
+					return &auth.Token{
+						UserID: userID,
+						State:  auth.JWTAuthorized,
+						CodeHash: fmt.Sprintf(
+							"123456:%s:jane@example.com:email",
+							strconv.FormatInt(time.Now().Add(time.Minute*5).Unix(), 10),
+						),
+					}, nil
+				}
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			pgDB, err := test.NewPGDB()
+			if err != nil {
+				t.Fatal("failed to create test database:", err)
+			}
+			defer pgDB.DropDB()
+
+			repoMngr := pg.TestClient(pgDB.DB)
+			err = repoMngr.User().Create(ctx, &tc.user)
+			if err != nil {
+				t.Fatal("failed to create user:", err)
+			}
+
+			router := mux.NewRouter()
+			otpSvc := &test.OTPService{
+				ValidateOTPFn: tc.otpValidateFn,
+			}
+			tokenSvc := &test.TokenService{
+				ValidateFn: tc.tokenValidateFn(tc.user.ID),
+			}
+			msgSvc := &test.MessagingService{}
+			svc := NewService(
+				WithOTP(otpSvc),
+				WithRepoManager(repoMngr),
+				WithMessaging(msgSvc),
+				WithToken(tokenSvc),
+			)
+
+			req, err := http.NewRequest("POST", "/api/v1/contact/verify", bytes.NewBuffer(tc.reqBody))
+			if err != nil {
+				t.Fatal("failed to create request:", err)
+			}
+
+			if tc.authHeader {
+				test.SetAuthHeaders(req)
+			}
+
+			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
+			SetupHTTPHandler(svc, router, tokenSvc, logger)
+
+			rr := httptest.NewRecorder()
+			router.ServeHTTP(rr, req)
+
+			if rr.Code != tc.statusCode {
+				t.Error(cmp.Diff(rr.Code, tc.statusCode))
+			}
+
+			err = test.ValidateErrMessage(tc.errMessage, rr.Body)
+			if err != nil {
+				t.Error(err)
+			}
+
+			user, err := repoMngr.User().ByIdentity(ctx, "ID", tc.user.ID)
+			if err != nil {
+				t.Error("unable to retrieve user:", err)
+			}
+
+			if user.Phone.String != tc.phone {
+				t.Error("phone mismatch", cmp.Diff(user.Phone.String, tc.phone))
+			}
+
+			if user.Email.String != tc.email {
+				t.Error("email mismatch", cmp.Diff(user.Email.String, tc.email))
+			}
+
+			if user.IsPhoneOTPAllowed != tc.isPhoneOTPAllowed {
+				t.Error("phone OTP mismatch", cmp.Diff(user.IsPhoneOTPAllowed, tc.isPhoneOTPAllowed))
+			}
+
+			if user.IsEmailOTPAllowed != tc.isEmailOTPAllowed {
+				t.Error("email OTP mismatch", cmp.Diff(user.IsEmailOTPAllowed, tc.isEmailOTPAllowed))
+			}
+		})
+	}
 }
 
 func TestContactAPI_Disable(t *testing.T) {

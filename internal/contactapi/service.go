@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/go-kit/kit/log"
+	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/httpapi"
@@ -54,6 +55,15 @@ func (s *service) CheckAddress(w http.ResponseWriter, r *http.Request) (interfac
 		return nil, err
 	}
 
+	h, err := otp.FromOTPHash(token.CodeHash)
+	if err != nil {
+		return nil, errors.Wrap(err, "invalid OTP created")
+	}
+
+	if err = s.message.Send(ctx, token.Code, h.Address, h.DeliveryMethod); err != nil {
+		return nil, err
+	}
+
 	return []byte(fmt.Sprintf(`
 	{"token": "%s", "clientID": "%s"}
 	`, signedToken, token.ClientID)), nil
@@ -75,7 +85,8 @@ func (s *service) Disable(w http.ResponseWriter, r *http.Request) (interface{}, 
 		return nil, err
 	}
 
-	return []byte(`{}`), nil
+	// TODO Return token after implementing token refresh
+	return []byte(`{"token":"", "clientID":""}`), nil
 }
 
 // Verify verifies an OTP code sent to an email or phone number. If the delivery
@@ -132,7 +143,8 @@ func (s *service) Verify(w http.ResponseWriter, r *http.Request) (interface{}, e
 		return nil, err
 	}
 
-	return []byte(`{}`), nil
+	// TODO Return token after implementing token refresh
+	return []byte(`{"token":"", "clientID":""}`), nil
 }
 
 // Remove removes a verified email or phone number from the User's profile. Removed
@@ -152,7 +164,8 @@ func (s *service) Remove(w http.ResponseWriter, r *http.Request) (interface{}, e
 		return nil, err
 	}
 
-	return []byte(`{}`), nil
+	// TODO Return token after implementing token refresh
+	return []byte(`{"token":"", "clientID":""}`), nil
 }
 
 // Send allows a user to request an OTP code to be delivered to them through a
@@ -186,6 +199,15 @@ func (s *service) Send(w http.ResponseWriter, r *http.Request) (interface{}, err
 
 	signedToken, err := s.token.Sign(ctx, token)
 	if err != nil {
+		return nil, err
+	}
+
+	h, err := otp.FromOTPHash(token.CodeHash)
+	if err != nil {
+		return nil, errors.Wrap(err, "invalid OTP created")
+	}
+
+	if err = s.message.Send(ctx, token.Code, h.Address, h.DeliveryMethod); err != nil {
 		return nil, err
 	}
 
