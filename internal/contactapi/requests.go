@@ -28,6 +28,31 @@ type deliveryRequest struct {
 	DeliveryMethod auth.DeliveryMethod `json:"delivery_method"`
 }
 
+type sendRequest struct {
+	DeliveryMethod auth.DeliveryMethod `json:"delivery_method"`
+}
+
+func decodeSendRequest(r *http.Request) (*sendRequest, error) {
+	var (
+		req sendRequest
+		err error
+	)
+
+	if r == nil || r.Body == nil {
+		return nil, auth.ErrBadRequest("no request body received")
+	}
+
+	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, errors.Wrap(auth.ErrBadRequest("invalid JSON request"), err.Error())
+	}
+
+	if req.DeliveryMethod != auth.Phone && req.DeliveryMethod != auth.Email {
+		return nil, auth.ErrInvalidField("delivery_method must be `phone` or `email`")
+	}
+
+	return &req, nil
+}
+
 func decodeDeliveryRequest(r *http.Request) (*deliveryRequest, error) {
 	var (
 		req deliveryRequest

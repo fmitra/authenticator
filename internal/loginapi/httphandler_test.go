@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strconv"
 	"testing"
 	"time"
 
+	"github.com/go-kit/kit/log"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 
@@ -25,7 +27,6 @@ func TestLoginAPI_Login(t *testing.T) {
 	tt := []struct {
 		name           string
 		statusCode     int
-		loggerCount    int
 		reqBody        []byte
 		messagingCalls int
 		errMessage     string
@@ -34,9 +35,8 @@ func TestLoginAPI_Login(t *testing.T) {
 		tokenSignFn    func() (string, error)
 	}{
 		{
-			name:        "Non existent user failure",
-			statusCode:  http.StatusBadRequest,
-			loggerCount: 1,
+			name:       "Non existent user failure",
+			statusCode: http.StatusBadRequest,
 			reqBody: []byte(`{
 				"type": "email",
 				"password": "swordfish",
@@ -55,9 +55,8 @@ func TestLoginAPI_Login(t *testing.T) {
 			},
 		},
 		{
-			name:        "Invalid password failure",
-			statusCode:  http.StatusBadRequest,
-			loggerCount: 1,
+			name:       "Invalid password failure",
+			statusCode: http.StatusBadRequest,
 			reqBody: []byte(`{
 				"type": "email",
 				"password": "invalid-password",
@@ -76,9 +75,8 @@ func TestLoginAPI_Login(t *testing.T) {
 			},
 		},
 		{
-			name:        "User query failure",
-			statusCode:  http.StatusInternalServerError,
-			loggerCount: 1,
+			name:       "User query failure",
+			statusCode: http.StatusInternalServerError,
 			reqBody: []byte(`{
 				"type": "email",
 				"password": "swordfish",
@@ -97,9 +95,8 @@ func TestLoginAPI_Login(t *testing.T) {
 			},
 		},
 		{
-			name:        "Invalid request failure",
-			statusCode:  http.StatusBadRequest,
-			loggerCount: 1,
+			name:       "Invalid request failure",
+			statusCode: http.StatusBadRequest,
 			reqBody: []byte(`{
 				"password": "swordfish",
 				"identity": "jane@example.com"
@@ -117,9 +114,8 @@ func TestLoginAPI_Login(t *testing.T) {
 			},
 		},
 		{
-			name:        "Token creation failure",
-			statusCode:  http.StatusInternalServerError,
-			loggerCount: 1,
+			name:       "Token creation failure",
+			statusCode: http.StatusInternalServerError,
 			reqBody: []byte(`{
 				"type": "email",
 				"password": "swordfish",
@@ -138,9 +134,8 @@ func TestLoginAPI_Login(t *testing.T) {
 			},
 		},
 		{
-			name:        "Successful request",
-			statusCode:  http.StatusOK,
-			loggerCount: 0,
+			name:       "Successful request",
+			statusCode: http.StatusOK,
 			reqBody: []byte(`{
 				"type": "email",
 				"password": "swordfish",
@@ -201,7 +196,7 @@ func TestLoginAPI_Login(t *testing.T) {
 				t.Fatal("failed to create request:", err)
 			}
 
-			logger := &test.Logger{}
+			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
 			SetupHTTPHandler(svc, router, tokenSvc, logger)
 
 			rr := httptest.NewRecorder()
@@ -229,7 +224,6 @@ func TestLoginAPI_DeviceChallenge(t *testing.T) {
 	tt := []struct {
 		name            string
 		statusCode      int
-		loggerCount     int
 		messagingCalls  int
 		errMessage      string
 		webauthnFn      func() ([]byte, error)
@@ -239,7 +233,6 @@ func TestLoginAPI_DeviceChallenge(t *testing.T) {
 		{
 			name:           "Invalid token failure",
 			statusCode:     http.StatusUnauthorized,
-			loggerCount:    1,
 			messagingCalls: 0,
 			errMessage:     "token state is not supported",
 			webauthnFn: func() ([]byte, error) {
@@ -255,7 +248,6 @@ func TestLoginAPI_DeviceChallenge(t *testing.T) {
 		{
 			name:           "User query failure",
 			statusCode:     http.StatusBadRequest,
-			loggerCount:    1,
 			messagingCalls: 0,
 			errMessage:     "no user found",
 			webauthnFn: func() ([]byte, error) {
@@ -271,7 +263,6 @@ func TestLoginAPI_DeviceChallenge(t *testing.T) {
 		{
 			name:           "Webauthn failure",
 			statusCode:     http.StatusBadRequest,
-			loggerCount:    1,
 			messagingCalls: 0,
 			errMessage:     "cannot create challenge",
 			webauthnFn: func() ([]byte, error) {
@@ -287,7 +278,6 @@ func TestLoginAPI_DeviceChallenge(t *testing.T) {
 		{
 			name:           "Successful request",
 			statusCode:     http.StatusOK,
-			loggerCount:    0,
 			messagingCalls: 0,
 			errMessage:     "",
 			webauthnFn: func() ([]byte, error) {
@@ -305,7 +295,6 @@ func TestLoginAPI_DeviceChallenge(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			router := mux.NewRouter()
-			logger := &test.Logger{}
 			userRepo := &test.UserRepository{
 				ByIdentityFn: tc.userFn,
 			}
@@ -336,6 +325,7 @@ func TestLoginAPI_DeviceChallenge(t *testing.T) {
 
 			test.SetAuthHeaders(req)
 
+			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
 			SetupHTTPHandler(svc, router, tokenSvc, logger)
 
 			rr := httptest.NewRecorder()
@@ -363,7 +353,6 @@ func TestLoginAPI_VerifyDevice(t *testing.T) {
 	tt := []struct {
 		name              string
 		statusCode        int
-		loggerCount       int
 		messagingCalls    int
 		errMessage        string
 		reqBody           []byte
@@ -377,7 +366,6 @@ func TestLoginAPI_VerifyDevice(t *testing.T) {
 		{
 			name:           "Invalid token failure",
 			statusCode:     http.StatusUnauthorized,
-			loggerCount:    1,
 			messagingCalls: 0,
 			errMessage:     "token state is not supported",
 			reqBody:        []byte(""),
@@ -403,7 +391,6 @@ func TestLoginAPI_VerifyDevice(t *testing.T) {
 		{
 			name:           "User query failure",
 			statusCode:     http.StatusBadRequest,
-			loggerCount:    1,
 			messagingCalls: 0,
 			errMessage:     "user does not exist",
 			reqBody:        []byte(""),
@@ -429,7 +416,6 @@ func TestLoginAPI_VerifyDevice(t *testing.T) {
 		{
 			name:           "Webauthn login failure",
 			statusCode:     http.StatusBadRequest,
-			loggerCount:    1,
 			messagingCalls: 0,
 			errMessage:     "failed to login",
 			reqBody:        []byte(""),
@@ -455,7 +441,6 @@ func TestLoginAPI_VerifyDevice(t *testing.T) {
 		{
 			name:           "Login history persisted failure",
 			statusCode:     http.StatusBadRequest,
-			loggerCount:    1,
 			messagingCalls: 0,
 			errMessage:     "cannot save login",
 			reqBody:        []byte(""),
@@ -481,7 +466,6 @@ func TestLoginAPI_VerifyDevice(t *testing.T) {
 		{
 			name:           "Token signing failure",
 			statusCode:     http.StatusBadRequest,
-			loggerCount:    1,
 			messagingCalls: 0,
 			errMessage:     "cannot sign token",
 			reqBody:        []byte(""),
@@ -507,7 +491,6 @@ func TestLoginAPI_VerifyDevice(t *testing.T) {
 		{
 			name:           "Successful request",
 			statusCode:     http.StatusOK,
-			loggerCount:    0,
 			messagingCalls: 0,
 			errMessage:     "",
 			reqBody:        []byte(""),
@@ -535,7 +518,6 @@ func TestLoginAPI_VerifyDevice(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			router := mux.NewRouter()
-			logger := &test.Logger{}
 			userRepo := &test.UserRepository{
 				ByIdentityFn: tc.userFn,
 			}
@@ -578,6 +560,7 @@ func TestLoginAPI_VerifyDevice(t *testing.T) {
 
 			test.SetAuthHeaders(req)
 
+			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
 			SetupHTTPHandler(svc, router, tokenSvc, logger)
 
 			rr := httptest.NewRecorder()
@@ -609,7 +592,6 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 	tt := []struct {
 		name              string
 		statusCode        int
-		loggerCount       int
 		messagingCalls    int
 		reqBody           []byte
 		errMessage        string
@@ -622,7 +604,6 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 		{
 			name:           "Invalid token failure",
 			statusCode:     http.StatusUnauthorized,
-			loggerCount:    1,
 			messagingCalls: 0,
 			reqBody:        []byte(`{"code": "123456"}`),
 			errMessage:     "token state is not supported",
@@ -648,7 +629,6 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 		{
 			name:           "User query failure",
 			statusCode:     http.StatusBadRequest,
-			loggerCount:    1,
 			messagingCalls: 0,
 			errMessage:     "user does not exist",
 			reqBody:        []byte(`{"code": "123456"}`),
@@ -671,7 +651,6 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 		{
 			name:           "Invalid OTP code failure",
 			statusCode:     http.StatusBadRequest,
-			loggerCount:    1,
 			messagingCalls: 0,
 			errMessage:     "incorrect code provided",
 			reqBody:        []byte(`{"code": "222222"}`),
@@ -701,7 +680,6 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 		{
 			name:           "Token creation failure",
 			statusCode:     http.StatusBadRequest,
-			loggerCount:    1,
 			messagingCalls: 0,
 			errMessage:     "cannot create token",
 			reqBody:        []byte(`{"code": "123456"}`),
@@ -731,7 +709,6 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 		{
 			name:           "Persist login history failure",
 			statusCode:     http.StatusBadRequest,
-			loggerCount:    1,
 			messagingCalls: 0,
 			errMessage:     "cannot save history",
 			reqBody:        []byte(`{"code": "123456"}`),
@@ -761,7 +738,6 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 		{
 			name:           "Token signing failure",
 			statusCode:     http.StatusBadRequest,
-			loggerCount:    1,
 			messagingCalls: 0,
 			errMessage:     "cannot sign token",
 			reqBody:        []byte(`{"code": "123456"}`),
@@ -791,7 +767,6 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 		{
 			name:           "Successful request",
 			statusCode:     http.StatusOK,
-			loggerCount:    0,
 			messagingCalls: 0,
 			errMessage:     "",
 			reqBody:        []byte(`{"code": "123456"}`),
@@ -863,7 +838,7 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 
 			test.SetAuthHeaders(req)
 
-			logger := &test.Logger{}
+			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
 			SetupHTTPHandler(svc, router, tokenSvc, logger)
 
 			rr := httptest.NewRecorder()

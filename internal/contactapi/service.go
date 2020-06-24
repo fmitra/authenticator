@@ -174,7 +174,7 @@ func (s *service) Remove(w http.ResponseWriter, r *http.Request) (interface{}, e
 // or new users initiating signup may only request delivery through the phone/email
 // used in signup.
 func (s *service) Send(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	req, err := decodeDeliveryRequest(r)
+	req, err := decodeSendRequest(r)
 	if err != nil {
 		return nil, err
 	}

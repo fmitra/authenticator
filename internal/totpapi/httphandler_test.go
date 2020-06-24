@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
+	"github.com/go-kit/kit/log"
 	"github.com/google/go-cmp/cmp"
 	"github.com/gorilla/mux"
 
@@ -217,7 +219,7 @@ func TestTOTPAPI_Secret(t *testing.T) {
 				test.SetAuthHeaders(req)
 			}
 
-			logger := &test.Logger{}
+			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
 			SetupHTTPHandler(svc, router, tokenSvc, logger)
 
 			rr := httptest.NewRecorder()
@@ -488,7 +490,7 @@ func TestTOTPAPI_Verify(t *testing.T) {
 				test.SetAuthHeaders(req)
 			}
 
-			logger := &test.Logger{}
+			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
 			SetupHTTPHandler(svc, router, tokenSvc, logger)
 
 			rr := httptest.NewRecorder()
@@ -701,7 +703,7 @@ func TestTOTPAPI_Remove(t *testing.T) {
 				test.SetAuthHeaders(req)
 			}
 
-			logger := &test.Logger{}
+			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
 			SetupHTTPHandler(svc, router, tokenSvc, logger)
 
 			rr := httptest.NewRecorder()

@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strconv"
 	"testing"
 	"time"
 
+	"github.com/go-kit/kit/log"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 
@@ -30,7 +32,6 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 		name            string
 		statusCode      int
 		errMessage      string
-		loggerCount     int
 		reqBody         []byte
 		userCreateCalls int
 		messagingCalls  int
@@ -40,10 +41,9 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 		tokenSignFn     func() (string, error)
 	}{
 		{
-			name:        "User query failure",
-			statusCode:  http.StatusInternalServerError,
-			errMessage:  "An internal error occurred",
-			loggerCount: 1,
+			name:       "User query failure",
+			statusCode: http.StatusInternalServerError,
+			errMessage: "An internal error occurred",
 			reqBody: []byte(`{
 				"type": "email",
 				"password": "swordfish",
@@ -65,10 +65,9 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 			},
 		},
 		{
-			name:        "User already verified",
-			statusCode:  http.StatusBadRequest,
-			errMessage:  "cannot register user",
-			loggerCount: 1,
+			name:       "User already verified",
+			statusCode: http.StatusBadRequest,
+			errMessage: "cannot register user",
 			reqBody: []byte(`{
 				"type": "email",
 				"password": "swordfish",
@@ -90,10 +89,9 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 			},
 		},
 		{
-			name:        "User creation failure",
-			statusCode:  http.StatusInternalServerError,
-			errMessage:  "An internal error occurred",
-			loggerCount: 1,
+			name:       "User creation failure",
+			statusCode: http.StatusInternalServerError,
+			errMessage: "An internal error occurred",
 			reqBody: []byte(`{
 				"type": "email",
 				"password": "swordfish",
@@ -115,10 +113,9 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 			},
 		},
 		{
-			name:        "Token creation failure",
-			statusCode:  http.StatusInternalServerError,
-			errMessage:  "An internal error occurred",
-			loggerCount: 1,
+			name:       "Token creation failure",
+			statusCode: http.StatusInternalServerError,
+			errMessage: "An internal error occurred",
 			reqBody: []byte(`{
 				"type": "email",
 				"password": "swordfish",
@@ -140,10 +137,9 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 			},
 		},
 		{
-			name:        "Token signing failure",
-			statusCode:  http.StatusInternalServerError,
-			errMessage:  "An internal error occurred",
-			loggerCount: 1,
+			name:       "Token signing failure",
+			statusCode: http.StatusInternalServerError,
+			errMessage: "An internal error occurred",
 			reqBody: []byte(`{
 				"type": "email",
 				"password": "swordfish",
@@ -168,7 +164,6 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 			name:            "Bad request body",
 			statusCode:      http.StatusBadRequest,
 			errMessage:      "identity type must be email or phone",
-			loggerCount:     1,
 			reqBody:         []byte(`{}`),
 			userCreateCalls: 0,
 			messagingCalls:  0,
@@ -186,10 +181,9 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 			},
 		},
 		{
-			name:        "Successful request",
-			statusCode:  http.StatusCreated,
-			errMessage:  "",
-			loggerCount: 0,
+			name:       "Successful request",
+			statusCode: http.StatusCreated,
+			errMessage: "",
 			reqBody: []byte(`{
 				"type": "email",
 				"password": "swordfish",
@@ -215,7 +209,7 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			router := mux.NewRouter()
-			logger := &test.Logger{}
+			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
 			userRepo := &test.UserRepository{
 				ByIdentityFn: tc.userGetFn,
 				CreateFn:     tc.userCreateFn,
@@ -259,11 +253,6 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 			err = test.ValidateErrMessage(tc.errMessage, rr.Body)
 			if err != nil {
 				t.Error(err)
-			}
-
-			if logger.Calls.Log != tc.loggerCount {
-				t.Errorf("incorrect calls to logger, want %v got %v",
-					tc.loggerCount, logger.Calls.Log)
 			}
 
 			if repoMngr.Calls.NewWithTransaction != 0 {
@@ -319,7 +308,7 @@ func TestSignUpAPI_SignUpExistingUser(t *testing.T) {
 	}
 
 	router := mux.NewRouter()
-	logger := &test.Logger{}
+	logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
 	tokenSvc := &test.TokenService{
 		CreateFn: func() (*auth.Token, error) {
 			return &auth.Token{CodeHash: "123456:1:address:email", Code: "123456"}, nil
@@ -377,7 +366,6 @@ func TestSignUpAPI_VerifyCode(t *testing.T) {
 	tt := []struct {
 		name            string
 		statusCode      int
-		loggerCount     int
 		reqBody         []byte
 		userFn          func() (*auth.User, error)
 		messagingCalls  int
@@ -386,10 +374,9 @@ func TestSignUpAPI_VerifyCode(t *testing.T) {
 		tokenSignFn     func() (string, error)
 	}{
 		{
-			name:        "User query failure",
-			statusCode:  http.StatusInternalServerError,
-			loggerCount: 1,
-			reqBody:     []byte(`{"code": "123456"}`),
+			name:       "User query failure",
+			statusCode: http.StatusInternalServerError,
+			reqBody:    []byte(`{"code": "123456"}`),
 			userFn: func() (*auth.User, error) {
 				return nil, errors.New("whoops")
 			},
@@ -405,10 +392,9 @@ func TestSignUpAPI_VerifyCode(t *testing.T) {
 			messagingCalls: 0,
 		},
 		{
-			name:        "Bad request failure",
-			statusCode:  http.StatusBadRequest,
-			loggerCount: 1,
-			reqBody:     []byte(""),
+			name:       "Bad request failure",
+			statusCode: http.StatusBadRequest,
+			reqBody:    []byte(""),
 			userFn: func() (*auth.User, error) {
 				return &auth.User{IsEmailOTPAllowed: true}, nil
 			},
@@ -424,10 +410,9 @@ func TestSignUpAPI_VerifyCode(t *testing.T) {
 			messagingCalls: 0,
 		},
 		{
-			name:        "Code invalid failure",
-			statusCode:  http.StatusBadRequest,
-			loggerCount: 1,
-			reqBody:     []byte(`{"code": "222444"}`),
+			name:       "Code invalid failure",
+			statusCode: http.StatusBadRequest,
+			reqBody:    []byte(`{"code": "222444"}`),
 			userFn: func() (*auth.User, error) {
 				return &auth.User{IsEmailOTPAllowed: true}, nil
 			},
@@ -488,7 +473,7 @@ func TestSignUpAPI_VerifyCode(t *testing.T) {
 
 			test.SetAuthHeaders(req)
 
-			logger := &test.Logger{}
+			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
 			SetupHTTPHandler(svc, router, tokenSvc, logger)
 
 			rr := httptest.NewRecorder()
@@ -573,7 +558,7 @@ func TestSignUpAPI_VerifyCodeSuccess(t *testing.T) {
 
 	test.SetAuthHeaders(req)
 
-	logger := &test.Logger{}
+	logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
 	SetupHTTPHandler(svc, router, tokenSvc, logger)
 
 	rr := httptest.NewRecorder()
