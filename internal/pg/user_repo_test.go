@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/oklog/ulid"
 
 	auth "github.com/fmitra/authenticator"
@@ -427,5 +428,221 @@ func TestUserRepository_ReCreateSuccess(t *testing.T) {
 
 	if newUser.CreatedAt.Unix() < user.CreatedAt.Unix() {
 		t.Error("new user should be created after the older user")
+	}
+}
+
+func TestUserRepository_DisableOTP(t *testing.T) {
+	tt := []struct {
+		name           string
+		user           auth.User
+		deliveryMethod auth.DeliveryMethod
+		isPhoneAllowed bool
+		isEmailAllowed bool
+		hasError       bool
+	}{
+		{
+			name: "Requires at least one 2FA",
+			user: auth.User{
+				Password:          "swordfish",
+				IsEmailOTPAllowed: true,
+				IsPhoneOTPAllowed: false,
+				Email: sql.NullString{
+					String: "jane@example.com",
+					Valid:  true,
+				},
+			},
+			deliveryMethod: auth.Email,
+			isPhoneAllowed: false,
+			isEmailAllowed: true,
+			hasError:       true,
+		},
+		{
+			name: "Disable phone OTP",
+			user: auth.User{
+				Password:          "swordfish",
+				IsEmailOTPAllowed: false,
+				IsPhoneOTPAllowed: true,
+				IsTOTPAllowed:     true,
+				Phone: sql.NullString{
+					String: "+639455189172",
+					Valid:  true,
+				},
+			},
+			deliveryMethod: auth.Phone,
+			isPhoneAllowed: false,
+			isEmailAllowed: false,
+			hasError:       false,
+		},
+		{
+			name: "Disable email OTP",
+			user: auth.User{
+				Password:          "swordfish",
+				IsEmailOTPAllowed: true,
+				IsPhoneOTPAllowed: false,
+				IsTOTPAllowed:     true,
+				Email: sql.NullString{
+					String: "jane@example.com",
+					Valid:  true,
+				},
+			},
+			deliveryMethod: auth.Email,
+			isPhoneAllowed: false,
+			isEmailAllowed: false,
+			hasError:       false,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			pgDB, err := test.NewPGDB()
+			if err != nil {
+				t.Fatal("failed to create test database:", err)
+			}
+			defer pgDB.DropDB()
+			c := TestClient(pgDB.DB)
+
+			ctx := context.Background()
+			err = c.User().Create(ctx, &tc.user)
+			if err != nil {
+				t.Fatal("failed to create user:", err)
+			}
+
+			_, err = c.User().DisableOTP(ctx, tc.user.ID, tc.deliveryMethod)
+			if !tc.hasError && err != nil {
+				t.Error("expected nil error, received:", err)
+			}
+			if tc.hasError && err == nil {
+				t.Error("expected error, not nil")
+			}
+
+			user, err := c.User().ByIdentity(ctx, "ID", tc.user.ID)
+			if err != nil {
+				t.Fatal("failed to retrieve test user:", err)
+			}
+
+			if !cmp.Equal(user.IsPhoneOTPAllowed, tc.isPhoneAllowed) {
+				t.Error(cmp.Diff(user.IsPhoneOTPAllowed, tc.isPhoneAllowed))
+			}
+
+			if !cmp.Equal(user.IsEmailOTPAllowed, tc.isEmailAllowed) {
+				t.Error(cmp.Diff(user.IsEmailOTPAllowed, tc.isEmailAllowed))
+			}
+		})
+	}
+}
+
+func TestUserRepository_RemoveDeliveryMethod(t *testing.T) {
+	tt := []struct {
+		name           string
+		email          string
+		phone          string
+		user           auth.User
+		deliveryMethod auth.DeliveryMethod
+		isPhoneAllowed bool
+		isEmailAllowed bool
+		hasError       bool
+	}{
+		{
+			name: "Requires at least one contact",
+			user: auth.User{
+				Password: "swordfish",
+				Email: sql.NullString{
+					String: "jane@example.com",
+					Valid:  true,
+				},
+			},
+			phone:          "",
+			email:          "jane@example.com",
+			deliveryMethod: auth.Email,
+			isPhoneAllowed: false,
+			isEmailAllowed: true,
+			hasError:       true,
+		},
+		{
+			name: "Remove phone",
+			user: auth.User{
+				Password: "swordfish",
+				Email: sql.NullString{
+					String: "jane@example.com",
+					Valid:  true,
+				},
+				Phone: sql.NullString{
+					String: "+639455189172",
+					Valid:  true,
+				},
+			},
+			email:          "jane@example.com",
+			phone:          "",
+			deliveryMethod: auth.Phone,
+			isPhoneAllowed: false,
+			isEmailAllowed: true,
+			hasError:       false,
+		},
+		{
+			name: "Remove email",
+			user: auth.User{
+				Password: "swordfish",
+				Phone: sql.NullString{
+					String: "+639455189172",
+					Valid:  true,
+				},
+				Email: sql.NullString{
+					String: "jane@example.com",
+					Valid:  true,
+				},
+			},
+			email:          "",
+			phone:          "+639455189172",
+			deliveryMethod: auth.Email,
+			isPhoneAllowed: true,
+			isEmailAllowed: false,
+			hasError:       false,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			pgDB, err := test.NewPGDB()
+			if err != nil {
+				t.Fatal("failed to create test database:", err)
+			}
+			defer pgDB.DropDB()
+			c := TestClient(pgDB.DB)
+
+			ctx := context.Background()
+			err = c.User().Create(ctx, &tc.user)
+			if err != nil {
+				t.Fatal("failed to create user:", err)
+			}
+
+			_, err = c.User().RemoveDeliveryMethod(ctx, tc.user.ID, tc.deliveryMethod)
+			if !tc.hasError && err != nil {
+				t.Error("expected nil error, received:", err)
+			}
+			if tc.hasError && err == nil {
+				t.Error("expected error, not nil")
+			}
+
+			user, err := c.User().ByIdentity(ctx, "ID", tc.user.ID)
+			if err != nil {
+				t.Fatal("failed to retrieve test user:", err)
+			}
+
+			if !cmp.Equal(user.Email.String, tc.email) {
+				t.Error(cmp.Diff(user.Email.String, tc.email))
+			}
+
+			if !cmp.Equal(user.Phone.String, tc.phone) {
+				t.Error(cmp.Diff(user.Phone.String, tc.phone))
+			}
+
+			if !cmp.Equal(user.IsPhoneOTPAllowed, tc.isPhoneAllowed) {
+				t.Error(cmp.Diff(user.IsPhoneOTPAllowed, tc.isPhoneAllowed))
+			}
+
+			if !cmp.Equal(user.IsEmailOTPAllowed, tc.isEmailAllowed) {
+				t.Error(cmp.Diff(user.IsEmailOTPAllowed, tc.isEmailAllowed))
+			}
+		})
 	}
 }

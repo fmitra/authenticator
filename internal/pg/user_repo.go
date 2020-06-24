@@ -2,6 +2,8 @@ package pg
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/oklog/ulid"
@@ -153,6 +155,110 @@ func (r *UserRepository) GetForUpdate(ctx context.Context, userID string) (*auth
 	}
 
 	return &user, nil
+}
+
+// RemoveDeliveryMethod removes a phone or email from a User.
+func (r *UserRepository) RemoveDeliveryMethod(ctx context.Context, userID string, method auth.DeliveryMethod) (*auth.User, error) {
+	txClient, err := r.client.NewWithTransaction(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	entity, err := txClient.WithAtomic(func() (interface{}, error) {
+		user, err := txClient.User().GetForUpdate(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+
+		if method == auth.Phone {
+			user.IsPhoneOTPAllowed = false
+			user.Phone = sql.NullString{
+				String: "",
+				Valid:  false,
+			}
+		}
+
+		if method == auth.Email {
+			user.IsEmailOTPAllowed = false
+			user.Email = sql.NullString{
+				String: "",
+				Valid:  false,
+			}
+		}
+
+		isTFADisabled := !user.IsPhoneOTPAllowed && !user.IsEmailOTPAllowed &&
+			!user.IsDeviceAllowed && !user.IsTOTPAllowed
+
+		isContactDisabled := !user.Phone.Valid && !user.Email.Valid
+
+		if isTFADisabled {
+			return nil, auth.ErrInvalidField(
+				fmt.Sprintf("a 2FA option must be enabled to remove %s", string(method)),
+			)
+		}
+
+		if isContactDisabled {
+			return nil, auth.ErrInvalidField(
+				fmt.Sprintf("a contact address must be enabled to remove %s", string(method)),
+			)
+		}
+
+		if err = txClient.User().Update(ctx, user); err != nil {
+			return nil, err
+		}
+
+		return user, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	user := entity.(*auth.User)
+	return user, nil
+}
+
+// DisableOTP disables an OTP delivery method for a User.
+func (r *UserRepository) DisableOTP(ctx context.Context, userID string, method auth.DeliveryMethod) (*auth.User, error) {
+	txClient, err := r.client.NewWithTransaction(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	entity, err := txClient.WithAtomic(func() (interface{}, error) {
+		user, err := txClient.User().GetForUpdate(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+
+		if method == auth.Phone {
+			user.IsPhoneOTPAllowed = false
+		}
+
+		if method == auth.Email {
+			user.IsEmailOTPAllowed = false
+		}
+
+		isTFADisabled := !user.IsPhoneOTPAllowed && !user.IsEmailOTPAllowed &&
+			!user.IsDeviceAllowed && !user.IsTOTPAllowed
+
+		if isTFADisabled {
+			return nil, auth.ErrInvalidField(
+				fmt.Sprintf("a 2FA option must be enabled to disable %s OTP", string(method)),
+			)
+		}
+
+		if err = txClient.User().Update(ctx, user); err != nil {
+			return nil, err
+		}
+
+		return user, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	user := entity.(*auth.User)
+	return user, nil
 }
 
 func (r *UserRepository) update(ctx context.Context, userID string, user *auth.User) error {

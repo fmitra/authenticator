@@ -115,11 +115,11 @@ type User struct {
 
 // DefaultOTPDelivery returns the default OTP delivery method.
 func (u *User) DefaultOTPDelivery() DeliveryMethod {
-	if u.Phone.String != "" {
-		return Phone
+	if u.Email.String != "" {
+		return Email
 	}
 
-	return Email
+	return Phone
 }
 
 // CanSendDefaultOTP determines if an OTP code should be sent out
@@ -295,6 +295,10 @@ type UserRepository interface {
 	ReCreate(ctx context.Context, u *User) error
 	// Update updates a User.
 	Update(ctx context.Context, u *User) error
+	// DisableOTP disables an OTP method for a User.
+	DisableOTP(ctx context.Context, userID string, method DeliveryMethod) (*User, error)
+	// RemoveDeliveryMethod removes a phone or email from a User.
+	RemoveDeliveryMethod(ctx context.Context, userID string, method DeliveryMethod) (*User, error)
 }
 
 // RepositoryManager manages repositories stored in storages

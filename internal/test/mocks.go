@@ -121,17 +121,21 @@ type DeviceRepository struct {
 
 // UserRepository mocks auth.UserRepository.
 type UserRepository struct {
-	ByIdentityFn   func() (*auth.User, error)
-	GetForUpdateFn func() (*auth.User, error)
-	CreateFn       func() error
-	ReCreateFn     func() error
-	UpdateFn       func() error
-	Calls          struct {
-		ByIdentity   int
-		GetForUpdate int
-		Create       int
-		ReCreate     int
-		Update       int
+	ByIdentityFn           func() (*auth.User, error)
+	GetForUpdateFn         func() (*auth.User, error)
+	DisableOTPFn           func() (*auth.User, error)
+	RemoveDeliveryMethodFn func() (*auth.User, error)
+	CreateFn               func() error
+	ReCreateFn             func() error
+	UpdateFn               func() error
+	Calls                  struct {
+		ByIdentity           int
+		DisableOTP           int
+		RemoveDeliveryMethod int
+		GetForUpdate         int
+		Create               int
+		ReCreate             int
+		Update               int
 	}
 }
 
@@ -266,6 +270,24 @@ func (m *RepositoryManager) User() auth.UserRepository {
 		return m.UserFn()
 	}
 	return &UserRepository{}
+}
+
+// RemoveDeliveryMethod mock.
+func (m *UserRepository) RemoveDeliveryMethod(ctx context.Context, userID string, method auth.DeliveryMethod) (*auth.User, error) {
+	m.Calls.RemoveDeliveryMethod++
+	if m.RemoveDeliveryMethodFn != nil {
+		return m.RemoveDeliveryMethodFn()
+	}
+	return &auth.User{}, nil
+}
+
+// DisableOTP mock.
+func (m *UserRepository) DisableOTP(ctx context.Context, userID string, method auth.DeliveryMethod) (*auth.User, error) {
+	m.Calls.DisableOTP++
+	if m.DisableOTPFn != nil {
+		return m.DisableOTPFn()
+	}
+	return &auth.User{}, nil
 }
 
 // ByIdentity mock.

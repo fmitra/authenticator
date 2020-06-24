@@ -81,6 +81,7 @@ func TestContactAPI_CheckAddress(t *testing.T) {
 				WithOTP(otpSvc),
 				WithRepoManager(repoMngr),
 				WithMessaging(msgSvc),
+				WithToken(tokenSvc),
 			)
 
 			req, err := http.NewRequest("POST", "/api/v1/contact/check-address", bytes.NewBuffer(tc.reqBody))
