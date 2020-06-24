@@ -9,10 +9,12 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/httpapi"
+	"github.com/fmitra/authenticator/internal/otp"
 )
 
 type service struct {
@@ -46,7 +48,14 @@ func (s *service) Login(w http.ResponseWriter, r *http.Request) (interface{}, er
 		return nil, errors.Wrap(auth.ErrBadRequest("invalid username or password"), err.Error())
 	}
 
-	jwtToken, err := s.token.Create(ctx, user, auth.JWTPreAuthorized)
+	var jwtToken *auth.Token
+
+	if user.CanSendDefaultOTP() {
+		jwtToken, err = s.token.CreateWithOTP(ctx, user, auth.JWTPreAuthorized, user.DefaultOTPDelivery())
+	} else {
+		jwtToken, err = s.token.Create(ctx, user, auth.JWTPreAuthorized)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -147,9 +156,23 @@ func (s *service) respond(ctx context.Context, w http.ResponseWriter, user *auth
 
 	http.SetCookie(w, s.token.Cookie(ctx, jwtToken))
 
-	if jwtToken.Code != "" {
-		// TODO Fix
-		if err = s.message.Send(ctx, jwtToken.Code, "", auth.Email); err != nil {
+	if jwtToken.CodeHash != "" {
+		// Enable in config.json: api.debug
+		level.Debug(s.logger).Log(
+			"source", "Login.respond",
+			"message", "login code generated",
+			"code", jwtToken.Code,
+			"user_id", user.ID,
+			"email", user.Email.String,
+			"phone", user.Phone.String,
+		)
+
+		h, err := otp.FromOTPHash(jwtToken.CodeHash)
+		if err != nil {
+			return nil, errors.Wrap(err, "invalid OTP created")
+		}
+
+		if err = s.message.Send(ctx, jwtToken.Code, h.Address, h.DeliveryMethod); err != nil {
 			return nil, err
 		}
 	}

@@ -113,6 +113,26 @@ type User struct {
 	UpdatedAt  time.Time
 }
 
+// DefaultOTPDelivery returns the default OTP delivery method.
+func (u *User) DefaultOTPDelivery() DeliveryMethod {
+	if u.Phone.String != "" {
+		return Phone
+	}
+
+	return Email
+}
+
+// CanSendDefaultOTP determines if an OTP code should be sent out
+// to a user immediately as a 2FA option.
+func (u *User) CanSendDefaultOTP() bool {
+	if u.IsDeviceAllowed || u.IsTOTPAllowed {
+		return false
+	}
+
+	isOTPEnabled := u.IsPhoneOTPAllowed || u.IsEmailOTPAllowed
+	return isOTPEnabled
+}
+
 // DefaultName returns the default name for a user (email or phone).
 func (u *User) DefaultName() string {
 	if u.Email.String != "" {

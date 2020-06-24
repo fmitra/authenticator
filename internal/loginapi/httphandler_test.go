@@ -3,9 +3,12 @@ package loginapi
 import (
 	"bytes"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -87,7 +90,7 @@ func TestLoginAPI_Login(t *testing.T) {
 				return nil, errors.New("db connection failed")
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{Code: "123456"}, nil
+				return &auth.Token{CodeHash: "123456:1:address:email", Code: "123456"}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "jwt-token", nil
@@ -107,7 +110,7 @@ func TestLoginAPI_Login(t *testing.T) {
 				return &auth.User{Password: validPassword}, nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{Code: "123456"}, nil
+				return &auth.Token{CodeHash: "123456:1:address:email", Code: "123456"}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "jwt-token", nil
@@ -146,10 +149,16 @@ func TestLoginAPI_Login(t *testing.T) {
 			messagingCalls: 1,
 			errMessage:     "",
 			userFn: func() (*auth.User, error) {
-				return &auth.User{Password: validPassword}, nil
+				return &auth.User{
+					Password: validPassword,
+					Email: sql.NullString{
+						String: "jane@example.com",
+						Valid:  true,
+					},
+				}, nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{Code: "123456"}, nil
+				return &auth.Token{CodeHash: "123456:1:address:email", Code: "123456"}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "jwt-token", nil
@@ -160,7 +169,6 @@ func TestLoginAPI_Login(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			router := mux.NewRouter()
-			logger := &test.Logger{}
 			userRepo := &test.UserRepository{
 				ByIdentityFn: tc.userFn,
 			}
@@ -170,8 +178,9 @@ func TestLoginAPI_Login(t *testing.T) {
 				},
 			}
 			tokenSvc := &test.TokenService{
-				CreateFn: tc.tokenCreateFn,
-				SignFn:   tc.tokenSignFn,
+				CreateFn:        tc.tokenCreateFn,
+				CreateWithOTPFn: tc.tokenCreateFn,
+				SignFn:          tc.tokenSignFn,
 			}
 			messagingSvc := &test.MessagingService{}
 			passwordSvc := password.NewPassword()
@@ -192,6 +201,7 @@ func TestLoginAPI_Login(t *testing.T) {
 				t.Fatal("failed to create request:", err)
 			}
 
+			logger := &test.Logger{}
 			SetupHTTPHandler(svc, router, tokenSvc, logger)
 
 			rr := httptest.NewRecorder()
@@ -626,7 +636,10 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 				return "jwt-token", nil
 			},
 			tokenValidationFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: codeHash, State: auth.JWTAuthorized}, nil
+				return &auth.Token{
+					CodeHash: fmt.Sprintf("%s:1:address:email", codeHash),
+					State:    auth.JWTAuthorized,
+				}, nil
 			},
 			loginHistoryFn: func() error {
 				return nil
@@ -672,7 +685,14 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 				return "jwt-token", nil
 			},
 			tokenValidationFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: codeHash, State: auth.JWTPreAuthorized}, nil
+				return &auth.Token{
+					CodeHash: fmt.Sprintf(
+						"%s:%s:address:email",
+						codeHash,
+						strconv.FormatInt(time.Now().Add(time.Minute*5).Unix(), 10),
+					),
+					State: auth.JWTPreAuthorized,
+				}, nil
 			},
 			loginHistoryFn: func() error {
 				return nil
@@ -695,7 +715,14 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 				return "jwt-token", nil
 			},
 			tokenValidationFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: codeHash, State: auth.JWTPreAuthorized}, nil
+				return &auth.Token{
+					CodeHash: fmt.Sprintf(
+						"%s:%s:address:email",
+						codeHash,
+						strconv.FormatInt(time.Now().Add(time.Minute*5).Unix(), 10),
+					),
+					State: auth.JWTPreAuthorized,
+				}, nil
 			},
 			loginHistoryFn: func() error {
 				return nil
@@ -718,7 +745,14 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 				return "jwt-token", nil
 			},
 			tokenValidationFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: codeHash, State: auth.JWTPreAuthorized}, nil
+				return &auth.Token{
+					CodeHash: fmt.Sprintf(
+						"%s:%s:address:email",
+						codeHash,
+						strconv.FormatInt(time.Now().Add(time.Minute*5).Unix(), 10),
+					),
+					State: auth.JWTPreAuthorized,
+				}, nil
 			},
 			loginHistoryFn: func() error {
 				return auth.ErrBadRequest("cannot save history")
@@ -741,7 +775,14 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 				return "", auth.ErrBadRequest("cannot sign token")
 			},
 			tokenValidationFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: codeHash, State: auth.JWTPreAuthorized}, nil
+				return &auth.Token{
+					CodeHash: fmt.Sprintf(
+						"%s:%s:address:email",
+						codeHash,
+						strconv.FormatInt(time.Now().Add(time.Minute*5).Unix(), 10),
+					),
+					State: auth.JWTPreAuthorized,
+				}, nil
 			},
 			loginHistoryFn: func() error {
 				return nil
@@ -764,7 +805,14 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 				return "jwt-token", nil
 			},
 			tokenValidationFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: codeHash, State: auth.JWTPreAuthorized}, nil
+				return &auth.Token{
+					CodeHash: fmt.Sprintf(
+						"%s:%s:address:email",
+						codeHash,
+						strconv.FormatInt(time.Now().Add(time.Minute*5).Unix(), 10),
+					),
+					State: auth.JWTPreAuthorized,
+				}, nil
 			},
 			loginHistoryFn: func() error {
 				return nil
@@ -775,7 +823,6 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			router := mux.NewRouter()
-			logger := &test.Logger{}
 			userRepo := &test.UserRepository{
 				ByIdentityFn: tc.userFn,
 			}
@@ -816,6 +863,7 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 
 			test.SetAuthHeaders(req)
 
+			logger := &test.Logger{}
 			SetupHTTPHandler(svc, router, tokenSvc, logger)
 
 			rr := httptest.NewRecorder()
