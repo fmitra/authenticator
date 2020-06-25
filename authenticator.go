@@ -26,7 +26,7 @@ type TFAOptions string
 const (
 	// OTPEmail allows a user to complete TFA with an OTP
 	// code delivered via email.
-	OTPEmail = "otp_email"
+	OTPEmail TFAOptions = "otp_email"
 	// OTPPhone allows a user to complete TFA with an OTP
 	// code delivered via phone.
 	OTPPhone = "otp_phone"

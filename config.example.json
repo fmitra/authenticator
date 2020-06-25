@@ -12,21 +12,48 @@
   "redis": {
     "conn-string": "redis://:swordfish@localhost:6379/1"
   },
+  "kafka": {
+    "brokers": [
+      "0.0.0.0:9092"
+    ]
+  },
   "password": {
     "min-length": 8,
     "max-length": 1000
   },
   "otp": {
-    "code-length": 6
+    "code-length": 6,
+    "issuer": "authenticator.local",
+    "secret": {
+      "key": "9f0c6da662f018b58b04a093e2dbb2e1d8d54250",
+      "version": 1
+    }
   },
   "token": {
     "expires-in": "20m",
     "issuer": "authenticator",
     "secret": "secret"
   },
+  "msgconsumer": {
+    "workers": 4
+  },
   "webauthn": {
     "display-name": "Authenticator",
     "domain": "authenticator.local",
     "request-origin": "https://authenticator.local"
+  },
+  "twilio": {
+    "account-sid": "11768d65c6c3759f7920",
+    "token": "91551df20178afdbbf691b18504c9196ac6f2167",
+    "sms-sender": "+15555555555"
+  },
+  "mail": {
+    "server-addr": "localhost:8080",
+    "from-addr": "authenticator.local",
+    "auth": {
+      "username": "jane@example.com",
+      "password": "swordfish",
+      "hostname": "mail@example.com"
+    }
   }
 }

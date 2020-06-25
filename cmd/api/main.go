@@ -8,6 +8,7 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
+	"net/smtp"
 	"os"
 	"os/signal"
 	"strings"
@@ -24,14 +25,20 @@ import (
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
+	"github.com/fmitra/authenticator/internal/contactapi"
 	"github.com/fmitra/authenticator/internal/deviceapi"
+	"github.com/fmitra/authenticator/internal/kafka"
 	"github.com/fmitra/authenticator/internal/loginapi"
+	"github.com/fmitra/authenticator/internal/mail"
+	"github.com/fmitra/authenticator/internal/msgconsumer"
+	"github.com/fmitra/authenticator/internal/msgpublisher"
 	"github.com/fmitra/authenticator/internal/otp"
 	"github.com/fmitra/authenticator/internal/password"
 	"github.com/fmitra/authenticator/internal/pg"
 	"github.com/fmitra/authenticator/internal/signupapi"
-	"github.com/fmitra/authenticator/internal/test"
 	"github.com/fmitra/authenticator/internal/token"
+	"github.com/fmitra/authenticator/internal/totpapi"
+	"github.com/fmitra/authenticator/internal/twilio"
 	"github.com/fmitra/authenticator/internal/webauthn"
 )
 
@@ -58,12 +65,25 @@ func main() {
 		fs.Int("password.min-length", 8, "Minimum password length")
 		fs.Int("password.max-length", 1000, "Maximum password length")
 		fs.Int("otp.code-length", 6, "OTP code length")
+		fs.String("otp.issuer", "", "TOTP issuer domain")
+		fs.String("otp.secret.key", "", "Encryption key for TOTP secrets")
+		fs.Int("otp.secret.version", 1, "Current version of encryption key")
+		fs.Int("msgconsumer.workers", 4, "Total number of workers to process outgoing messages")
 		fs.Duration("token.expires-in", time.Minute*20, "JWT token expiry time")
 		fs.String("token.issuer", "authenticator", "JWT token issuer")
 		fs.String("token.secret", "", "JWT token secret")
 		fs.String("webauthn.display-name", "Authenticator", "Webauthn display name")
 		fs.String("webauthn.domain", "authenticator.local", "Public client domain")
 		fs.String("webauthn.request-origin", "authenticator.local", "Origin URL for client requests")
+		fs.StringSlice("kafka.brokers", []string{}, "Kafka broker host:port")
+		fs.String("twilio.account-sid", "", "Account SID from Twilio")
+		fs.String("twilio.token", "", "Authentication token for Twilio API")
+		fs.String("twilio.sms-sender", "", "Origin phone number for outgoing SMS")
+		fs.String("mail.server-addr", "", "Outgoing mail server")
+		fs.String("mail.from-addr", "", "Origin email address for outgoing email")
+		fs.String("mail.auth.username", "", "Username for mailing service")
+		fs.String("mail.auth.password", "", "Password for mailing service")
+		fs.String("mail.auth.hostname", "", "Hostname for mailing service")
 
 		fs.StringVar(&configPath, "config", "", "Path to the config file")
 		err = fs.Parse(os.Args[1:])
@@ -158,6 +178,14 @@ func main() {
 		defer closeRedis()
 	}
 
+	k := kafka.NewClient(viper.GetStringSlice("kafka.brokers"))
+
+	messageRepo, err := kafka.NewMessageRepository(k)
+	if err != nil {
+		logger.Log("message", "message repo init failed", "error", err, "source", "cmd/api")
+		os.Exit(1)
+	}
+
 	repoMngr := pg.NewClient(
 		pg.WithLogger(logger),
 		pg.WithEntropy(entropy),
@@ -167,7 +195,14 @@ func main() {
 
 	otpSvc := otp.NewOTP(
 		otp.WithCodeLength(viper.GetInt("otp.code-length")),
+		otp.WithIssuer(viper.GetString("otp.issuer")),
+		otp.WithSecret(otp.Secret{
+			Key:     viper.GetString("otp.secret.key"),
+			Version: viper.GetInt("otp.secret.version"),
+		}),
 	)
+
+	messagingSvc := msgpublisher.NewService(messageRepo, msgpublisher.WithLogger(logger))
 
 	tokenSvc := token.NewService(
 		token.WithLogger(logger),
@@ -199,7 +234,7 @@ func main() {
 		loginapi.WithRepoManager(repoMngr),
 		loginapi.WithWebAuthn(webauthnSvc),
 		loginapi.WithOTP(otpSvc),
-		loginapi.WithMessaging(&test.MessagingService{}),
+		loginapi.WithMessaging(messagingSvc),
 		loginapi.WithPassword(passwordSvc),
 	)
 
@@ -207,7 +242,7 @@ func main() {
 		signupapi.WithLogger(logger),
 		signupapi.WithTokenService(tokenSvc),
 		signupapi.WithRepoManager(repoMngr),
-		signupapi.WithMessaging(&test.MessagingService{}),
+		signupapi.WithMessaging(messagingSvc),
 		signupapi.WithOTP(otpSvc),
 	)
 
@@ -215,6 +250,20 @@ func main() {
 		deviceapi.WithLogger(logger),
 		deviceapi.WithWebAuthn(webauthnSvc),
 		deviceapi.WithRepoManager(repoMngr),
+	)
+
+	contactAPI := contactapi.NewService(
+		contactapi.WithLogger(logger),
+		contactapi.WithOTP(otpSvc),
+		contactapi.WithRepoManager(repoMngr),
+		contactapi.WithMessaging(messagingSvc),
+		contactapi.WithToken(tokenSvc),
+	)
+
+	totpAPI := totpapi.NewService(
+		totpapi.WithLogger(logger),
+		totpapi.WithOTP(otpSvc),
+		totpapi.WithRepoManager(repoMngr),
 	)
 
 	router := mux.NewRouter()
@@ -226,6 +275,8 @@ func main() {
 	loginapi.SetupHTTPHandler(loginAPI, router, tokenSvc, logger)
 	signupapi.SetupHTTPHandler(signupAPI, router, tokenSvc, logger)
 	deviceapi.SetupHTTPHandler(deviceAPI, router, tokenSvc, logger)
+	contactapi.SetupHTTPHandler(contactAPI, router, tokenSvc, logger)
+	totpapi.SetupHTTPHandler(totpAPI, router, tokenSvc, logger)
 
 	server := http.Server{
 		Addr: viper.GetString("api.http-addr"),
@@ -247,6 +298,41 @@ func main() {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
+
+	smsLib := twilio.NewClient(twilio.WithDefaults(
+		viper.GetString("twilio.account-sid"),
+		viper.GetString("twilio.token"),
+		viper.GetString("twilio.sms-sender"),
+	))
+
+	emailLib := mail.NewService(mail.WithDefaults(
+		viper.GetString("mail.server-addr"),
+		viper.GetString("mail.from-addr"),
+		smtp.PlainAuth(
+			"",
+			viper.GetString("mail.auth.username"),
+			viper.GetString("mail.auth.password"),
+			viper.GetString("mail.auth.hostname"),
+		),
+	))
+
+	msgd, err := msgconsumer.NewService(
+		ctx,
+		messageRepo,
+		smsLib,
+		emailLib,
+		msgconsumer.WithWorkers(viper.GetInt("msgconsumer.workers")),
+		msgconsumer.WithLogger(logger),
+	)
+	if err != nil {
+		logger.Log(
+			"message", "failed to start messaging daemon",
+			"error", err,
+			"source", "cmd/api",
+		)
+		os.Exit(1)
+	}
+
 	var g run.Group
 	{
 		g.Add(func() error {
@@ -256,6 +342,21 @@ func main() {
 		}, func(err error) {
 			logger.Log("message", "program was interrupted", "error", err, "source", "cmd/api")
 			cancel()
+		})
+	}
+	{
+		g.Add(func() error {
+			logger.Log(
+				"message", "message daemon is starting to check messages",
+				"source", "cmd/api",
+			)
+			return msgd.Run(ctx)
+		}, func(err error) {
+			logger.Log(
+				"message", "message daemon was shut down",
+				"error", err,
+				"source", "cmd/api",
+			)
 		})
 	}
 	{
