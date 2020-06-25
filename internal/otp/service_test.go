@@ -2,6 +2,7 @@ package otp
 
 import (
 	"database/sql"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -28,7 +29,10 @@ func TestOTPSvc_ValidateOTP(t *testing.T) {
 }
 
 func TestOTPSvc_TOTPSecret(t *testing.T) {
-	svc := NewOTP(WithIssuer("authenticator.local"))
+	svc := NewOTP(
+		WithIssuer("authenticator.local"),
+		WithSecret(Secret{Version: 0, Key: "secret-key"}),
+	)
 	user := &auth.User{
 		IsTOTPAllowed:     true,
 		IsEmailOTPAllowed: false,
@@ -65,5 +69,34 @@ func TestOTPSvc_TOTPQRString(t *testing.T) {
 		"VHON3V7ECQ3UNTGJ3GUGL4ATXEMD2TDK"
 	if !cmp.Equal(qrString, expectedString) {
 		t.Error(cmp.Diff(qrString, expectedString))
+	}
+}
+
+func TestOTPSvc_EncryptsWithLatestSecret(t *testing.T) {
+	svc := &OTP{
+		secrets: []Secret{
+			{Version: 0, Key: "key-0"},
+			{Version: 1, Key: "key-1"},
+			{Version: 2, Key: "key-2"},
+		},
+	}
+	secret := "some-secret-value"
+	s, err := svc.encrypt(secret)
+	if err != nil {
+		t.Error("failed to encrypt", err)
+	}
+	if s == secret {
+		t.Error("value not encrypted")
+	}
+	if !strings.HasPrefix(s, "2:") {
+		t.Error("value not encrypted with latest secret")
+	}
+
+	s, err = svc.decrypt(s)
+	if err != nil {
+		t.Error("failed to decrypt secret", err)
+	}
+	if s != secret {
+		t.Error("value not decrypted")
 	}
 }

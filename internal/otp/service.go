@@ -2,10 +2,16 @@
 package otp
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"crypto/sha256"
 	"crypto/sha512"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"math/rand"
+	"io"
+	mathRand "math/rand"
 	"net/url"
 	"strconv"
 	"strings"
@@ -17,6 +23,12 @@ import (
 
 	auth "github.com/fmitra/authenticator"
 )
+
+// Secret stores a versioned secret key for cryptography functions.
+type Secret struct {
+	Version int
+	Key     string
+}
 
 // Hash contains a hash of a OTP code and other variables
 // to identify characteristics of the code.
@@ -32,16 +44,17 @@ type OTP struct {
 	// codeLength is the length of a randomly generated code.
 	codeLength int
 	totpIssuer string
+	secrets    []Secret
 }
 
 // OTPCode creates a random code and hash.
 func (o *OTP) OTPCode(address string, method auth.DeliveryMethod) (code string, hash string, err error) {
-	rand.Seed(time.Now().UnixNano())
+	mathRand.Seed(time.Now().UnixNano())
 
 	b := make([]rune, o.codeLength)
 	opts := []rune("0123456789")
 	for i := range b {
-		b[i] = opts[rand.Intn(len(opts))]
+		b[i] = opts[mathRand.Intn(len(opts))]
 	}
 
 	c := string(b)
@@ -54,6 +67,10 @@ func (o *OTP) OTPCode(address string, method auth.DeliveryMethod) (code string, 
 }
 
 // TOTPSecret assigns a TOTP secret for a user for use in code generation.
+// TOTP secrets are encrypted by a preconfigured secret key and decrypted
+// only during validation. Encrypted keys are versioned to assist with migrations
+// and backwards compatibility in the event an older secret ever needs to
+// be deprecated.
 func (o *OTP) TOTPSecret(u *auth.User) (string, error) {
 	key, err := totp.Generate(totp.GenerateOpts{
 		Issuer:      o.totpIssuer,
@@ -62,7 +79,11 @@ func (o *OTP) TOTPSecret(u *auth.User) (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "failed to generate secret")
 	}
-	return key.Secret(), nil
+	encryptedKey, err := o.encrypt(key.Secret())
+	if err != nil {
+		return "", err
+	}
+	return encryptedKey, nil
 }
 
 // TOTPQRString returns a string containing account details
@@ -111,11 +132,122 @@ func (o *OTP) ValidateOTP(code string, hash string) error {
 
 // ValidateTOTP checks ifa User's TOTP is valid.
 func (o *OTP) ValidateTOTP(user *auth.User, code string) error {
-	if totp.Validate(code, user.TFASecret) {
+	secret, err := o.decrypt(user.TFASecret)
+	if err != nil {
+		return err
+	}
+	if totp.Validate(code, secret) {
 		return nil
 	}
 
 	return auth.ErrInvalidCode("incorrect code provided")
+}
+
+func (o *OTP) latestSecret() (Secret, error) {
+	var secret Secret
+	for _, s := range o.secrets {
+		if s.Version >= secret.Version {
+			secret = s
+		}
+	}
+
+	if secret.Key == "" {
+		return secret, fmt.Errorf("no secret key")
+	}
+
+	return secret, nil
+}
+
+func (o *OTP) secretByVersion(version int) (Secret, error) {
+	var secret Secret
+	for _, s := range o.secrets {
+		if s.Version == version {
+			secret = s
+			break
+		}
+	}
+
+	if secret.Key == "" {
+		return secret, fmt.Errorf("no secret key found for version %v", version)
+	}
+
+	return secret, nil
+}
+
+// encrypt encrypts a string using the most recent versioned secret key
+// in this service and returns the value as a base64 encoded string
+// with a versioning prefix.
+func (o *OTP) encrypt(s string) (string, error) {
+	secret, err := o.latestSecret()
+	if err != nil {
+		return "", err
+	}
+
+	key := sha256.New()
+	_, err = key.Write([]byte(secret.Key))
+	if err != nil {
+		return "", fmt.Errorf("cannot write secret: %w", err)
+	}
+
+	block, err := aes.NewCipher(key.Sum(nil))
+	if err != nil {
+		return "", fmt.Errorf("failed create cipher block: %w", err)
+	}
+
+	ciphertext := make([]byte, aes.BlockSize+len(s))
+	iv := ciphertext[:aes.BlockSize]
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		return "", fmt.Errorf("failed to create cipher text: %w", err)
+	}
+
+	stream := cipher.NewCFBEncrypter(block, iv)
+	stream.XORKeyStream(ciphertext[aes.BlockSize:], []byte(s))
+	return fmt.Sprintf("%s:%s",
+		strconv.Itoa(secret.Version),
+		base64.StdEncoding.EncodeToString(ciphertext),
+	), nil
+}
+
+// decrypt decrypts an encrypted string using a versioned secret.
+func (o *OTP) decrypt(encryptedTxt string) (string, error) {
+	v := strings.Split(encryptedTxt, ":")[0]
+	encryptedTxt = strings.TrimPrefix(encryptedTxt, fmt.Sprintf("%s:", v))
+
+	version, err := strconv.Atoi(v)
+	if err != nil {
+		return "", fmt.Errorf("failed to determine secret version: %w", err)
+	}
+
+	secret, err := o.secretByVersion(version)
+	if err != nil {
+		return "", err
+	}
+
+	key := sha256.New()
+	_, err = key.Write([]byte(secret.Key))
+	if err != nil {
+		return "", fmt.Errorf("cannot write secret: %w", err)
+	}
+
+	block, err := aes.NewCipher(key.Sum(nil))
+	if err != nil {
+		return "", fmt.Errorf("failed to create cipher block: %w", err)
+	}
+
+	if len(encryptedTxt) < aes.BlockSize {
+		return "", fmt.Errorf("ciphertext too short")
+	}
+
+	decoded, err := base64.StdEncoding.DecodeString(encryptedTxt)
+	if err != nil {
+		return "", fmt.Errorf("cannot decode base64 encoded secret: %w", err)
+	}
+
+	iv := decoded[:aes.BlockSize]
+	decoded = decoded[aes.BlockSize:]
+	stream := cipher.NewCFBDecrypter(block, iv)
+	stream.XORKeyStream(decoded, decoded)
+	return string(decoded), nil
 }
 
 func hashString(value string) (string, error) {

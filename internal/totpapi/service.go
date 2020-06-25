@@ -71,7 +71,7 @@ func (s *service) Secret(w http.ResponseWriter, r *http.Request) (interface{}, e
 }
 
 // Verify validates a recently generated TOTP code. If a code is valid, TOTP is enabled
-// for the user as valid 2FA option.
+// for the user as a valid 2FA option.
 func (s *service) Verify(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 	ctx := r.Context()
 	userID := httpapi.GetUserID(r)

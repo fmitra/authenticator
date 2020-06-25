@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS auth_user (
 	phone VARCHAR(20) UNIQUE NULL,
 	email VARCHAR(255) UNIQUE NULL,
 	password VARCHAR(60) NOT NULL,
-	tfa_secret VARCHAR(20) NOT NULL,
+	tfa_secret VARCHAR(55) NOT NULL,
 	is_sms_otp_allowed BOOLEAN DEFAULT false,
 	is_email_otp_allowed BOOLEAN DEFAULT false,
 	is_totp_allowed BOOLEAN DEFAULT false,

@@ -39,3 +39,10 @@ func WithIssuer(issuer string) ConfigOption {
 		s.totpIssuer = issuer
 	}
 }
+
+// WithSecret sets a new versioned Secret on the client.
+func WithSecret(x Secret) ConfigOption {
+	return func(s *OTP) {
+		s.secrets = append(s.secrets, x)
+	}
+}
