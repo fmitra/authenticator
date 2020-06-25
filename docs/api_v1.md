@@ -32,6 +32,14 @@
   * [Enable TOTP](#enable-totp)
   * [Disable TOTP](#disable-totp)
 
+* [Contact API](#contact-api)
+
+  * [Request address update](#request-address-update)
+  * [Disable address](#disable-address)
+  * [Verify address](#verify-address)
+  * [Remove address](#remove-address)
+  * [Resend OTP to address](#resend-otp)
+
 ## <a name="signup-api">SignUp API</a>
 
 Provides endpoints to manage user registration. It is a 2-step API and a pre-requisite
@@ -425,10 +433,202 @@ secret key.
 }
 ```
 
-## <a name="user-api">User API</a>
+## <a name="contact-api">Contact API</a>
 
-Provides endpoints to manage a User's account.
+Provides endpoints to allow users to manage their contact addresses for OTP
+delivery. Users may add/remove an address, or optionally leave an address
+attached to their profile while disabling it as an OTP delivery channel.
 
-### Update password [PATCH /api/v1/user/:user_id]
+Addresses may not be disabled for OTP delivery unless an alternative 2fA method
+such as TOTP or FIDO is enabled on the account.
 
-Change's a user's password.
+### <a name="request-address-update">Request address update [POST /api/v1/contact/check-address]</a>
+
+Request a new address (email or phone number) to be added onto the account.
+On receipt, a randomly generate OTP code will be delivered to the new address
+and the client will receive a JWT token containing the OTP hash. Clients
+are expected to send the OTP back through `api/v1/contact/verify` in order
+to complete the address change.
+
+* Request (application/json)
+
+  * Parameters
+
+      * delivery_method (required, string) - `email` or `phone`
+      * address (required, string) - Email address or phone number with country code
+
+  * Headers
+
+      * Authorization: `Bearer <jwtToken>`
+      * Cookie: `CLIENTID=<clientID>`
+
+* Response 202 (application/json)
+
+```json
+{
+  "token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTE4MTg2MDUsImp0aSI6IjAxRUFGVkMxMFBSRzE5REQyNUZFWUFRQVpLIiwiaXNzIjoiYXV0aGVudGljYXRvciIsImNsaWVudF9pZCI6IjA3ZmE3ODBiNjdmNTI3N2YzZTE0MDRjNDMyN2Y0NTBkYjllMzBlNGZjYTE4MmMwNmFkNzEyZDA5NTYwMWI0MTI1NWVlNjg2Y2JlNWI5NDBlZGZmMGVhYzcwZTVkZmY0NDU0MmVlZTI2ODE2NDBmNjA4YTljNmRmYWM2ZDg4NWNmIiwidXNlcl9pZCI6IjAxRUFGVkMwWUowUzZLM0Y5VjdKNDNGR1FCIiwiZW1haWwiOiJ0ZXN0OEB0ZXN0LmNvbSIsInBob25lX251bWJlciI6IiIsInN0YXRlIjoicHJlX2F1dGhvcml6ZWQiLCJjb2RlIjoiYjUwMDZhODU3MTIyNWIyMWNkZjVmYzgwZGNkNGU5ZGFmYzZlNGY3ODZhZTk1OTRjMmMzZGQ3NGY4NzRlYWM3OGNjYTVmYmRjYjk4ZjZjMDUxNDI2MmVlYjQzZDQ0ZWFmODhiNzUyODBkZWMyMjhhZjJhNWJmOTA5YWM4NGI4MjEifQ.N8l-mqp6hnWN2Z630hpGNITvfDR6PT4Yl2Rt52_HzWjG4NqWG8CfXJ8AntNDOfsvIGLR6t7qlVmUlUwd4cEwuA",
+  "clientID": "aIXvJGIm72dqiwgUWNm3R4UyQIbByLDCzQCzOZWz"
+}
+```
+
+* Response 400 (application/json)
+
+```json
+{
+  "error": {
+    "code": "bad_request",
+    "message": "delivery_method must be `phone` or `email`"
+  }
+}
+```
+
+### <a name="disable-address">Disable address [POST /api/v1/contact/disable]</a>
+
+Disable an address from receiving OTP codes. If a secondary 2FA method is enabled on
+the profile (an alternative contact address, TOTP, or FIDO device), users may opt
+to disable a contact address from being used as a 2FA method.
+
+* Request (application/json)
+
+  * Parameters
+
+      * delivery_method (required, string) - Delivery method to be disabled (`email` or `phone`)
+
+  * Headers
+
+      * Authorization: `Bearer <jwtToken>`
+      * Cookie: `CLIENTID=<clientID>`
+
+* Response 202 (application/json)
+
+```json
+{
+  "token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTE4MTg2MDUsImp0aSI6IjAxRUFGVkMxMFBSRzE5REQyNUZFWUFRQVpLIiwiaXNzIjoiYXV0aGVudGljYXRvciIsImNsaWVudF9pZCI6IjA3ZmE3ODBiNjdmNTI3N2YzZTE0MDRjNDMyN2Y0NTBkYjllMzBlNGZjYTE4MmMwNmFkNzEyZDA5NTYwMWI0MTI1NWVlNjg2Y2JlNWI5NDBlZGZmMGVhYzcwZTVkZmY0NDU0MmVlZTI2ODE2NDBmNjA4YTljNmRmYWM2ZDg4NWNmIiwidXNlcl9pZCI6IjAxRUFGVkMwWUowUzZLM0Y5VjdKNDNGR1FCIiwiZW1haWwiOiJ0ZXN0OEB0ZXN0LmNvbSIsInBob25lX251bWJlciI6IiIsInN0YXRlIjoicHJlX2F1dGhvcml6ZWQiLCJjb2RlIjoiYjUwMDZhODU3MTIyNWIyMWNkZjVmYzgwZGNkNGU5ZGFmYzZlNGY3ODZhZTk1OTRjMmMzZGQ3NGY4NzRlYWM3OGNjYTVmYmRjYjk4ZjZjMDUxNDI2MmVlYjQzZDQ0ZWFmODhiNzUyODBkZWMyMjhhZjJhNWJmOTA5YWM4NGI4MjEifQ.N8l-mqp6hnWN2Z630hpGNITvfDR6PT4Yl2Rt52_HzWjG4NqWG8CfXJ8AntNDOfsvIGLR6t7qlVmUlUwd4cEwuA",
+  "clientID": "aIXvJGIm72dqiwgUWNm3R4UyQIbByLDCzQCzOZWz"
+}
+```
+
+* Response 400 (application/json)
+
+```json
+{
+  "error": {
+    "code": "bad_request",
+    "message": "delivery_method must be `phone` or `email`"
+  }
+}
+```
+
+### <a name="verify-address">Verify address [POST /api/v1/contact/verify]</a>
+
+Verify ownership of an address by submitting an OTP code. This is the follow up step
+to `api/v1/contact/check-address`. Verified addresses are enabled as an OTP delivery
+channel by default unless the client explicitly requests otherwise.
+
+* Request (application/json)
+
+  * Parameters
+
+      * code (required, string) - OTP code delivered to address
+      * is_disabled (optional, boolean) - Boolean to disable the address from OTP delivery
+
+  * Headers
+
+      * Authorization: `Bearer <jwtToken>`
+      * Cookie: `CLIENTID=<clientID>`
+
+* Response 200 (application/json)
+
+```json
+{
+  "token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTE4MTg2MDUsImp0aSI6IjAxRUFGVkMxMFBSRzE5REQyNUZFWUFRQVpLIiwiaXNzIjoiYXV0aGVudGljYXRvciIsImNsaWVudF9pZCI6IjA3ZmE3ODBiNjdmNTI3N2YzZTE0MDRjNDMyN2Y0NTBkYjllMzBlNGZjYTE4MmMwNmFkNzEyZDA5NTYwMWI0MTI1NWVlNjg2Y2JlNWI5NDBlZGZmMGVhYzcwZTVkZmY0NDU0MmVlZTI2ODE2NDBmNjA4YTljNmRmYWM2ZDg4NWNmIiwidXNlcl9pZCI6IjAxRUFGVkMwWUowUzZLM0Y5VjdKNDNGR1FCIiwiZW1haWwiOiJ0ZXN0OEB0ZXN0LmNvbSIsInBob25lX251bWJlciI6IiIsInN0YXRlIjoicHJlX2F1dGhvcml6ZWQiLCJjb2RlIjoiYjUwMDZhODU3MTIyNWIyMWNkZjVmYzgwZGNkNGU5ZGFmYzZlNGY3ODZhZTk1OTRjMmMzZGQ3NGY4NzRlYWM3OGNjYTVmYmRjYjk4ZjZjMDUxNDI2MmVlYjQzZDQ0ZWFmODhiNzUyODBkZWMyMjhhZjJhNWJmOTA5YWM4NGI4MjEifQ.N8l-mqp6hnWN2Z630hpGNITvfDR6PT4Yl2Rt52_HzWjG4NqWG8CfXJ8AntNDOfsvIGLR6t7qlVmUlUwd4cEwuA",
+  "clientID": "aIXvJGIm72dqiwgUWNm3R4UyQIbByLDCzQCzOZWz"
+}
+```
+
+* Response 400 (application/json)
+
+```json
+{
+  "error": {
+    "code": "bad_request",
+    "message": "delivery_method must be `phone` or `email`"
+  }
+}
+```
+
+### <a name="remove-address">Remove address [POST /api/v1/contact/remove]</a>
+
+Remove an address from a user's profile. A removed address must go through the 2 step
+process (request change -> verify ownership) to be re-added to the account in the future.
+
+* Request (application/json)
+
+  * Parameters
+
+      * delivery_method (required, string) - Delivery method to be disabled (`email` or `phone`)
+
+  * Headers
+
+      * Authorization: `Bearer <jwtToken>`
+      * Cookie: `CLIENTID=<clientID>`
+
+* Response 200 (application/json)
+
+```json
+{
+  "token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTE4MTg2MDUsImp0aSI6IjAxRUFGVkMxMFBSRzE5REQyNUZFWUFRQVpLIiwiaXNzIjoiYXV0aGVudGljYXRvciIsImNsaWVudF9pZCI6IjA3ZmE3ODBiNjdmNTI3N2YzZTE0MDRjNDMyN2Y0NTBkYjllMzBlNGZjYTE4MmMwNmFkNzEyZDA5NTYwMWI0MTI1NWVlNjg2Y2JlNWI5NDBlZGZmMGVhYzcwZTVkZmY0NDU0MmVlZTI2ODE2NDBmNjA4YTljNmRmYWM2ZDg4NWNmIiwidXNlcl9pZCI6IjAxRUFGVkMwWUowUzZLM0Y5VjdKNDNGR1FCIiwiZW1haWwiOiJ0ZXN0OEB0ZXN0LmNvbSIsInBob25lX251bWJlciI6IiIsInN0YXRlIjoicHJlX2F1dGhvcml6ZWQiLCJjb2RlIjoiYjUwMDZhODU3MTIyNWIyMWNkZjVmYzgwZGNkNGU5ZGFmYzZlNGY3ODZhZTk1OTRjMmMzZGQ3NGY4NzRlYWM3OGNjYTVmYmRjYjk4ZjZjMDUxNDI2MmVlYjQzZDQ0ZWFmODhiNzUyODBkZWMyMjhhZjJhNWJmOTA5YWM4NGI4MjEifQ.N8l-mqp6hnWN2Z630hpGNITvfDR6PT4Yl2Rt52_HzWjG4NqWG8CfXJ8AntNDOfsvIGLR6t7qlVmUlUwd4cEwuA",
+  "clientID": "aIXvJGIm72dqiwgUWNm3R4UyQIbByLDCzQCzOZWz"
+}
+```
+
+* Response 400 (application/json)
+
+```json
+{
+  "error": {
+    "code": "bad_request",
+    "message": "delivery_method must be `phone` or `email`"
+  }
+}
+```
+
+### <a name="resend-otp">Resend OTP to address [POST /api/v1/contact/send]</a>
+
+Reesend an OTP to a verified address. If an OTP is not received during login, it may
+be requested again through this endpoint. A `PreAuthorized` JWT token (retrieved
+during the first step of login) is required for this endpoint.
+
+User's who are already authenticated and are re-requesting an OTP should use
+`api/v1/contact/check-address` instead.
+
+* Request (application/json)
+
+  * Parameters
+
+      * delivery_method (required, string) - Delivery method to be disabled (`email` or `phone`)
+
+  * Headers
+
+      * Authorization: `Bearer <jwtToken>`
+      * Cookie: `CLIENTID=<clientID>`
+
+* Response 202 (application/json)
+
+```json
+{
+  "token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTE4MTg2MDUsImp0aSI6IjAxRUFGVkMxMFBSRzE5REQyNUZFWUFRQVpLIiwiaXNzIjoiYXV0aGVudGljYXRvciIsImNsaWVudF9pZCI6IjA3ZmE3ODBiNjdmNTI3N2YzZTE0MDRjNDMyN2Y0NTBkYjllMzBlNGZjYTE4MmMwNmFkNzEyZDA5NTYwMWI0MTI1NWVlNjg2Y2JlNWI5NDBlZGZmMGVhYzcwZTVkZmY0NDU0MmVlZTI2ODE2NDBmNjA4YTljNmRmYWM2ZDg4NWNmIiwidXNlcl9pZCI6IjAxRUFGVkMwWUowUzZLM0Y5VjdKNDNGR1FCIiwiZW1haWwiOiJ0ZXN0OEB0ZXN0LmNvbSIsInBob25lX251bWJlciI6IiIsInN0YXRlIjoicHJlX2F1dGhvcml6ZWQiLCJjb2RlIjoiYjUwMDZhODU3MTIyNWIyMWNkZjVmYzgwZGNkNGU5ZGFmYzZlNGY3ODZhZTk1OTRjMmMzZGQ3NGY4NzRlYWM3OGNjYTVmYmRjYjk4ZjZjMDUxNDI2MmVlYjQzZDQ0ZWFmODhiNzUyODBkZWMyMjhhZjJhNWJmOTA5YWM4NGI4MjEifQ.N8l-mqp6hnWN2Z630hpGNITvfDR6PT4Yl2Rt52_HzWjG4NqWG8CfXJ8AntNDOfsvIGLR6t7qlVmUlUwd4cEwuA",
+  "clientID": "aIXvJGIm72dqiwgUWNm3R4UyQIbByLDCzQCzOZWz"
+}
+```
+
+* Response 400 (application/json)
+
+```json
+{
+  "error": {
+    "code": "bad_request",
+    "message": "delivery_method must be `phone` or `email`"
+  }
+}
+```
