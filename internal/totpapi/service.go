@@ -11,6 +11,7 @@ import (
 
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/httpapi"
+	tokenLib "github.com/fmitra/authenticator/internal/token"
 )
 
 type service struct {
@@ -141,5 +142,6 @@ func (s *service) configureTOTP(ctx context.Context, r *http.Request, user *auth
 	}
 
 	*user = *entity.(*auth.User)
-	return []byte(`{}`), nil
+	// TODO Return token after implementing token refresh
+	return &tokenLib.Response{Token: "", ClientID: ""}, nil
 }

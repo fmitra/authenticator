@@ -3,7 +3,6 @@ package contactapi
 
 import (
 	"database/sql"
-	"fmt"
 	"net/http"
 
 	"github.com/go-kit/kit/log"
@@ -12,6 +11,7 @@ import (
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/httpapi"
 	"github.com/fmitra/authenticator/internal/otp"
+	tokenLib "github.com/fmitra/authenticator/internal/token"
 )
 
 type service struct {
@@ -64,9 +64,7 @@ func (s *service) CheckAddress(w http.ResponseWriter, r *http.Request) (interfac
 		return nil, err
 	}
 
-	return []byte(fmt.Sprintf(`
-	{"token": "%s", "clientID": "%s"}
-	`, signedToken, token.ClientID)), nil
+	return &tokenLib.Response{Token: signedToken, ClientID: token.ClientID}, nil
 }
 
 // Disable disables a verified email or phone number from receiving OTP codes in
@@ -86,7 +84,7 @@ func (s *service) Disable(w http.ResponseWriter, r *http.Request) (interface{}, 
 	}
 
 	// TODO Return token after implementing token refresh
-	return []byte(`{"token":"", "clientID":""}`), nil
+	return &tokenLib.Response{Token: "", ClientID: ""}, nil
 }
 
 // Verify verifies an OTP code sent to an email or phone number. If the delivery
@@ -144,7 +142,7 @@ func (s *service) Verify(w http.ResponseWriter, r *http.Request) (interface{}, e
 	}
 
 	// TODO Return token after implementing token refresh
-	return []byte(`{"token":"", "clientID":""}`), nil
+	return &tokenLib.Response{Token: "", ClientID: ""}, nil
 }
 
 // Remove removes a verified email or phone number from the User's profile. Removed
@@ -165,7 +163,7 @@ func (s *service) Remove(w http.ResponseWriter, r *http.Request) (interface{}, e
 	}
 
 	// TODO Return token after implementing token refresh
-	return []byte(`{"token":"", "clientID":""}`), nil
+	return &tokenLib.Response{Token: "", ClientID: ""}, nil
 }
 
 // Send allows a user to request an OTP code to be delivered to them through a
@@ -211,7 +209,5 @@ func (s *service) Send(w http.ResponseWriter, r *http.Request) (interface{}, err
 		return nil, err
 	}
 
-	return []byte(fmt.Sprintf(`
-	{"token": "%s", "clientID": "%s"}
-	`, signedToken, token.ClientID)), nil
+	return &tokenLib.Response{Token: signedToken, ClientID: token.ClientID}, nil
 }

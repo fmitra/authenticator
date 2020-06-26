@@ -48,7 +48,7 @@ func TestContactAPI_CheckAddress(t *testing.T) {
 				IsVerified: true,
 			},
 			messagingCalls: 0,
-			reqBody:        []byte(`{"address":"+15555555", "delivery_method":"phone"}`),
+			reqBody:        []byte(`{"address":"+15555555", "deliveryMethod":"phone"}`),
 			tokenCreateFn: func() (*auth.Token, error) {
 				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
 			},
@@ -81,7 +81,7 @@ func TestContactAPI_CheckAddress(t *testing.T) {
 				return "token", nil
 			},
 			messagingCalls: 0,
-			reqBody:        []byte(`{"address":"+15555555", "delivery_method":"phone"}`),
+			reqBody:        []byte(`{"address":"+15555555", "deliveryMethod":"phone"}`),
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return nil, auth.ErrInvalidToken("bad token")
@@ -108,7 +108,7 @@ func TestContactAPI_CheckAddress(t *testing.T) {
 				return "token", nil
 			},
 			messagingCalls: 0,
-			reqBody:        []byte(`{"address":"+15555555", "delivery_method":"phone"}`),
+			reqBody:        []byte(`{"address":"+15555555", "deliveryMethod":"phone"}`),
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
@@ -135,7 +135,7 @@ func TestContactAPI_CheckAddress(t *testing.T) {
 			tokenSignFn: func() (string, error) {
 				return "token", nil
 			},
-			reqBody: []byte(`{"address":"555", "delivery_method":"phone"}`),
+			reqBody: []byte(`{"address":"555", "deliveryMethod":"phone"}`),
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
@@ -162,7 +162,7 @@ func TestContactAPI_CheckAddress(t *testing.T) {
 			tokenSignFn: func() (string, error) {
 				return "token", nil
 			},
-			reqBody: []byte(`{"address":"+6594867353", "delivery_method":"phone"}`),
+			reqBody: []byte(`{"address":"+6594867353", "deliveryMethod":"phone"}`),
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
@@ -364,7 +364,7 @@ func TestContactAPI_Verify(t *testing.T) {
 			phone:             "+6594867353",
 			isPhoneOTPAllowed: false,
 			isEmailOTPAllowed: true,
-			reqBody:           []byte(`{"code":"123", "is_disabled":true}`),
+			reqBody:           []byte(`{"code":"123", "isDisabled":true}`),
 			otpValidateFn: func(code, hash string) error {
 				return nil
 			},
@@ -398,7 +398,7 @@ func TestContactAPI_Verify(t *testing.T) {
 			phone:             "+6594867353",
 			isPhoneOTPAllowed: true,
 			isEmailOTPAllowed: false,
-			reqBody:           []byte(`{"code":"123", "is_disabled":true}`),
+			reqBody:           []byte(`{"code":"123", "isDisabled":true}`),
 			otpValidateFn: func(code, hash string) error {
 				return nil
 			},
@@ -594,7 +594,7 @@ func TestContactAPI_Disable(t *testing.T) {
 			isEmailOTPAllowed: true,
 			phone:             "",
 			email:             "jane@example.com",
-			reqBody:           []byte(`{"delivery_method":"email"}`),
+			reqBody:           []byte(`{"deliveryMethod":"email"}`),
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
@@ -618,7 +618,7 @@ func TestContactAPI_Disable(t *testing.T) {
 			isEmailOTPAllowed: true,
 			phone:             "",
 			email:             "jane@example.com",
-			reqBody:           []byte(`{"delivery_method":"email"}`),
+			reqBody:           []byte(`{"deliveryMethod":"email"}`),
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return nil, auth.ErrInvalidToken("bad token")
@@ -646,7 +646,7 @@ func TestContactAPI_Disable(t *testing.T) {
 			isEmailOTPAllowed: false,
 			phone:             "+6594867353",
 			email:             "jane@example.com",
-			reqBody:           []byte(`{"delivery_method":"email"}`),
+			reqBody:           []byte(`{"deliveryMethod":"email"}`),
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
@@ -670,7 +670,7 @@ func TestContactAPI_Disable(t *testing.T) {
 			isEmailOTPAllowed: true,
 			phone:             "",
 			email:             "jane@example.com",
-			reqBody:           []byte(`{"delivery_method":"email"}`),
+			reqBody:           []byte(`{"deliveryMethod":"email"}`),
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
@@ -786,7 +786,7 @@ func TestContactAPI_Remove(t *testing.T) {
 			isEmailOTPAllowed: true,
 			phone:             "",
 			email:             "jane@example.com",
-			reqBody:           []byte(`{"delivery_method":"email"}`),
+			reqBody:           []byte(`{"deliveryMethod":"email"}`),
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
@@ -810,7 +810,7 @@ func TestContactAPI_Remove(t *testing.T) {
 			isEmailOTPAllowed: true,
 			phone:             "",
 			email:             "jane@example.com",
-			reqBody:           []byte(`{"delivery_method":"email"}`),
+			reqBody:           []byte(`{"deliveryMethod":"email"}`),
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return nil, auth.ErrInvalidToken("bad token")
@@ -838,7 +838,7 @@ func TestContactAPI_Remove(t *testing.T) {
 			isEmailOTPAllowed: false,
 			phone:             "+6594867353",
 			email:             "",
-			reqBody:           []byte(`{"delivery_method":"email"}`),
+			reqBody:           []byte(`{"deliveryMethod":"email"}`),
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
@@ -862,7 +862,7 @@ func TestContactAPI_Remove(t *testing.T) {
 			isEmailOTPAllowed: true,
 			phone:             "",
 			email:             "jane@example.com",
-			reqBody:           []byte(`{"delivery_method":"email"}`),
+			reqBody:           []byte(`{"deliveryMethod":"email"}`),
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
@@ -973,7 +973,7 @@ func TestContactAPI_Send(t *testing.T) {
 				},
 				IsVerified: false,
 			},
-			reqBody: []byte(`{"delivery_method":"phone"}`),
+			reqBody: []byte(`{"deliveryMethod":"phone"}`),
 			tokenCreateFn: func() (*auth.Token, error) {
 				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
 			},
@@ -1002,7 +1002,7 @@ func TestContactAPI_Send(t *testing.T) {
 				},
 				IsVerified: false,
 			},
-			reqBody: []byte(`{"delivery_method":"phone"}`),
+			reqBody: []byte(`{"deliveryMethod":"phone"}`),
 			tokenCreateFn: func() (*auth.Token, error) {
 				return nil, auth.ErrInvalidField("phone is not a valid delivery method")
 			},
@@ -1030,7 +1030,7 @@ func TestContactAPI_Send(t *testing.T) {
 				},
 				IsVerified: false,
 			},
-			reqBody: []byte(`{"delivery_method":"phone"}`),
+			reqBody: []byte(`{"deliveryMethod":"phone"}`),
 			tokenCreateFn: func() (*auth.Token, error) {
 				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
 			},

@@ -4,7 +4,6 @@ package signupapi
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -15,6 +14,7 @@ import (
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/httpapi"
 	"github.com/fmitra/authenticator/internal/otp"
+	"github.com/fmitra/authenticator/internal/token"
 )
 
 type service struct {
@@ -161,7 +161,7 @@ func (s *service) createUser(ctx context.Context, newUser *auth.User) error {
 }
 
 // respond creates a JWT token response.
-func (s *service) respond(ctx context.Context, w http.ResponseWriter, user *auth.User, jwtToken *auth.Token) ([]byte, error) {
+func (s *service) respond(ctx context.Context, w http.ResponseWriter, user *auth.User, jwtToken *auth.Token) (*token.Response, error) {
 	tokenStr, err := s.token.Sign(ctx, jwtToken)
 	if err != nil {
 		return nil, err
@@ -190,9 +190,7 @@ func (s *service) respond(ctx context.Context, w http.ResponseWriter, user *auth
 		}
 	}
 
-	return []byte(fmt.Sprintf(`
-		{"token": "%s", "clientID": "%s"}
-	`, tokenStr, jwtToken.ClientID)), nil
+	return &token.Response{Token: tokenStr, ClientID: jwtToken.ClientID}, nil
 }
 
 func (s *service) markUserVerified(ctx context.Context, user *auth.User) error {

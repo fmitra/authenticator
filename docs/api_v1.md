@@ -454,7 +454,7 @@ to complete the address change.
 
   * Parameters
 
-      * delivery_method (required, string) - `email` or `phone`
+      * deliveryMethod (required, string) - `email` or `phone`
       * address (required, string) - Email address or phone number with country code
 
   * Headers
@@ -477,7 +477,7 @@ to complete the address change.
 {
   "error": {
     "code": "bad_request",
-    "message": "delivery_method must be `phone` or `email`"
+    "message": "deliveryMethod must be `phone` or `email`"
   }
 }
 ```
@@ -492,7 +492,7 @@ to disable a contact address from being used as a 2FA method.
 
   * Parameters
 
-      * delivery_method (required, string) - Delivery method to be disabled (`email` or `phone`)
+      * deliveryMethod (required, string) - Delivery method to be disabled (`email` or `phone`)
 
   * Headers
 
@@ -514,7 +514,7 @@ to disable a contact address from being used as a 2FA method.
 {
   "error": {
     "code": "bad_request",
-    "message": "delivery_method must be `phone` or `email`"
+    "message": "deliveryMethod must be `phone` or `email`"
   }
 }
 ```
@@ -530,7 +530,7 @@ channel by default unless the client explicitly requests otherwise.
   * Parameters
 
       * code (required, string) - OTP code delivered to address
-      * is_disabled (optional, boolean) - Boolean to disable the address from OTP delivery
+      * isDisabled (optional, boolean) - Boolean to disable the address from OTP delivery
 
   * Headers
 
@@ -552,7 +552,7 @@ channel by default unless the client explicitly requests otherwise.
 {
   "error": {
     "code": "bad_request",
-    "message": "delivery_method must be `phone` or `email`"
+    "message": "deliveryMethod must be `phone` or `email`"
   }
 }
 ```
@@ -566,7 +566,7 @@ process (request change -> verify ownership) to be re-added to the account in th
 
   * Parameters
 
-      * delivery_method (required, string) - Delivery method to be disabled (`email` or `phone`)
+      * deliveryMethod (required, string) - Delivery method to be disabled (`email` or `phone`)
 
   * Headers
 
@@ -588,7 +588,7 @@ process (request change -> verify ownership) to be re-added to the account in th
 {
   "error": {
     "code": "bad_request",
-    "message": "delivery_method must be `phone` or `email`"
+    "message": "deliveryMethod must be `phone` or `email`"
   }
 }
 ```
@@ -606,7 +606,7 @@ User's who are already authenticated and are re-requesting an OTP should use
 
   * Parameters
 
-      * delivery_method (required, string) - Delivery method to be disabled (`email` or `phone`)
+      * deliveryMethod (required, string) - Delivery method to be disabled (`email` or `phone`)
 
   * Headers
 
@@ -628,7 +628,7 @@ User's who are already authenticated and are re-requesting an OTP should use
 {
   "error": {
     "code": "bad_request",
-    "message": "delivery_method must be `phone` or `email`"
+    "message": "deliveryMethod must be `phone` or `email`"
   }
 }
 ```

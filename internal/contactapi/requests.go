@@ -15,21 +15,21 @@ type verifyRequest struct {
 	// IsDisabled represents a user's optional request to not
 	// enable a verified address a 2FA delivery option
 	// for OTP codes.
-	IsDisabled   bool `json:"is_disabled"`
+	IsDisabled   bool `json:"isDisabled"`
 	IsOTPEnabled bool
 }
 
 type deactivateRequest struct {
-	DeliveryMethod auth.DeliveryMethod `json:"delivery_method"`
+	DeliveryMethod auth.DeliveryMethod `json:"deliveryMethod"`
 }
 
 type deliveryRequest struct {
 	Address        string              `json:"address"`
-	DeliveryMethod auth.DeliveryMethod `json:"delivery_method"`
+	DeliveryMethod auth.DeliveryMethod `json:"deliveryMethod"`
 }
 
 type sendRequest struct {
-	DeliveryMethod auth.DeliveryMethod `json:"delivery_method"`
+	DeliveryMethod auth.DeliveryMethod `json:"deliveryMethod"`
 }
 
 func decodeSendRequest(r *http.Request) (*sendRequest, error) {
@@ -47,7 +47,7 @@ func decodeSendRequest(r *http.Request) (*sendRequest, error) {
 	}
 
 	if req.DeliveryMethod != auth.Phone && req.DeliveryMethod != auth.Email {
-		return nil, auth.ErrInvalidField("delivery_method must be `phone` or `email`")
+		return nil, auth.ErrInvalidField("deliveryMethod must be `phone` or `email`")
 	}
 
 	return &req, nil
@@ -72,7 +72,7 @@ func decodeDeliveryRequest(r *http.Request) (*deliveryRequest, error) {
 	}
 
 	if req.DeliveryMethod != auth.Phone && req.DeliveryMethod != auth.Email {
-		return nil, auth.ErrInvalidField("delivery_method must be `phone` or `email`")
+		return nil, auth.ErrInvalidField("deliveryMethod must be `phone` or `email`")
 	}
 
 	if !contactchecker.Validator(req.DeliveryMethod)(req.Address) {
@@ -97,7 +97,7 @@ func decodeDeactivateRequest(r *http.Request) (*deactivateRequest, error) {
 	}
 
 	if req.DeliveryMethod != auth.Phone && req.DeliveryMethod != auth.Email {
-		return nil, auth.ErrInvalidField("delivery_method must be `phone` or `email`")
+		return nil, auth.ErrInvalidField("deliveryMethod must be `phone` or `email`")
 	}
 
 	return &req, nil
