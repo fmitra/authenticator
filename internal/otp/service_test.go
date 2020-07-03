@@ -53,20 +53,30 @@ func TestOTPSvc_TOTPSecret(t *testing.T) {
 }
 
 func TestOTPSvc_TOTPQRString(t *testing.T) {
-	svc := NewOTP(WithIssuer("authenticator.local"))
+	svc := NewOTP(
+		WithIssuer("authenticator.local"),
+		WithSecret(Secret{
+			Version: 1,
+			Key:     "9f0c6da662f018b58b04a093e2dbb2e1d8d54250",
+		}),
+	)
 	user := &auth.User{
 		IsTOTPAllowed:     true,
 		IsEmailOTPAllowed: false,
-		TFASecret:         "VHON3V7ECQ3UNTGJ3GUGL4ATXEMD2TDK",
+		TFASecret:         "1:usrJIgtKY9j58GgLpKIaoJqNbwylphfzyJcoyRRg1Ow52/7j6KoRpky8tFLZlgrY",
 		Phone: sql.NullString{
 			String: "+15556521234",
 			Valid:  true,
 		},
 	}
-	qrString := svc.TOTPQRString(user)
+	qrString, err := svc.TOTPQRString(user)
+	if err != nil {
+		t.Error("expected nil error, received:", err)
+	}
+
 	expectedString := "otpauth://totp/authenticator.local:+15556521234?algorithm=" +
 		"SHA1&digits=6&issuer=authenticator.local&period=30&secret=" +
-		"VHON3V7ECQ3UNTGJ3GUGL4ATXEMD2TDK"
+		"572JFGKOMDRA6KHE5O3ZV62I6BP352E7"
 	if !cmp.Equal(qrString, expectedString) {
 		t.Error(cmp.Diff(qrString, expectedString))
 	}

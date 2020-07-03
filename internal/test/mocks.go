@@ -15,7 +15,7 @@ import (
 
 // OTPService mocks auth.OTPService interface.
 type OTPService struct {
-	TOTPQRStringFn func(u *auth.User) string
+	TOTPQRStringFn func(u *auth.User) (string, error)
 	TOTPSecretFn   func(u *auth.User) (string, error)
 	OTPCodeFn      func(address string, method auth.DeliveryMethod) (string, string, error)
 	ValidateOTPFn  func(code, hash string) error
@@ -627,12 +627,12 @@ func (m *MessageRepository) Recent(ctx context.Context) (<-chan *auth.Message, <
 	return msgc, errc
 }
 
-func (s *OTPService) TOTPQRString(u *auth.User) string {
+func (s *OTPService) TOTPQRString(u *auth.User) (string, error) {
 	s.Calls.TOTPQRString++
 	if s.TOTPQRStringFn != nil {
 		return s.TOTPQRStringFn(u)
 	}
-	return ""
+	return "", nil
 }
 
 func (s *OTPService) TOTPSecret(u *auth.User) (string, error) {

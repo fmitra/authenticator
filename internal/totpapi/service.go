@@ -65,7 +65,11 @@ func (s *service) Secret(w http.ResponseWriter, r *http.Request) (interface{}, e
 
 	*user = *entity.(*auth.User)
 
-	totpQRStr := s.otp.TOTPQRString(user)
+	totpQRStr, err := s.otp.TOTPQRString(user)
+	if err != nil {
+		return nil, err
+	}
+
 	return []byte(fmt.Sprintf(`
 		{"totp": "%s"}
 	`, totpQRStr)), nil

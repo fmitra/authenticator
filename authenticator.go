@@ -367,7 +367,7 @@ type PasswordService interface {
 // OTPService manages the protocol for SMS/Email 2FA codes and TOTP codes.
 type OTPService interface {
 	// TOTPQRString returns a URL string used for TOTP code generation.
-	TOTPQRString(u *User) string
+	TOTPQRString(u *User) (string, error)
 	// TOTPSecret creates a TOTP secret for code generation.
 	TOTPSecret(u *User) (string, error)
 	// OTPCode creates a random OTP code and hash.

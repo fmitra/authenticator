@@ -88,10 +88,15 @@ func (o *OTP) TOTPSecret(u *auth.User) (string, error) {
 
 // TOTPQRString returns a string containing account details
 // for TOTP code generation.
-func (o *OTP) TOTPQRString(u *auth.User) string {
+func (o *OTP) TOTPQRString(u *auth.User) (string, error) {
 	// otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&issuer=Example
+	secret, err := o.decrypt(u.TFASecret)
+	if err != nil {
+		return "", fmt.Errorf("failed get secret for QR string: %w", err)
+	}
+
 	v := url.Values{}
-	v.Set("secret", u.TFASecret)
+	v.Set("secret", secret)
 	v.Set("issuer", o.totpIssuer)
 	v.Set("algorithm", otpLib.AlgorithmSHA1.String())
 	v.Set("period", "30")
@@ -102,7 +107,7 @@ func (o *OTP) TOTPQRString(u *auth.User) string {
 		Path:     "/" + o.totpIssuer + ":" + u.DefaultName(),
 		RawQuery: v.Encode(),
 	}
-	return otpauth.String()
+	return otpauth.String(), nil
 }
 
 // ValidateOTP checks if a User's OTP code is valid. User's may submit
