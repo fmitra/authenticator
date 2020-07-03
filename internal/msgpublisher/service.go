@@ -1,4 +1,4 @@
-// Package msgpublisher writes SMS/Email messages to Kafka.
+// Package msgpublisher publishes outgoing SMS/Email messages.
 package msgpublisher
 
 import (
@@ -13,15 +13,14 @@ import (
 )
 
 // service is an implementation of auth.MessagingService.
-// It uses the Twilio API to send messages.
 type service struct {
 	logger      log.Logger
 	messageRepo auth.MessageRepository
 	expireAfter time.Duration
 }
 
-// Send sends a message to a User. Behind the scenes, it publishes a message
-// to a Kafka topic with all the relevant user details for delivery (e.g. phone/email).
+// Send sends a message to a User. Behind the scenes, a message is stored
+// in the MessageRepository to be consumed by a separate service.
 func (s *service) Send(ctx context.Context, content, addr string, method auth.DeliveryMethod) error {
 	if !contactchecker.Validator(method)(addr) {
 		return fmt.Errorf("invalid delivery method")

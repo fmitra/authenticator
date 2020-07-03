@@ -152,10 +152,7 @@ func TestMsgConsumer_ProcessMessage(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := context.Background()
-			consumerSvc, err := NewService(ctx, &tc.messageRepo, &tc.smsLib, &tc.emailLib)
-			if err != nil {
-				t.Error("expected nil error, received:", err)
-			}
+			consumerSvc := NewService(&tc.messageRepo, &tc.smsLib, &tc.emailLib)
 
 			if err := consumerSvc.Run(ctx); err != nil {
 				t.Error("expected nil error, received:", err)

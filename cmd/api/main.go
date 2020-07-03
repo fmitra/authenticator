@@ -27,11 +27,11 @@ import (
 
 	"github.com/fmitra/authenticator/internal/contactapi"
 	"github.com/fmitra/authenticator/internal/deviceapi"
-	"github.com/fmitra/authenticator/internal/kafka"
 	"github.com/fmitra/authenticator/internal/loginapi"
 	"github.com/fmitra/authenticator/internal/mail"
 	"github.com/fmitra/authenticator/internal/msgconsumer"
 	"github.com/fmitra/authenticator/internal/msgpublisher"
+	"github.com/fmitra/authenticator/internal/msgrepo"
 	"github.com/fmitra/authenticator/internal/otp"
 	"github.com/fmitra/authenticator/internal/password"
 	"github.com/fmitra/authenticator/internal/pg"
@@ -75,7 +75,6 @@ func main() {
 		fs.String("webauthn.display-name", "Authenticator", "Webauthn display name")
 		fs.String("webauthn.domain", "authenticator.local", "Public client domain")
 		fs.String("webauthn.request-origin", "authenticator.local", "Origin URL for client requests")
-		fs.StringSlice("kafka.brokers", []string{}, "Kafka broker host:port")
 		fs.String("twilio.account-sid", "", "Account SID from Twilio")
 		fs.String("twilio.token", "", "Authentication token for Twilio API")
 		fs.String("twilio.sms-sender", "", "Origin phone number for outgoing SMS")
@@ -178,13 +177,7 @@ func main() {
 		defer closeRedis()
 	}
 
-	k := kafka.NewClient(viper.GetStringSlice("kafka.brokers"))
-
-	messageRepo, err := kafka.NewMessageRepository(k)
-	if err != nil {
-		logger.Log("message", "message repo init failed", "error", err, "source", "cmd/api")
-		os.Exit(1)
-	}
+	messageRepo := msgrepo.NewService(msgrepo.WithLogger(logger))
 
 	repoMngr := pg.NewClient(
 		pg.WithLogger(logger),
@@ -316,22 +309,13 @@ func main() {
 		),
 	))
 
-	msgd, err := msgconsumer.NewService(
-		ctx,
+	msgd := msgconsumer.NewService(
 		messageRepo,
 		smsLib,
 		emailLib,
 		msgconsumer.WithWorkers(viper.GetInt("msgconsumer.workers")),
 		msgconsumer.WithLogger(logger),
 	)
-	if err != nil {
-		logger.Log(
-			"message", "failed to start messaging daemon",
-			"error", err,
-			"source", "cmd/api",
-		)
-		os.Exit(1)
-	}
 
 	var g run.Group
 	{

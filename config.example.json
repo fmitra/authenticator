@@ -12,11 +12,6 @@
   "redis": {
     "conn-string": "redis://:swordfish@localhost:6379/1"
   },
-  "kafka": {
-    "brokers": [
-      "0.0.0.0:9092"
-    ]
-  },
   "password": {
     "min-length": 8,
     "max-length": 1000

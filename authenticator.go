@@ -237,13 +237,10 @@ type Message struct {
 // MessageRepository represents a local storage for outgoing messages.
 // This service will deliver OTP codes via email or SMS if enabled for the user.
 type MessageRepository interface {
-	// Publish prepares a message for a user. The Kafka backed implementation
-	// of this repository accomplishes this by writing the message to the OTP Kafka
-	// topic.
+	// Publish prepares a message for a user. Behind the scenes we write the
+	// message into a channel to be processed by a consumer.
 	Publish(ctx context.Context, msg *Message) error
-	// Recent retrieves a list of messages. The Kafka backed implementation of this
-	// repository accomplishes this by reading from the OTP Kafka topic and
-	// writing the results into a channel.
+	// Recent retrieves a list of messages to be delivered.
 	Recent(ctx context.Context) (<-chan *Message, <-chan error)
 }
 

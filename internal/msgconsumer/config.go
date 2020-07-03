@@ -1,8 +1,6 @@
 package msgconsumer
 
 import (
-	"context"
-
 	"github.com/go-kit/kit/log"
 
 	auth "github.com/fmitra/authenticator"
@@ -12,43 +10,36 @@ import (
 const defaultWorkers = 4
 
 // NewService returns a new Consumer
-func NewService(ctx context.Context, r auth.MessageRepository, smsLib SMSer, emailLib Emailer, options ...ConfigOption) (Consumer, error) {
+func NewService(r auth.MessageRepository, smsLib SMSer, emailLib Emailer, options ...ConfigOption) Consumer {
 	s := service{
 		logger:       log.NewNopLogger(),
 		totalWorkers: defaultWorkers,
-		messageQueue: make(chan *auth.Message),
 		messageRepo:  r,
 		smsLib:       smsLib,
 		emailLib:     emailLib,
 	}
 
 	for _, opt := range options {
-		if err := opt(&s); err != nil {
-			return nil, err
-		}
+		opt(&s)
 	}
 
-	s.startWorkers(ctx)
-
-	return &s, nil
+	return &s
 }
 
 // ConfigOption configures the service.
-type ConfigOption func(*service) error
+type ConfigOption func(*service)
 
 // WithLogger configures the service with a logger.
 func WithLogger(l log.Logger) ConfigOption {
-	return func(s *service) error {
+	return func(s *service) {
 		s.logger = l
-		return nil
 	}
 }
 
 // WithWorkers determines the total number of workers to process
 // a message queue.
 func WithWorkers(w int) ConfigOption {
-	return func(s *service) error {
+	return func(s *service) {
 		s.totalWorkers = w
-		return nil
 	}
 }

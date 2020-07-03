@@ -1,4 +1,4 @@
-// Package msgconsumer reads SMS/Email messages from Kafka.
+// Package msgconsumer reads and sends SMS/Email messages from a repository.
 package msgconsumer
 
 import (
@@ -10,7 +10,7 @@ import (
 	auth "github.com/fmitra/authenticator"
 )
 
-// Consumer reads a message stream from Kafka.
+// Consumer reads a message stream from a repository.
 type Consumer interface {
 	Run(ctx context.Context) error
 }
@@ -25,14 +25,13 @@ type Emailer interface {
 	Email(ctx context.Context, email string, message string) error
 }
 
-// Service consumes messages from a Kafka topic into a channel
-// to be delivered in parallel through goroutines.
+// Service consumes messages to be delivered in a parallel through
+// goroutines.
 type service struct {
 	logger       log.Logger
 	smsLib       SMSer
 	emailLib     Emailer
 	totalWorkers int
-	messageQueue chan *auth.Message
 	messageRepo  auth.MessageRepository
 }
 
@@ -41,19 +40,12 @@ type service struct {
 func (s *service) Run(ctx context.Context) error {
 	msgc, errc := s.messageRepo.Recent(ctx)
 
+	s.startWorkers(ctx, msgc)
+
 	for {
 		select {
-		case msg, ok := <-msgc:
-			if !ok {
-				msgc = nil
-				continue
-			}
-			s.messageQueue <- msg
 		case err := <-errc:
-			if err != nil {
-				return err
-			}
-			return nil
+			return err
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -62,10 +54,10 @@ func (s *service) Run(ctx context.Context) error {
 
 // startWorkers starts a finite number of workers to deliver messages found
 // in the message queue.
-func (s *service) startWorkers(ctx context.Context) {
+func (s *service) startWorkers(ctx context.Context, msgc <-chan *auth.Message) {
 	for i := 0; i < s.totalWorkers; i++ {
 		go func() {
-			for msg := range s.messageQueue {
+			for msg := range msgc {
 				s.processMessage(ctx, msg)
 			}
 		}()
