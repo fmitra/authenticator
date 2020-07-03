@@ -230,8 +230,11 @@ type Message struct {
 	// Content of the message.
 	Content string
 	// Delivery address of the user (e.g. phone or email).
-	Address   string
+	Address string
+	// ExpiresAt is the latest time we can attempt delivery.
 	ExpiresAt time.Time
+	// DeliveryAttempts is the total amount of delivery attempts made.
+	DeliveryAttempts int
 }
 
 // MessageRepository represents a local storage for outgoing messages.

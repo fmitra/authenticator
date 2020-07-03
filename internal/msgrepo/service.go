@@ -3,6 +3,8 @@ package msgrepo
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/go-kit/kit/log"
 
@@ -17,7 +19,19 @@ type service struct {
 
 // Publish writes an unsent message to a channel.
 func (s *service) Publish(ctx context.Context, msg *auth.Message) error {
-	s.messageQueue <- msg
+	isExpired := time.Now().After(msg.ExpiresAt)
+	if isExpired {
+		return fmt.Errorf("cannot publish expired message")
+	}
+
+	go func() {
+		countdown := time.Duration(msg.DeliveryAttempts) * time.Second
+		msg.DeliveryAttempts++
+
+		time.Sleep(countdown)
+		s.messageQueue <- msg
+	}()
+
 	return nil
 }
 

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 )
@@ -47,7 +48,7 @@ func (c *client) SMS(ctx context.Context, phoneNumber string, message string) er
 		return fmt.Errorf("failed to close writer: %w", err)
 	}
 
-	resp, err := c.request(ctx, url, "POST", body)
+	resp, err := c.request(ctx, url, body, writer)
 	if err != nil {
 		return err
 	}
@@ -55,20 +56,23 @@ func (c *client) SMS(ctx context.Context, phoneNumber string, message string) er
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("expected status %v, got %v", http.StatusCreated, resp.StatusCode)
+		rBody, _ := ioutil.ReadAll(resp.Body)
+
+		return fmt.Errorf("expected status %v, got %v: %s",
+			http.StatusCreated, resp.StatusCode, string(rBody))
 	}
 
 	return nil
 }
 
-func (c *client) request(ctx context.Context, url, method string, body io.Reader) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, method, url, body)
+func (c *client) request(ctx context.Context, url string, body io.Reader, writer *multipart.Writer) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, "POST", url, body)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create HTTP request: %w", err)
 	}
 
 	req.SetBasicAuth(c.accountSID, c.authToken)
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	httpClient := &http.Client{}
 
