@@ -283,7 +283,7 @@ func main() {
 				"Authorization",
 			}),
 			handlers.AllowCredentials(),
-			handlers.AllowedMethods([]string{"GET", "POST", "PUT", "OPTIONS", "HEAD"}),
+			handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"}),
 		)(router),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,

@@ -10,9 +10,9 @@ import (
 )
 
 type loginRequest struct {
-	Password string `json:"password"`
-	Identity string `json:"identity"`
-	Type     string `json:"type"`
+	Password string              `json:"password"`
+	Identity string              `json:"identity"`
+	Type     auth.DeliveryMethod `json:"type"`
 }
 
 type verifyCodeRequest struct {
@@ -21,9 +21,9 @@ type verifyCodeRequest struct {
 
 func (r *loginRequest) UserAttribute() string {
 	switch r.Type {
-	case "email":
+	case auth.Email:
 		return "Email"
-	case "phone":
+	case auth.Phone:
 		return "Phone"
 	default:
 		return ""

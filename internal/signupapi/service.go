@@ -61,12 +61,7 @@ func (s *service) SignUp(w http.ResponseWriter, r *http.Request) (interface{}, e
 		return nil, err
 	}
 
-	method := auth.Phone
-	if req.Type == "emai" {
-		method = auth.Email
-	}
-
-	jwtToken, err := s.token.CreateWithOTP(ctx, newUser, auth.JWTPreAuthorized, method)
+	jwtToken, err := s.token.CreateWithOTP(ctx, newUser, auth.JWTPreAuthorized, req.Type)
 	if err != nil {
 		return nil, err
 	}

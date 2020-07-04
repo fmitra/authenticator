@@ -87,6 +87,7 @@ func (s *service) processMessage(ctx context.Context, msg *auth.Message) {
 	}
 
 	if err == nil {
+		logger.Log("message", "message sent")
 		return
 	}
 

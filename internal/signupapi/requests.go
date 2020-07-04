@@ -11,9 +11,9 @@ import (
 )
 
 type signupRequest struct {
-	Password string `json:"password"`
-	Identity string `json:"identity"`
-	Type     string `json:"type"`
+	Password string              `json:"password"`
+	Identity string              `json:"identity"`
+	Type     auth.DeliveryMethod `json:"type"`
 }
 
 type signupVerifyRequest struct {
@@ -22,9 +22,9 @@ type signupVerifyRequest struct {
 
 func (r *signupRequest) UserAttribute() string {
 	switch r.Type {
-	case "email":
+	case auth.Email:
 		return "Email"
-	case "phone":
+	case auth.Phone:
 		return "Phone"
 	default:
 		return ""
