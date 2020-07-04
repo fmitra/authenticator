@@ -4,6 +4,7 @@ package msgrepo
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/go-kit/kit/log"
@@ -25,10 +26,16 @@ func (s *service) Publish(ctx context.Context, msg *auth.Message) error {
 	}
 
 	go func() {
-		countdown := time.Duration(msg.DeliveryAttempts) * time.Second
 		msg.DeliveryAttempts++
 
-		time.Sleep(countdown)
+		if msg.DeliveryAttempts == 1 {
+			s.messageQueue <- msg
+			return
+		}
+
+		waitTime := delay(msg.DeliveryAttempts)
+		time.Sleep(waitTime)
+
 		s.messageQueue <- msg
 	}()
 
@@ -47,4 +54,22 @@ func (s *service) Recent(ctx context.Context) (<-chan *auth.Message, <-chan erro
 	}()
 
 	return s.messageQueue, errc
+}
+
+// delay calculates the amount of time to wait before
+// publishing a message back into the queue
+func delay(deliveryAttempts int) time.Duration {
+	rand.Seed(time.Now().UnixNano())
+
+	// Maximum 3 second jitter
+	jitter := time.Duration(rand.Intn(3000)) * time.Millisecond
+	minDelay := (time.Duration(deliveryAttempts) * time.Second) * 2
+	countdown := jitter + minDelay
+	maxCountdown := 30 * time.Second
+
+	if countdown < maxCountdown {
+		return countdown
+	}
+
+	return maxCountdown
 }
