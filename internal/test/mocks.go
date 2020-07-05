@@ -49,23 +49,17 @@ type MessagingService struct {
 
 // TokenService mocks auth.TokenService interface.
 type TokenService struct {
-	RefreshFn                 func() (*auth.Token, error)
-	CreateFn                  func() (*auth.Token, error)
-	CreateWithOTPFn           func() (*auth.Token, error)
-	CreateWithOTPAndAddressFn func() (*auth.Token, error)
-	SignFn                    func() (string, error)
-	ValidateFn                func() (*auth.Token, error)
-	RevokeFn                  func() error
-	CookieFn                  func() *http.Cookie
-	Calls                     struct {
-		Refresh                 int
-		Create                  int
-		CreateWithOTP           int
-		CreateWithOTPAndAddress int
-		Sign                    int
-		Validate                int
-		Revoke                  int
-		Cookie                  int
+	CreateFn   func() (*auth.Token, error)
+	SignFn     func() (string, error)
+	ValidateFn func() (*auth.Token, error)
+	RevokeFn   func() error
+	CookieFn   func() *http.Cookie
+	Calls      struct {
+		Create   int
+		Sign     int
+		Validate int
+		Revoke   int
+		Cookie   int
 	}
 }
 
@@ -447,38 +441,11 @@ func (m *TokenService) Cookie(ctx context.Context, token *auth.Token) *http.Cook
 	return &http.Cookie{}
 }
 
-// Refresh mock.
-func (m *TokenService) Refresh(ctx context.Context, token *auth.Token, refreshKey string) (*auth.Token, error) {
-	m.Calls.Refresh++
-	if m.RefreshFn != nil {
-		return m.RefreshFn()
-	}
-	return nil, errors.New("Failed to refresh token")
-}
-
 // Create mock.
-func (m *TokenService) Create(ctx context.Context, u *auth.User, state auth.TokenState) (*auth.Token, error) {
+func (m *TokenService) Create(ctx context.Context, u *auth.User, state auth.TokenState, options ...auth.TokenOption) (*auth.Token, error) {
 	m.Calls.Create++
 	if m.CreateFn != nil {
 		return m.CreateFn()
-	}
-	return nil, errors.New("failed to create token")
-}
-
-// CreateWithOTPAndAddress mock.
-func (m *TokenService) CreateWithOTPAndAddress(ctx context.Context, u *auth.User, state auth.TokenState, method auth.DeliveryMethod, addr string) (*auth.Token, error) {
-	m.Calls.CreateWithOTPAndAddress++
-	if m.CreateWithOTPAndAddressFn != nil {
-		return m.CreateWithOTPAndAddressFn()
-	}
-	return nil, errors.New("failed to create token")
-}
-
-// CreateWithOTP mock.
-func (m *TokenService) CreateWithOTP(ctx context.Context, u *auth.User, state auth.TokenState, method auth.DeliveryMethod) (*auth.Token, error) {
-	m.Calls.CreateWithOTP++
-	if m.CreateWithOTPFn != nil {
-		return m.CreateWithOTPFn()
 	}
 	return nil, errors.New("failed to create token")
 }

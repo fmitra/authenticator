@@ -173,9 +173,8 @@ func TestLoginAPI_Login(t *testing.T) {
 				},
 			}
 			tokenSvc := &test.TokenService{
-				CreateFn:        tc.tokenCreateFn,
-				CreateWithOTPFn: tc.tokenCreateFn,
-				SignFn:          tc.tokenSignFn,
+				CreateFn: tc.tokenCreateFn,
+				SignFn:   tc.tokenSignFn,
 			}
 			messagingSvc := &test.MessagingService{}
 			passwordSvc := password.NewPassword()

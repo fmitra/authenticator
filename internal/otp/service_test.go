@@ -78,7 +78,8 @@ func TestOTPSvc_TOTPQRString(t *testing.T) {
 		"SHA1&digits=6&issuer=authenticator.local&period=30&secret=" +
 		"572JFGKOMDRA6KHE5O3ZV62I6BP352E7"
 	if !cmp.Equal(qrString, expectedString) {
-		t.Error(cmp.Diff(qrString, expectedString))
+		t.Error("TOTP QR string does not match",
+			cmp.Diff(qrString, expectedString))
 	}
 }
 

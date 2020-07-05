@@ -39,12 +39,12 @@ func (s *service) CheckAddress(w http.ResponseWriter, r *http.Request) (interfac
 		return nil, err
 	}
 
-	token, err := s.token.CreateWithOTPAndAddress(
+	token, err := s.token.Create(
 		ctx,
 		user,
 		auth.JWTAuthorized,
-		req.DeliveryMethod,
-		req.Address,
+		tokenLib.WithOTPDeliveryMethod(req.DeliveryMethod),
+		tokenLib.WithOTPAddress(req.Address),
 	)
 	if err != nil {
 		return nil, err
@@ -185,11 +185,11 @@ func (s *service) Send(w http.ResponseWriter, r *http.Request) (interface{}, err
 		return nil, err
 	}
 
-	token, err := s.token.CreateWithOTP(
+	token, err := s.token.Create(
 		ctx,
 		user,
 		auth.JWTPreAuthorized,
-		req.DeliveryMethod,
+		tokenLib.WithOTPDeliveryMethod(req.DeliveryMethod),
 	)
 	if err != nil {
 		return nil, err

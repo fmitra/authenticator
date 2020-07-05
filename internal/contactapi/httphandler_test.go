@@ -189,9 +189,9 @@ func TestContactAPI_CheckAddress(t *testing.T) {
 			router := mux.NewRouter()
 			otpSvc := &test.OTPService{}
 			tokenSvc := &test.TokenService{
-				ValidateFn:                tc.tokenValidateFn(tc.user.ID),
-				CreateWithOTPAndAddressFn: tc.tokenCreateFn,
-				SignFn:                    tc.tokenSignFn,
+				ValidateFn: tc.tokenValidateFn(tc.user.ID),
+				CreateFn:   tc.tokenCreateFn,
+				SignFn:     tc.tokenSignFn,
 			}
 			msgSvc := &test.MessagingService{}
 			svc := NewService(
@@ -1066,9 +1066,9 @@ func TestContactAPI_Send(t *testing.T) {
 			router := mux.NewRouter()
 			otpSvc := &test.OTPService{}
 			tokenSvc := &test.TokenService{
-				CreateWithOTPFn: tc.tokenCreateFn,
-				SignFn:          tc.tokenSignFn,
-				ValidateFn:      tc.tokenValidateFn(tc.user.ID),
+				CreateFn:   tc.tokenCreateFn,
+				SignFn:     tc.tokenSignFn,
+				ValidateFn: tc.tokenValidateFn(tc.user.ID),
 			}
 			msgSvc := test.MessagingService{
 				SendFn: tc.msgSendFn,

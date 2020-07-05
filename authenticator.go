@@ -318,15 +318,20 @@ type RepositoryManager interface {
 	User() UserRepository
 }
 
+// TokenConfiguration provides configurable settings for a JWT token.
+type TokenConfiguration struct {
+	DeliveryMethod   DeliveryMethod
+	DeliveryAddress  string
+	RefreshableToken *Token
+}
+
+// TokenOption configures a new JWT token.
+type TokenOption func(*TokenConfiguration)
+
 // TokenService represents a service to manage JWT tokens.
 type TokenService interface {
-	// Create creates a new authorized or pre-authorized JWT token.
-	// On success, it returns the token.
-	Create(ctx context.Context, user *User, state TokenState) (*Token, error)
-	// CreateWithOTP creates a new authorized or pre-authorized JWT token
-	// with embedded OTP code for 2FA verification.
-	CreateWithOTP(ctx context.Context, user *User, state TokenState, method DeliveryMethod) (*Token, error)
-	CreateWithOTPAndAddress(ctx context.Context, user *User, state TokenState, method DeliveryMethod, addr string) (*Token, error)
+	// Create creates a new JWT token with optional configuration settings.
+	Create(ctx context.Context, user *User, state TokenState, options ...TokenOption) (*Token, error)
 	// Sign creates a signed JWT token string from a token struct.
 	Sign(ctx context.Context, token *Token) (string, error)
 	// Validate checks that a JWT token is signed by us, unexpired,
@@ -337,8 +342,6 @@ type TokenService interface {
 	Revoke(ctx context.Context, tokenID string, duration time.Duration) error
 	// Cookie returns a secure cookie to accompany a token.
 	Cookie(ctx context.Context, token *Token) *http.Cookie
-	// Refresh refreshes an expiring token.
-	Refresh(ctx context.Context, token *Token, refreshKey string) (*Token, error)
 }
 
 // WebAuthnService manages the protocol for WebAuthn authentication.

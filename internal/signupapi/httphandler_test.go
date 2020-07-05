@@ -220,9 +220,8 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 				},
 			}
 			tokenSvc := &test.TokenService{
-				CreateFn:        tc.tokenCreateFn,
-				CreateWithOTPFn: tc.tokenCreateFn,
-				SignFn:          tc.tokenSignFn,
+				CreateFn: tc.tokenCreateFn,
+				SignFn:   tc.tokenSignFn,
 			}
 			messagingSvc := &test.MessagingService{}
 			svc := NewService(
@@ -311,9 +310,6 @@ func TestSignUpAPI_SignUpExistingUser(t *testing.T) {
 	logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
 	tokenSvc := &test.TokenService{
 		CreateFn: func() (*auth.Token, error) {
-			return &auth.Token{CodeHash: "123456:1:address:email", Code: "123456"}, nil
-		},
-		CreateWithOTPFn: func() (*auth.Token, error) {
 			return &auth.Token{CodeHash: "123456:1:address:email", Code: "123456"}, nil
 		},
 		SignFn: func() (string, error) {

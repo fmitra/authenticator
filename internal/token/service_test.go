@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/go-kit/kit/log"
+	"github.com/google/go-cmp/cmp"
 	"github.com/oklog/ulid"
 
 	auth "github.com/fmitra/authenticator"
@@ -128,13 +130,29 @@ func TestTokenSvc_CreateWithOTP(t *testing.T) {
 	}
 	tokenSvc := NewTestTokenSvc(db)
 
-	token, err := tokenSvc.CreateWithOTP(ctx, user, auth.JWTPreAuthorized, auth.Phone)
+	token, err := tokenSvc.Create(
+		ctx,
+		user,
+		auth.JWTPreAuthorized,
+		WithOTPDeliveryMethod(auth.Phone),
+	)
 	if err != nil {
 		t.Fatal("failed to create token:", err)
 	}
 
 	if token.Code == "" || token.CodeHash == "" {
-		t.Fatal("otp codes should be generated for pre-authorized tokens")
+		t.Error("otp codes should be generated for pre-authorized tokens")
+	}
+
+	splits := strings.Split(token.CodeHash, ":")
+	if len(splits) != 4 {
+		t.Fatal("incorrect segments in otp hash",
+			cmp.Diff(len(splits), 4))
+	}
+
+	if splits[3] != "phone" {
+		t.Error("otp delivery method does not match",
+			cmp.Diff(splits[3], "phone"))
 	}
 }
 
@@ -149,16 +167,38 @@ func TestTokenSvc_CreateWithOTPAndAddress(t *testing.T) {
 	user := &auth.User{
 		ID:                "user_id",
 		IsEmailOTPAllowed: true,
+		IsPhoneOTPAllowed: false,
+		Email: sql.NullString{
+			String: "jane@example.com",
+			Valid:  true,
+		},
 	}
 	tokenSvc := NewTestTokenSvc(db)
 
-	token, err := tokenSvc.CreateWithOTPAndAddress(ctx, user, auth.JWTPreAuthorized, auth.Phone, "jane@example.com")
+	token, err := tokenSvc.Create(
+		ctx,
+		user,
+		auth.JWTPreAuthorized,
+		WithOTPDeliveryMethod(auth.Phone),
+		WithOTPAddress("+6594867353"),
+	)
 	if err != nil {
 		t.Fatal("failed to create token:", err)
 	}
 
 	if token.Code == "" || token.CodeHash == "" {
-		t.Fatal("otp codes should be generated for pre-authorized tokens")
+		t.Error("otp codes should be generated for pre-authorized tokens")
+	}
+
+	splits := strings.Split(token.CodeHash, ":")
+	if len(splits) != 4 {
+		t.Fatal("incorrect segments in otp hash",
+			cmp.Diff(len(splits), 4))
+	}
+
+	if splits[2] != "+6594867353" {
+		t.Error("otp delivery address does not match",
+			cmp.Diff(splits[2], "+6594867353"))
 	}
 }
 

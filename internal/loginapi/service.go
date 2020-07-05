@@ -51,7 +51,12 @@ func (s *service) Login(w http.ResponseWriter, r *http.Request) (interface{}, er
 	var jwtToken *auth.Token
 
 	if user.CanSendDefaultOTP() {
-		jwtToken, err = s.token.CreateWithOTP(ctx, user, auth.JWTPreAuthorized, user.DefaultOTPDelivery())
+		jwtToken, err = s.token.Create(
+			ctx,
+			user,
+			auth.JWTPreAuthorized,
+			token.WithOTPDeliveryMethod(user.DefaultOTPDelivery()),
+		)
 	} else {
 		jwtToken, err = s.token.Create(ctx, user, auth.JWTPreAuthorized)
 	}

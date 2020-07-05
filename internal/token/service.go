@@ -5,6 +5,7 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"math/rand"
 	"net/http"
@@ -32,6 +33,33 @@ type Rediser interface {
 	Close() error
 }
 
+// WithOTPDeliveryMethod sets a delivery method (e.g. email, phone)
+// to be used as a channel for sending OTP codes related to a JWT token.
+func WithOTPDeliveryMethod(method auth.DeliveryMethod) auth.TokenOption {
+	return func(conf *auth.TokenConfiguration) {
+		conf.DeliveryMethod = method
+	}
+}
+
+// WithOTPAddress sets an address to receive a randomly generated
+// OTP code. If a delivery method is configured on the token without
+// a corresponding address, we will deliver the OTP code to the user's
+// default sending address.
+func WithOTPAddress(address string) auth.TokenOption {
+	return func(conf *auth.TokenConfiguration) {
+		conf.DeliveryAddress = address
+	}
+}
+
+// WithRefreshableToken uses an older JWT token as a basis for creating
+// a new token. ClientID hashes and the token ID will be carried over
+// to the new token with an updated expiry time.
+func WithRefreshableToken(token *auth.Token) auth.TokenOption {
+	return func(conf *auth.TokenConfiguration) {
+		conf.RefreshableToken = token
+	}
+}
+
 // service is an implementation of auth.TokenService
 // backed by redis.
 type service struct {
@@ -46,28 +74,39 @@ type service struct {
 	cookieDomain string
 }
 
-// Create creates a new, unsigned JWT token for a User.
-// On success it returns a token and the unhashed ClientID.
-func (s *service) Create(ctx context.Context, user *auth.User, state auth.TokenState) (*auth.Token, error) {
-	tokenULID, err := ulid.New(ulid.Now(), s.entropy)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot generate unique token ID")
+// Create creates a new, unsigned JWT token for a User
+// with optional configuration settings.
+func (s *service) Create(ctx context.Context, user *auth.User, state auth.TokenState, options ...auth.TokenOption) (*auth.Token, error) {
+	conf := &auth.TokenConfiguration{}
+	for _, opt := range options {
+		opt(conf)
 	}
 
-	tokenID := tokenULID.String()
-	clientID := genClientID()
-	clientIDHash, err := genClientIDHash(clientID)
+	tokenULID, err := s.genULID(conf)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to write client ID")
+		return nil, err
+	}
+
+	clientID, clientIDHash, err := s.genClientIDAndHash(conf)
+	if err != nil {
+		return nil, err
+	}
+
+	code, codeHash, err := s.genOTPAndHash(conf, user)
+	if err != nil {
+		return nil, err
 	}
 
 	expiresAt := time.Now().Add(s.tokenExpiry).Unix()
+
 	token := auth.Token{
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expiresAt,
-			Id:        tokenID,
+			Id:        tokenULID,
 			Issuer:    s.issuer,
 		},
+		Code:         code,
+		CodeHash:     codeHash,
 		UserID:       user.ID,
 		Email:        user.Email.String,
 		Phone:        user.Phone.String,
@@ -77,75 +116,6 @@ func (s *service) Create(ctx context.Context, user *auth.User, state auth.TokenS
 	}
 
 	return &token, nil
-}
-
-// CreateWithOTP creaets a new, unsigned JWT token for a User with
-// an embedded OTP code to be sent to a user's address. On success it
-// returns a token and the unhashed client ID.
-func (s *service) CreateWithOTP(
-	ctx context.Context, user *auth.User, state auth.TokenState, method auth.DeliveryMethod,
-) (*auth.Token, error) {
-	token, err := s.Create(ctx, user, state)
-	if err != nil {
-		return nil, err
-	}
-
-	if method != auth.Phone && method != auth.Email {
-		return nil, auth.ErrInvalidField("invalid delivery method")
-	}
-
-	var address string
-	if method == auth.Email && user.IsEmailOTPAllowed {
-		address = user.Email.String
-	}
-
-	if method == auth.Phone && user.IsPhoneOTPAllowed {
-		address = user.Phone.String
-	}
-
-	if address == "" {
-		return nil, auth.ErrInvalidField("delivery address is not valid")
-	}
-
-	code, codeHash, err := s.otp.OTPCode(address, method)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to generate OTP code")
-	}
-
-	token.Code = code
-	token.CodeHash = codeHash
-
-	return token, nil
-}
-
-// CreateWithOTP creaets a new, unsigned JWT token for a User with
-// an embedded OTP code to be sent to any address. On success it
-// returns a token and the unhashed client ID.
-func (s *service) CreateWithOTPAndAddress(
-	ctx context.Context, user *auth.User, state auth.TokenState, method auth.DeliveryMethod, addr string,
-) (*auth.Token, error) {
-	token, err := s.Create(ctx, user, state)
-	if err != nil {
-		return nil, err
-	}
-
-	if method != auth.Phone && method != auth.Email {
-		return nil, auth.ErrInvalidField("invalid delivery method")
-	}
-
-	if addr == "" {
-		return nil, auth.ErrInvalidField("address cannot be blank")
-	}
-
-	code, codeHash, err := s.otp.OTPCode(addr, method)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to generate OTP code")
-	}
-
-	token.Code = code
-	token.CodeHash = codeHash
-
-	return token, nil
 }
 
 // Sign creates a signed JWT token string from a token struct.
@@ -239,10 +209,6 @@ func (s *service) Cookie(ctx context.Context, token *auth.Token) *http.Cookie {
 	return &cookie
 }
 
-func (s *service) Refresh(ctx context.Context, token *auth.Token, refreshKey string) (*auth.Token, error) {
-	return nil, errors.New("not implemented")
-}
-
 func (s *service) isClientIDValid(clientID, clientIDHash string) bool {
 	h, err := genClientIDHash(clientID)
 	if err != nil {
@@ -254,6 +220,69 @@ func (s *service) isClientIDValid(clientID, clientIDHash string) bool {
 	}
 
 	return true
+}
+
+func (s *service) genULID(conf *auth.TokenConfiguration) (string, error) {
+	if conf.RefreshableToken != nil {
+		return conf.RefreshableToken.StandardClaims.Id, nil
+	}
+
+	tokenULID, err := ulid.New(ulid.Now(), s.entropy)
+	if err != nil {
+		return "", fmt.Errorf("cannot generate unique token ID: %w", err)
+	}
+
+	return tokenULID.String(), nil
+}
+
+func (s *service) genClientIDAndHash(conf *auth.TokenConfiguration) (string, string, error) {
+	if conf.RefreshableToken != nil {
+		return "", conf.RefreshableToken.ClientIDHash, nil
+	}
+
+	clientID := genClientID()
+	clientIDHash, err := genClientIDHash(clientID)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to write client ID: %w", err)
+	}
+
+	return clientID, clientIDHash, nil
+}
+
+func (s *service) genOTPAndHash(conf *auth.TokenConfiguration, user *auth.User) (string, string, error) {
+	if conf.DeliveryMethod == "" {
+		return "", "", nil
+	}
+
+	address := conf.DeliveryAddress
+	sendToDefaultAddress := address == ""
+
+	usePhoneNumber := conf.DeliveryMethod == auth.Phone &&
+		user.IsPhoneOTPAllowed &&
+		sendToDefaultAddress
+
+	useEmailAddress := conf.DeliveryMethod == auth.Email &&
+		user.IsEmailOTPAllowed &&
+		sendToDefaultAddress
+
+	if usePhoneNumber {
+		address = user.Phone.String
+	}
+
+	if useEmailAddress {
+		address = user.Email.String
+	}
+
+	if address == "" {
+		return "", "", auth.ErrInvalidField("delivery address is not valid")
+	}
+
+	code, codeHash, err := s.otp.OTPCode(address, conf.DeliveryMethod)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to generate OTP code: %w", err)
+	}
+
+	return code, codeHash, nil
 }
 
 func genClientID() string {
