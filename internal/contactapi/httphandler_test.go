@@ -246,6 +246,8 @@ func TestContactAPI_Verify(t *testing.T) {
 		statusCode        int
 		otpValidateFn     func(code, hash string) error
 		tokenValidateFn   func(userID string) func() (*auth.Token, error)
+		tokenCreateFn func() (*auth.Token, error)
+		tokenSignFn func() (string, error)
 		phone             string
 		email             string
 		isPhoneOTPAllowed bool
@@ -272,6 +274,12 @@ func TestContactAPI_Verify(t *testing.T) {
 			reqBody:           []byte(`{"code":"123"}`),
 			otpValidateFn: func(code, hash string) error {
 				return nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "token", nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
 			},
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
@@ -307,6 +315,12 @@ func TestContactAPI_Verify(t *testing.T) {
 			otpValidateFn: func(code, hash string) error {
 				return nil
 			},
+			tokenSignFn: func() (string, error) {
+				return "token", nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return nil, auth.ErrInvalidToken("bad token")
@@ -333,6 +347,12 @@ func TestContactAPI_Verify(t *testing.T) {
 			reqBody:           []byte(`{"code":"123"}`),
 			otpValidateFn: func(code, hash string) error {
 				return nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "token", nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
 			},
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
@@ -368,6 +388,12 @@ func TestContactAPI_Verify(t *testing.T) {
 			otpValidateFn: func(code, hash string) error {
 				return nil
 			},
+			tokenSignFn: func() (string, error) {
+				return "token", nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{
@@ -401,6 +427,12 @@ func TestContactAPI_Verify(t *testing.T) {
 			reqBody:           []byte(`{"code":"123", "isDisabled":true}`),
 			otpValidateFn: func(code, hash string) error {
 				return nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "token", nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
 			},
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
@@ -436,6 +468,12 @@ func TestContactAPI_Verify(t *testing.T) {
 			otpValidateFn: func(code, hash string) error {
 				return nil
 			},
+			tokenSignFn: func() (string, error) {
+				return "token", nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{
@@ -469,6 +507,12 @@ func TestContactAPI_Verify(t *testing.T) {
 			reqBody:           []byte(`{"code":"123"}`),
 			otpValidateFn: func(code, hash string) error {
 				return auth.ErrInvalidCode("invalid code")
+			},
+			tokenSignFn: func() (string, error) {
+				return "token", nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
 			},
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
@@ -506,6 +550,8 @@ func TestContactAPI_Verify(t *testing.T) {
 			}
 			tokenSvc := &test.TokenService{
 				ValidateFn: tc.tokenValidateFn(tc.user.ID),
+				SignFn: tc.tokenSignFn,
+				CreateFn: tc.tokenCreateFn,
 			}
 			msgSvc := &test.MessagingService{}
 			svc := NewService(
@@ -573,6 +619,8 @@ func TestContactAPI_Disable(t *testing.T) {
 		email             string
 		statusCode        int
 		tokenValidateFn   func(userID string) func() (*auth.Token, error)
+		tokenCreateFn func() (*auth.Token, error)
+		tokenSignFn func() (string, error)
 		isPhoneOTPAllowed bool
 		isEmailOTPAllowed bool
 		authHeader        bool
@@ -595,6 +643,12 @@ func TestContactAPI_Disable(t *testing.T) {
 			phone:             "",
 			email:             "jane@example.com",
 			reqBody:           []byte(`{"deliveryMethod":"email"}`),
+			tokenSignFn: func() (string, error) {
+				return "token", nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
@@ -619,6 +673,12 @@ func TestContactAPI_Disable(t *testing.T) {
 			phone:             "",
 			email:             "jane@example.com",
 			reqBody:           []byte(`{"deliveryMethod":"email"}`),
+			tokenSignFn: func() (string, error) {
+				return "token", nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return nil, auth.ErrInvalidToken("bad token")
@@ -647,6 +707,12 @@ func TestContactAPI_Disable(t *testing.T) {
 			phone:             "+6594867353",
 			email:             "jane@example.com",
 			reqBody:           []byte(`{"deliveryMethod":"email"}`),
+			tokenSignFn: func() (string, error) {
+				return "token", nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
@@ -671,6 +737,12 @@ func TestContactAPI_Disable(t *testing.T) {
 			phone:             "",
 			email:             "jane@example.com",
 			reqBody:           []byte(`{"deliveryMethod":"email"}`),
+			tokenSignFn: func() (string, error) {
+				return "token", nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
@@ -698,6 +770,8 @@ func TestContactAPI_Disable(t *testing.T) {
 			otpSvc := &test.OTPService{}
 			tokenSvc := &test.TokenService{
 				ValidateFn: tc.tokenValidateFn(tc.user.ID),
+				SignFn: tc.tokenSignFn,
+				CreateFn: tc.tokenCreateFn,
 			}
 			msgSvc := &test.MessagingService{}
 			svc := NewService(
@@ -765,6 +839,8 @@ func TestContactAPI_Remove(t *testing.T) {
 		email             string
 		statusCode        int
 		tokenValidateFn   func(userID string) func() (*auth.Token, error)
+		tokenCreateFn func() (*auth.Token, error)
+		tokenSignFn func() (string, error)
 		isPhoneOTPAllowed bool
 		isEmailOTPAllowed bool
 		authHeader        bool
@@ -787,6 +863,12 @@ func TestContactAPI_Remove(t *testing.T) {
 			phone:             "",
 			email:             "jane@example.com",
 			reqBody:           []byte(`{"deliveryMethod":"email"}`),
+			tokenSignFn: func() (string, error) {
+				return "token", nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
@@ -811,6 +893,12 @@ func TestContactAPI_Remove(t *testing.T) {
 			phone:             "",
 			email:             "jane@example.com",
 			reqBody:           []byte(`{"deliveryMethod":"email"}`),
+			tokenSignFn: func() (string, error) {
+				return "token", nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return nil, auth.ErrInvalidToken("bad token")
@@ -839,6 +927,12 @@ func TestContactAPI_Remove(t *testing.T) {
 			phone:             "+6594867353",
 			email:             "",
 			reqBody:           []byte(`{"deliveryMethod":"email"}`),
+			tokenSignFn: func() (string, error) {
+				return "token", nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
@@ -863,6 +957,12 @@ func TestContactAPI_Remove(t *testing.T) {
 			phone:             "",
 			email:             "jane@example.com",
 			reqBody:           []byte(`{"deliveryMethod":"email"}`),
+			tokenSignFn: func() (string, error) {
+				return "token", nil
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
@@ -890,6 +990,8 @@ func TestContactAPI_Remove(t *testing.T) {
 			otpSvc := &test.OTPService{}
 			tokenSvc := &test.TokenService{
 				ValidateFn: tc.tokenValidateFn(tc.user.ID),
+				SignFn: tc.tokenSignFn,
+				CreateFn: tc.tokenCreateFn,
 			}
 			msgSvc := &test.MessagingService{}
 			svc := NewService(

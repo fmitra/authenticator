@@ -39,12 +39,14 @@ func (s *service) CheckAddress(w http.ResponseWriter, r *http.Request) (interfac
 		return nil, err
 	}
 
-	token, err := s.token.Create(
+	token := httpapi.GetToken(r)
+	token, err = s.token.Create(
 		ctx,
 		user,
 		auth.JWTAuthorized,
 		tokenLib.WithOTPDeliveryMethod(req.DeliveryMethod),
 		tokenLib.WithOTPAddress(req.Address),
+		tokenLib.WithRefreshableToken(token),
 	)
 	if err != nil {
 		return nil, err
@@ -78,13 +80,28 @@ func (s *service) Disable(w http.ResponseWriter, r *http.Request) (interface{}, 
 	ctx := r.Context()
 	userID := httpapi.GetUserID(r)
 
-	_, err = s.repoMngr.User().DisableOTP(ctx, userID, req.DeliveryMethod)
+	user, err := s.repoMngr.User().DisableOTP(ctx, userID, req.DeliveryMethod)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO Return token after implementing token refresh
-	return &tokenLib.Response{Token: "", ClientID: ""}, nil
+	token := httpapi.GetToken(r)
+	token, err = s.token.Create(
+		ctx,
+		user,
+		auth.JWTAuthorized,
+		tokenLib.WithRefreshableToken(token),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	signedToken, err := s.token.Sign(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+
+	return &tokenLib.Response{Token: signedToken}, nil
 }
 
 // Verify verifies an OTP code sent to an email or phone number. If the delivery
@@ -115,7 +132,7 @@ func (s *service) Verify(w http.ResponseWriter, r *http.Request) (interface{}, e
 		return nil, err
 	}
 
-	_, err = txClient.WithAtomic(func() (interface{}, error) {
+	entity, err := txClient.WithAtomic(func() (interface{}, error) {
 		user, err := txClient.User().GetForUpdate(ctx, userID)
 		if err != nil {
 			return nil, err
@@ -141,8 +158,23 @@ func (s *service) Verify(w http.ResponseWriter, r *http.Request) (interface{}, e
 		return nil, err
 	}
 
-	// TODO Return token after implementing token refresh
-	return &tokenLib.Response{Token: "", ClientID: ""}, nil
+	user := entity.(*auth.User)
+	token, err = s.token.Create(
+		ctx,
+		user,
+		auth.JWTAuthorized,
+		tokenLib.WithRefreshableToken(token),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	signedToken, err := s.token.Sign(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+
+	return &tokenLib.Response{Token: signedToken}, nil
 }
 
 // Remove removes a verified email or phone number from the User's profile. Removed
@@ -157,13 +189,28 @@ func (s *service) Remove(w http.ResponseWriter, r *http.Request) (interface{}, e
 	ctx := r.Context()
 	userID := httpapi.GetUserID(r)
 
-	_, err = s.repoMngr.User().RemoveDeliveryMethod(ctx, userID, req.DeliveryMethod)
+	user, err := s.repoMngr.User().RemoveDeliveryMethod(ctx, userID, req.DeliveryMethod)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO Return token after implementing token refresh
-	return &tokenLib.Response{Token: "", ClientID: ""}, nil
+	token := httpapi.GetToken(r)
+	token, err = s.token.Create(
+		ctx,
+		user,
+		auth.JWTAuthorized,
+		tokenLib.WithRefreshableToken(token),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	signedToken, err := s.token.Sign(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+
+	return &tokenLib.Response{Token: signedToken}, nil
 }
 
 // Send allows a user to request an OTP code to be delivered to them through a
@@ -185,11 +232,13 @@ func (s *service) Send(w http.ResponseWriter, r *http.Request) (interface{}, err
 		return nil, err
 	}
 
-	token, err := s.token.Create(
+	token := httpapi.GetToken(r)
+	token, err = s.token.Create(
 		ctx,
 		user,
 		auth.JWTPreAuthorized,
 		tokenLib.WithOTPDeliveryMethod(req.DeliveryMethod),
+		tokenLib.WithRefreshableToken(token),
 	)
 	if err != nil {
 		return nil, err
@@ -209,5 +258,5 @@ func (s *service) Send(w http.ResponseWriter, r *http.Request) (interface{}, err
 		return nil, err
 	}
 
-	return &tokenLib.Response{Token: signedToken, ClientID: token.ClientID}, nil
+	return &tokenLib.Response{Token: signedToken}, nil
 }
