@@ -89,7 +89,14 @@ func (w *WebAuthn) FinishSignUp(ctx context.Context, user *auth.User, r *http.Re
 		SignCount: credential.Authenticator.SignCount,
 	}
 
-	err = w.repoMngr.Device().Create(ctx, &device)
+	var enableDeviceFn func(ctx context.Context, user *auth.User, device *auth.Device) error
+	if user.IsDeviceAllowed {
+		enableDeviceFn = w.enableAdditionalDevice
+	} else {
+		enableDeviceFn = w.enableNewDevice
+	}
+
+	err = enableDeviceFn(ctx, user, &device)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create device")
 	}
@@ -207,6 +214,45 @@ func (w *WebAuthn) prepareChallenge(ctx context.Context, user *auth.User, sessio
 	}
 
 	return credentialBytes, nil
+}
+
+func (w *WebAuthn) enableAdditionalDevice(ctx context.Context, user *auth.User, device *auth.Device) error {
+	return w.repoMngr.Device().Create(ctx, device)
+}
+
+func (w *WebAuthn) enableNewDevice(ctx context.Context, user *auth.User, device *auth.Device) error {
+	txClient, err := w.repoMngr.NewWithTransaction(ctx)
+	if err != nil {
+		return err
+	}
+
+	entity, err := txClient.WithAtomic(func() (interface{}, error) {
+		user, err := txClient.User().GetForUpdate(ctx, user.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		if err = txClient.Device().Create(ctx, device); err != nil {
+			return nil, err
+		}
+
+		user.IsDeviceAllowed = true
+		if err = txClient.User().Update(ctx, user); err != nil {
+			return nil, err
+		}
+
+		return device, nil
+	})
+	if err != nil {
+		return err
+	}
+
+	device = entity.(*auth.Device)
+	// Propagate changes from the transaction over to the user
+	// to avoid additional DB lookups
+	user.IsDeviceAllowed = true
+
+	return nil
 }
 
 func newSessionKey(userID string) string {

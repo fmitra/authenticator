@@ -50,8 +50,8 @@ func WithMessaging(m auth.MessagingService) ConfigOption {
 	}
 }
 
-// WithToken configures the service with a TokenService.
-func WithToken(t auth.TokenService) ConfigOption {
+// WithTokenService configures the service with a TokenService.
+func WithTokenService(t auth.TokenService) ConfigOption {
 	return func(s *service) {
 		s.token = t
 	}

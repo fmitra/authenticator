@@ -243,6 +243,7 @@ func main() {
 		deviceapi.WithLogger(logger),
 		deviceapi.WithWebAuthn(webauthnSvc),
 		deviceapi.WithRepoManager(repoMngr),
+		deviceapi.WithTokenService(tokenSvc),
 	)
 
 	contactAPI := contactapi.NewService(
@@ -250,13 +251,14 @@ func main() {
 		contactapi.WithOTP(otpSvc),
 		contactapi.WithRepoManager(repoMngr),
 		contactapi.WithMessaging(messagingSvc),
-		contactapi.WithToken(tokenSvc),
+		contactapi.WithTokenService(tokenSvc),
 	)
 
 	totpAPI := totpapi.NewService(
 		totpapi.WithLogger(logger),
 		totpapi.WithOTP(otpSvc),
 		totpapi.WithRepoManager(repoMngr),
+		totpapi.WithTokenService(tokenSvc),
 	)
 
 	router := mux.NewRouter()

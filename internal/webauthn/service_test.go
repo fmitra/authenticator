@@ -12,6 +12,7 @@ import (
 
 	webauthnProto "github.com/duo-labs/webauthn/protocol"
 	webauthnLib "github.com/duo-labs/webauthn/webauthn"
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
@@ -436,8 +437,9 @@ func TestWebAuthnSvc_FinishSignUpSuccess(t *testing.T) {
 
 	ctx := context.Background()
 	user := &auth.User{
-		Password:  "swordfish",
-		TFASecret: "tfa_secret",
+		Password:        "swordfish",
+		TFASecret:       "tfa_secret",
+		IsDeviceAllowed: false,
 		Email: sql.NullString{
 			String: "jane@example.com",
 			Valid:  true,
@@ -480,12 +482,15 @@ func TestWebAuthnSvc_FinishSignUpSuccess(t *testing.T) {
 			device.ClientID, clientID)
 	}
 
-	device, err = repoMngr.Device().ByID(ctx, device.ID)
-	if err != nil {
-		t.Error("device not found:", err)
+	if !cmp.Equal(len(device.ID), 26) {
+		t.Error("device ULID has incorrect char length", cmp.Diff(
+			len(device.ID),
+			26,
+		))
 	}
-	if device.ID == "" {
-		t.Error("device ID not set")
+
+	if !user.IsDeviceAllowed {
+		t.Error("user.IsDeviceAllowed should be true")
 	}
 }
 

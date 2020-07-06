@@ -198,7 +198,7 @@ func TestContactAPI_CheckAddress(t *testing.T) {
 				WithOTP(otpSvc),
 				WithRepoManager(repoMngr),
 				WithMessaging(msgSvc),
-				WithToken(tokenSvc),
+				WithTokenService(tokenSvc),
 			)
 
 			req, err := http.NewRequest("POST", "/api/v1/contact/check-address", bytes.NewBuffer(tc.reqBody))
@@ -558,7 +558,7 @@ func TestContactAPI_Verify(t *testing.T) {
 				WithOTP(otpSvc),
 				WithRepoManager(repoMngr),
 				WithMessaging(msgSvc),
-				WithToken(tokenSvc),
+				WithTokenService(tokenSvc),
 			)
 
 			req, err := http.NewRequest("POST", "/api/v1/contact/verify", bytes.NewBuffer(tc.reqBody))
@@ -778,7 +778,7 @@ func TestContactAPI_Disable(t *testing.T) {
 				WithOTP(otpSvc),
 				WithRepoManager(repoMngr),
 				WithMessaging(msgSvc),
-				WithToken(tokenSvc),
+				WithTokenService(tokenSvc),
 			)
 
 			req, err := http.NewRequest("POST", "/api/v1/contact/disable", bytes.NewBuffer(tc.reqBody))
@@ -998,7 +998,7 @@ func TestContactAPI_Remove(t *testing.T) {
 				WithOTP(otpSvc),
 				WithRepoManager(repoMngr),
 				WithMessaging(msgSvc),
-				WithToken(tokenSvc),
+				WithTokenService(tokenSvc),
 			)
 
 			req, err := http.NewRequest("POST", "/api/v1/contact/remove", bytes.NewBuffer(tc.reqBody))
@@ -1179,7 +1179,7 @@ func TestContactAPI_Send(t *testing.T) {
 				WithOTP(otpSvc),
 				WithRepoManager(repoMngr),
 				WithMessaging(&msgSvc),
-				WithToken(tokenSvc),
+				WithTokenService(tokenSvc),
 			)
 
 			req, err := http.NewRequest("POST", "/api/v1/contact/send", bytes.NewBuffer(tc.reqBody))

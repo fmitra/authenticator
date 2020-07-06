@@ -42,3 +42,10 @@ func WithRepoManager(repoMngr auth.RepositoryManager) ConfigOption {
 		s.repoMngr = repoMngr
 	}
 }
+
+// WithTokenService configures the service with a TokenService.
+func WithTokenService(t auth.TokenService) ConfigOption {
+	return func(s *service) {
+		s.token = t
+	}
+}

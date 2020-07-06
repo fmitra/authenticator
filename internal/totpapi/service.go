@@ -18,6 +18,7 @@ type service struct {
 	logger   log.Logger
 	otp      auth.OTPService
 	repoMngr auth.RepositoryManager
+	token    auth.TokenService
 }
 
 // Secret sets a new TOTP secret on a User's profile and delivers it back to the user
@@ -146,6 +147,22 @@ func (s *service) configureTOTP(ctx context.Context, r *http.Request, user *auth
 	}
 
 	*user = *entity.(*auth.User)
-	// TODO Return token after implementing token refresh
-	return &tokenLib.Response{Token: "", ClientID: ""}, nil
+
+	token := httpapi.GetToken(r)
+	token, err = s.token.Create(
+		ctx,
+		user,
+		auth.JWTAuthorized,
+		tokenLib.WithRefreshableToken(token),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	signedToken, err := s.token.Sign(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+
+	return &tokenLib.Response{Token: signedToken}, nil
 }
