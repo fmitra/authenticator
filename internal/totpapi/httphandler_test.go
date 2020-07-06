@@ -259,6 +259,8 @@ func TestTOTPAPI_Verify(t *testing.T) {
 		statusCode      int
 		tokenValidateFn func(userID string) func() (*auth.Token, error)
 		validateTOTPFn  func(u *auth.User, code string) error
+		tokenCreateFn   func() (*auth.Token, error)
+		tokenSignFn     func() (string, error)
 		authHeader      bool
 		isTOTPAllowed   bool
 	}{
@@ -284,6 +286,12 @@ func TestTOTPAPI_Verify(t *testing.T) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
 				}
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "token", nil
 			},
 			validateTOTPFn: func(u *auth.User, code string) error {
 				return nil
@@ -312,6 +320,12 @@ func TestTOTPAPI_Verify(t *testing.T) {
 					return nil, auth.ErrInvalidToken("bad token")
 				}
 			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "token", nil
+			},
 			validateTOTPFn: func(u *auth.User, code string) error {
 				return nil
 			},
@@ -338,6 +352,12 @@ func TestTOTPAPI_Verify(t *testing.T) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
 				}
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "token", nil
 			},
 			validateTOTPFn: func(u *auth.User, code string) error {
 				return nil
@@ -366,6 +386,12 @@ func TestTOTPAPI_Verify(t *testing.T) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
 				}
 			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "token", nil
+			},
 			validateTOTPFn: func(u *auth.User, code string) error {
 				return nil
 			},
@@ -392,6 +418,12 @@ func TestTOTPAPI_Verify(t *testing.T) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
 				}
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "token", nil
 			},
 			validateTOTPFn: func(u *auth.User, code string) error {
 				return auth.ErrInvalidCode("incorrect code provided")
@@ -420,6 +452,12 @@ func TestTOTPAPI_Verify(t *testing.T) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
 				}
 			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "token", nil
+			},
 			validateTOTPFn: func(u *auth.User, code string) error {
 				return nil
 			},
@@ -446,6 +484,12 @@ func TestTOTPAPI_Verify(t *testing.T) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
 				}
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "token", nil
 			},
 			validateTOTPFn: func(u *auth.User, code string) error {
 				return nil
@@ -474,11 +518,14 @@ func TestTOTPAPI_Verify(t *testing.T) {
 			}
 			tokenSvc := &test.TokenService{
 				ValidateFn: tc.tokenValidateFn(tc.user.ID),
+				CreateFn:   tc.tokenCreateFn,
+				SignFn:     tc.tokenSignFn,
 			}
 
 			svc := NewService(
 				WithOTP(otpSvc),
 				WithRepoManager(repoMngr),
+				WithTokenService(tokenSvc),
 			)
 
 			req, err := http.NewRequest("POST", "/api/v1/totp/configure", bytes.NewBuffer(tc.reqBody))
@@ -527,6 +574,8 @@ func TestTOTPAPI_Remove(t *testing.T) {
 		errMessage      string
 		reqBody         []byte
 		tokenValidateFn func(userID string) func() (*auth.Token, error)
+		tokenCreateFn   func() (*auth.Token, error)
+		tokenSignFn     func() (string, error)
 		validateTOTPFn  func(u *auth.User, code string) error
 	}{
 		{
@@ -551,6 +600,12 @@ func TestTOTPAPI_Remove(t *testing.T) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
 				}
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "token", nil
 			},
 			validateTOTPFn: func(u *auth.User, code string) error {
 				return nil
@@ -578,6 +633,12 @@ func TestTOTPAPI_Remove(t *testing.T) {
 				return func() (*auth.Token, error) {
 					return nil, auth.ErrInvalidToken("bad token")
 				}
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "token", nil
 			},
 			validateTOTPFn: func(u *auth.User, code string) error {
 				return nil
@@ -633,6 +694,12 @@ func TestTOTPAPI_Remove(t *testing.T) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
 				}
 			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "token", nil
+			},
 			validateTOTPFn: func(u *auth.User, code string) error {
 				return nil
 			},
@@ -659,6 +726,12 @@ func TestTOTPAPI_Remove(t *testing.T) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
 				}
+			},
+			tokenCreateFn: func() (*auth.Token, error) {
+				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+			},
+			tokenSignFn: func() (string, error) {
+				return "token", nil
 			},
 			validateTOTPFn: func(u *auth.User, code string) error {
 				return auth.ErrInvalidCode("incorrect code provided")
@@ -687,11 +760,14 @@ func TestTOTPAPI_Remove(t *testing.T) {
 			}
 			tokenSvc := &test.TokenService{
 				ValidateFn: tc.tokenValidateFn(tc.user.ID),
+				CreateFn:   tc.tokenCreateFn,
+				SignFn:     tc.tokenSignFn,
 			}
 
 			svc := NewService(
 				WithOTP(otpSvc),
 				WithRepoManager(repoMngr),
+				WithTokenService(tokenSvc),
 			)
 
 			req, err := http.NewRequest("DELETE", "/api/v1/totp/configure", bytes.NewBuffer(tc.reqBody))
