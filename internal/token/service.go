@@ -98,6 +98,7 @@ func (s *service) Create(ctx context.Context, user *auth.User, state auth.TokenS
 	}
 
 	expiresAt := time.Now().Add(s.tokenExpiry).Unix()
+	tfaOptions := s.genTFAOptions(user)
 
 	token := auth.Token{
 		StandardClaims: jwt.StandardClaims{
@@ -113,6 +114,7 @@ func (s *service) Create(ctx context.Context, user *auth.User, state auth.TokenS
 		ClientID:     clientID,
 		ClientIDHash: clientIDHash,
 		State:        state,
+		TFAOptions:   tfaOptions,
 	}
 
 	return &token, nil
@@ -220,6 +222,28 @@ func (s *service) isClientIDValid(clientID, clientIDHash string) bool {
 	}
 
 	return true
+}
+
+func (s *service) genTFAOptions(user *auth.User) []auth.TFAOptions {
+	options := []auth.TFAOptions{}
+
+	if user.IsPhoneOTPAllowed {
+		options = append(options, auth.OTPPhone)
+	}
+
+	if user.IsEmailOTPAllowed {
+		options = append(options, auth.OTPEmail)
+	}
+
+	if user.IsTOTPAllowed {
+		options = append(options, auth.TOTP)
+	}
+
+	if user.IsDeviceAllowed {
+		options = append(options, auth.FIDODevice)
+	}
+
+	return options
 }
 
 func (s *service) genULID(conf *auth.TokenConfiguration) (string, error) {

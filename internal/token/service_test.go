@@ -85,6 +85,12 @@ func TestTokenSvc_CreateAuthorized(t *testing.T) {
 		t.Error("otp codes should not be generated for authorized tokens")
 	}
 
+	if token.State != auth.JWTAuthorized {
+		t.Error("state does not match", cmp.Diff(
+			token.State, auth.JWTAuthorized,
+		))
+	}
+
 	h := sha512.New()
 	h.Write([]byte(token.ClientID))
 	clientIDHash := hex.EncodeToString(h.Sum(nil))
@@ -106,9 +112,88 @@ func TestTokenSvc_CreatePreAuthorized(t *testing.T) {
 	user := &auth.User{ID: "user_id", IsEmailOTPAllowed: true}
 	tokenSvc := NewTestTokenSvc(db)
 
-	_, err = tokenSvc.Create(ctx, user, auth.JWTPreAuthorized)
+	token, err := tokenSvc.Create(ctx, user, auth.JWTPreAuthorized)
 	if err != nil {
 		t.Fatal("failed to create token:", err)
+	}
+
+	if token.State != auth.JWTPreAuthorized {
+		t.Error("state does not match", cmp.Diff(
+			token.State, auth.JWTPreAuthorized,
+		))
+	}
+}
+
+func TestTokenSvc_CreateWithTFAOptions(t *testing.T) {
+	tt := []struct {
+		name       string
+		user       auth.User
+		tfaOptions []auth.TFAOptions
+	}{
+		{
+			name: "Support Email OTP delivery",
+			user: auth.User{
+				ID:                "user_id",
+				IsEmailOTPAllowed: true,
+			},
+			tfaOptions: []auth.TFAOptions{
+				auth.OTPEmail,
+			},
+		},
+		{
+			name: "Support Phone OTP Delivery",
+			user: auth.User{
+				ID:                "user_id",
+				IsPhoneOTPAllowed: true,
+			},
+			tfaOptions: []auth.TFAOptions{
+				auth.OTPPhone,
+			},
+		},
+		{
+			name: "Support TOTP",
+			user: auth.User{
+				ID:            "user_id",
+				IsTOTPAllowed: true,
+			},
+			tfaOptions: []auth.TFAOptions{
+				auth.TOTP,
+			},
+		},
+		{
+			name: "Support FIDO devices",
+			user: auth.User{
+				ID:              "user_id",
+				IsDeviceAllowed: true,
+			},
+			tfaOptions: []auth.TFAOptions{
+				auth.FIDODevice,
+			},
+		},
+	}
+
+	db, err := test.NewRedisDB()
+	if err != nil {
+		t.Fatal("faliled to create test database:", err)
+	}
+	defer db.Close()
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			tokenSvc := NewTestTokenSvc(db)
+
+			token, err := tokenSvc.Create(ctx, &tc.user, auth.JWTAuthorized)
+			if err != nil {
+				t.Fatal("failed to create token", err)
+			}
+
+			if !cmp.Equal(token.TFAOptions, tc.tfaOptions) {
+				t.Error("TFAOPtions does not match", cmp.Diff(
+					token.TFAOptions, tc.tfaOptions,
+				))
+			}
+		})
 	}
 }
 

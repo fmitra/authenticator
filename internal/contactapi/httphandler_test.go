@@ -246,8 +246,8 @@ func TestContactAPI_Verify(t *testing.T) {
 		statusCode        int
 		otpValidateFn     func(code, hash string) error
 		tokenValidateFn   func(userID string) func() (*auth.Token, error)
-		tokenCreateFn func() (*auth.Token, error)
-		tokenSignFn func() (string, error)
+		tokenCreateFn     func() (*auth.Token, error)
+		tokenSignFn       func() (string, error)
 		phone             string
 		email             string
 		isPhoneOTPAllowed bool
@@ -550,8 +550,8 @@ func TestContactAPI_Verify(t *testing.T) {
 			}
 			tokenSvc := &test.TokenService{
 				ValidateFn: tc.tokenValidateFn(tc.user.ID),
-				SignFn: tc.tokenSignFn,
-				CreateFn: tc.tokenCreateFn,
+				SignFn:     tc.tokenSignFn,
+				CreateFn:   tc.tokenCreateFn,
 			}
 			msgSvc := &test.MessagingService{}
 			svc := NewService(
@@ -619,8 +619,8 @@ func TestContactAPI_Disable(t *testing.T) {
 		email             string
 		statusCode        int
 		tokenValidateFn   func(userID string) func() (*auth.Token, error)
-		tokenCreateFn func() (*auth.Token, error)
-		tokenSignFn func() (string, error)
+		tokenCreateFn     func() (*auth.Token, error)
+		tokenSignFn       func() (string, error)
 		isPhoneOTPAllowed bool
 		isEmailOTPAllowed bool
 		authHeader        bool
@@ -770,8 +770,8 @@ func TestContactAPI_Disable(t *testing.T) {
 			otpSvc := &test.OTPService{}
 			tokenSvc := &test.TokenService{
 				ValidateFn: tc.tokenValidateFn(tc.user.ID),
-				SignFn: tc.tokenSignFn,
-				CreateFn: tc.tokenCreateFn,
+				SignFn:     tc.tokenSignFn,
+				CreateFn:   tc.tokenCreateFn,
 			}
 			msgSvc := &test.MessagingService{}
 			svc := NewService(
@@ -839,8 +839,8 @@ func TestContactAPI_Remove(t *testing.T) {
 		email             string
 		statusCode        int
 		tokenValidateFn   func(userID string) func() (*auth.Token, error)
-		tokenCreateFn func() (*auth.Token, error)
-		tokenSignFn func() (string, error)
+		tokenCreateFn     func() (*auth.Token, error)
+		tokenSignFn       func() (string, error)
 		isPhoneOTPAllowed bool
 		isEmailOTPAllowed bool
 		authHeader        bool
@@ -990,8 +990,8 @@ func TestContactAPI_Remove(t *testing.T) {
 			otpSvc := &test.OTPService{}
 			tokenSvc := &test.TokenService{
 				ValidateFn: tc.tokenValidateFn(tc.user.ID),
-				SignFn: tc.tokenSignFn,
-				CreateFn: tc.tokenCreateFn,
+				SignFn:     tc.tokenSignFn,
+				CreateFn:   tc.tokenCreateFn,
 			}
 			msgSvc := &test.MessagingService{}
 			svc := NewService(

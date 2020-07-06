@@ -33,9 +33,9 @@ const (
 	// TOTP allows a user to complete TFA with a TOTP
 	// device or application.
 	TOTP = "totp"
-	// Webauthn allows a user to complete TFA with a Webauthn
-	// device.
-	Webauthn = "webauthn"
+	// FIDODevice allows a user to complete TFA with a Webauthn
+	// compliant device.
+	FIDODevice = "device"
 )
 
 const (
