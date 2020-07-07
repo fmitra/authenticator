@@ -358,6 +358,8 @@ type TokenService interface {
 	Revoke(ctx context.Context, tokenID string, duration time.Duration) error
 	// Cookie returns a secure cookie to accompany a token.
 	Cookie(ctx context.Context, token *Token) *http.Cookie
+	// Refreshable checks if a provided token can be refreshed.
+	Refreshable(ctx context.Context, token *Token, refreshToken string) error
 }
 
 // WebAuthnService manages the protocol for WebAuthn authentication.

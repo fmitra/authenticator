@@ -49,17 +49,19 @@ type MessagingService struct {
 
 // TokenService mocks auth.TokenService interface.
 type TokenService struct {
-	CreateFn   func() (*auth.Token, error)
-	SignFn     func() (string, error)
-	ValidateFn func() (*auth.Token, error)
-	RevokeFn   func() error
-	CookieFn   func() *http.Cookie
-	Calls      struct {
-		Create   int
-		Sign     int
-		Validate int
-		Revoke   int
-		Cookie   int
+	RefreshableFn func() error
+	CreateFn      func() (*auth.Token, error)
+	SignFn        func() (string, error)
+	ValidateFn    func() (*auth.Token, error)
+	RevokeFn      func() error
+	CookieFn      func() *http.Cookie
+	Calls         struct {
+		Refreshable int
+		Create      int
+		Sign        int
+		Validate    int
+		Revoke      int
+		Cookie      int
 	}
 }
 
@@ -439,6 +441,15 @@ func (m *LoginHistoryRepository) Update(ctx context.Context, login *auth.LoginHi
 	m.Calls.Update++
 	if m.UpdateFn != nil {
 		return m.UpdateFn()
+	}
+	return nil
+}
+
+// Refreshable mock.
+func (m *TokenService) Refreshable(ctx context.Context, token *auth.Token, refreshToken string) error {
+	m.Calls.Refreshable++
+	if m.RefreshableFn != nil {
+		return m.RefreshableFn()
 	}
 	return nil
 }

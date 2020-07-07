@@ -502,3 +502,44 @@ func TestTokenSvc_InvalidateClientIDMismatch(t *testing.T) {
 			auth.EInvalidToken, domainErr.Code())
 	}
 }
+
+func TestTokenSvc_Refreshable(t *testing.T) {
+	tt := []struct {
+		name               string
+		errCode            auth.ErrCode
+		refreshTokenExpiry time.Duration
+	}{
+		{
+			name:               "Validates refreshable token",
+			refreshTokenExpiry: time.Minute * 2,
+			errCode:            auth.ErrCode(""),
+		},
+		{
+			name:               "Invalidates refreshable token",
+			errCode:            auth.EInvalidToken,
+			refreshTokenExpiry: time.Millisecond,
+		},
+	}
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			tokenSvc := &service{
+				refreshTokenExpiry: tc.refreshTokenExpiry,
+			}
+			token := &auth.Token{}
+			refreshToken, refreshTokenHash, err := tokenSvc.genRefreshTokenAndHash(&auth.TokenConfiguration{})
+			if err != nil {
+				t.Fatal("failed to create refresh token")
+			}
+
+			token.RefreshTokenHash = refreshTokenHash
+
+			err = tokenSvc.Refreshable(ctx, token, refreshToken)
+			if !cmp.Equal(auth.ErrorCode(err), tc.errCode) {
+				t.Error("error code does not match", cmp.Diff(
+					auth.ErrorCode(err), tc.errCode,
+				))
+			}
+		})
+	}
+}

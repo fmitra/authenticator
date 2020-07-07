@@ -2,11 +2,11 @@ package token
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -187,7 +187,7 @@ func (s *service) Validate(ctx context.Context, signedToken string, clientID str
 		return nil, auth.ErrInvalidToken("token is not associated with user")
 	}
 
-	if !s.isClientIDValid(clientID, token.ClientIDHash) {
+	if !s.isHashValid(clientID, token.ClientIDHash) {
 		return nil, auth.ErrInvalidToken("token source is invalid")
 	}
 
@@ -223,13 +223,37 @@ func (s *service) Cookie(ctx context.Context, token *auth.Token) *http.Cookie {
 	return &cookie
 }
 
-func (s *service) isClientIDValid(clientID, clientIDHash string) bool {
-	h, err := crypto.Hash(clientID)
+// Refreshable checks if a provided token can be refreshed.
+func (s *service) Refreshable(ctx context.Context, token *auth.Token, refreshToken string) error {
+	if !s.isHashValid(refreshToken, token.RefreshTokenHash) {
+		return auth.ErrInvalidToken("refresh token is invalid")
+	}
+
+	split := strings.Split(refreshToken, ":")
+	if len(split) != 2 {
+		return fmt.Errorf("incorrect token segments")
+	}
+
+	expiry, err := strconv.ParseInt(split[1], 10, 64)
+	if err != nil {
+		return fmt.Errorf("invalid expiry time")
+	}
+
+	now := time.Now().Unix()
+	if now >= expiry {
+		return auth.ErrInvalidToken("refresh token is expired")
+	}
+
+	return nil
+}
+
+func (s *service) isHashValid(str, hash string) bool {
+	h, err := crypto.Hash(str)
 	if err != nil {
 		return false
 	}
 
-	if h != clientIDHash {
+	if h != hash {
 		return false
 	}
 
@@ -330,15 +354,13 @@ func (s *service) genRefreshTokenAndHash(conf *auth.TokenConfiguration) (string,
 		return "", conf.RefreshableToken.RefreshTokenHash, nil
 	}
 
-	r, err := crypto.String(refreshTokenLen)
+	r, err := crypto.StringB64(refreshTokenLen)
 	if err != nil {
 		return "", "", err
 	}
 
 	expiresAt := time.Now().Add(s.refreshTokenExpiry).Unix()
-	refreshToken := base64.StdEncoding.EncodeToString([]byte(
-		fmt.Sprintf("%s:%v", r, expiresAt),
-	))
+	refreshToken := fmt.Sprintf("%s:%v", r, expiresAt)
 
 	h, err := crypto.Hash(refreshToken)
 	if err != nil {
