@@ -303,6 +303,12 @@ type UserRepository interface {
 	RemoveDeliveryMethod(ctx context.Context, userID string, method DeliveryMethod) (*User, error)
 }
 
+// TokenRepository represents a local storage for JWT tokens.
+type TokenRepository interface {
+	// IsRevoked checks if a JWT token has been revoked by a User.
+	IsRevoked(ctx context.Context, tokenID string) (bool, error)
+}
+
 // RepositoryManager manages repositories stored in storages
 // with atomic properties.
 type RepositoryManager interface {

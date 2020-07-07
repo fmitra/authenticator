@@ -11,7 +11,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	mathRand "math/rand"
 	"net/url"
 	"strconv"
 	"strings"
@@ -22,6 +21,7 @@ import (
 	"github.com/pquerna/otp/totp"
 
 	auth "github.com/fmitra/authenticator"
+	"github.com/fmitra/authenticator/internal/random"
 )
 
 // Secret stores a versioned secret key for cryptography functions.
@@ -49,15 +49,11 @@ type OTP struct {
 
 // OTPCode creates a random code and hash.
 func (o *OTP) OTPCode(address string, method auth.DeliveryMethod) (code string, hash string, err error) {
-	mathRand.Seed(time.Now().UnixNano())
-
-	b := make([]rune, o.codeLength)
-	opts := []rune("0123456789")
-	for i := range b {
-		b[i] = opts[mathRand.Intn(len(opts))]
+	c, err := random.String(o.codeLength, "0123456")
+	if err != nil {
+		return "", "", err
 	}
 
-	c := string(b)
 	h, err := toOTPHash(c, address, method)
 	if err != nil {
 		return "", "", err

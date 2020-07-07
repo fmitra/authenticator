@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"math/rand"
 	"net/http"
 	"strings"
 	"time"
@@ -19,6 +18,7 @@ import (
 	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
+	"github.com/fmitra/authenticator/internal/random"
 )
 
 // ClientIDCookie is the cookie name used to set the token's
@@ -264,10 +264,14 @@ func (s *service) genClientIDAndHash(conf *auth.TokenConfiguration) (string, str
 		return "", conf.RefreshableToken.ClientIDHash, nil
 	}
 
-	clientID := genClientID()
+	clientID, err := random.StringB64(40)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to generate client ID: %w", err)
+	}
+
 	clientIDHash, err := genClientIDHash(clientID)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to write client ID: %w", err)
+		return "", "", fmt.Errorf("failed to hash client ID: %w", err)
 	}
 
 	return clientID, clientIDHash, nil
@@ -307,19 +311,6 @@ func (s *service) genOTPAndHash(conf *auth.TokenConfiguration, user *auth.User) 
 	}
 
 	return code, codeHash, nil
-}
-
-func genClientID() string {
-	rand.Seed(time.Now().UnixNano())
-
-	length := 40
-	b := make([]rune, length)
-	opts := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789")
-	for i := range b {
-		b[i] = opts[rand.Intn(len(opts))]
-	}
-
-	return string(b)
 }
 
 func genClientIDHash(clientID string) (string, error) {
