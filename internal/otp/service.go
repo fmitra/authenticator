@@ -6,9 +6,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
-	"crypto/sha512"
 	"encoding/base64"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"net/url"
@@ -21,7 +19,7 @@ import (
 	"github.com/pquerna/otp/totp"
 
 	auth "github.com/fmitra/authenticator"
-	"github.com/fmitra/authenticator/internal/random"
+	"github.com/fmitra/authenticator/internal/crypto"
 )
 
 // Secret stores a versioned secret key for cryptography functions.
@@ -49,7 +47,7 @@ type OTP struct {
 
 // OTPCode creates a random code and hash.
 func (o *OTP) OTPCode(address string, method auth.DeliveryMethod) (code string, hash string, err error) {
-	c, err := random.String(o.codeLength, "0123456")
+	c, err := crypto.String(o.codeLength, "0123456")
 	if err != nil {
 		return "", "", err
 	}
@@ -119,7 +117,7 @@ func (o *OTP) ValidateOTP(code string, hash string) error {
 		return auth.ErrInvalidCode("code is expired")
 	}
 
-	h, err := hashString(code)
+	h, err := crypto.Hash(code)
 	if err != nil {
 		return auth.ErrInvalidCode("code submission failed")
 	}
@@ -251,18 +249,8 @@ func (o *OTP) decrypt(encryptedTxt string) (string, error) {
 	return string(decoded), nil
 }
 
-func hashString(value string) (string, error) {
-	h := sha512.New()
-	_, err := h.Write([]byte(value))
-	if err != nil {
-		return "", err
-	}
-
-	return hex.EncodeToString(h.Sum(nil)), nil
-}
-
 func toOTPHash(code, address string, method auth.DeliveryMethod) (string, error) {
-	codeHash, err := hashString(code)
+	codeHash, err := crypto.Hash(code)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to hash code")
 	}

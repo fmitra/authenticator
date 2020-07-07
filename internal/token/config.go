@@ -9,14 +9,18 @@ import (
 	auth "github.com/fmitra/authenticator"
 )
 
-const defaultTokenExpiry = time.Minute * 20
+const (
+	defaultTokenExpiry        = time.Minute * 20
+	defaultRefreshTokenExpiry = time.Hour * 24 * 15
+)
 
 // NewService returns a new TokenService.
 func NewService(options ...ConfigOption) auth.TokenService {
 	s := service{
-		logger:      log.NewNopLogger(),
-		tokenExpiry: defaultTokenExpiry,
-		issuer:      auth.Issuer,
+		logger:             log.NewNopLogger(),
+		tokenExpiry:        defaultTokenExpiry,
+		refreshTokenExpiry: defaultRefreshTokenExpiry,
+		issuer:             auth.Issuer,
 	}
 
 	for _, opt := range options {
@@ -48,6 +52,14 @@ func WithDB(db Rediser) ConfigOption {
 func WithTokenExpiry(expiresIn time.Duration) ConfigOption {
 	return func(s *service) {
 		s.tokenExpiry = expiresIn
+	}
+}
+
+// WithRefreshTokenExpiry defines how long a refresh token is valid for.
+// The default value is 15 days.
+func WithRefreshTokenExpiry(expiresIn time.Duration) ConfigOption {
+	return func(s *service) {
+		s.refreshTokenExpiry = expiresIn
 	}
 }
 

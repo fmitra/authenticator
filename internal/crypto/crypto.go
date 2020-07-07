@@ -1,9 +1,11 @@
-// Package random provides secure random strings.
-package random
+// Package crypto provides cryptographic utility functions.
+package crypto
 
 import (
 	"crypto/rand"
+	"crypto/sha512"
 	"encoding/base64"
+	"encoding/hex"
 	"strings"
 )
 
@@ -16,7 +18,6 @@ func Bytes(length int) ([]byte, error) {
 	}
 	return b, nil
 }
-
 
 // BytesFromSample returns securely generated random bytes from a string
 // sample.
@@ -49,7 +50,6 @@ func String(length int, samples ...string) (string, error) {
 	return string(b), nil
 }
 
-
 // StringB64 returns a securely generated random string from an optional
 // sample, encoded in base64.
 func StringB64(length int, samples ...string) (string, error) {
@@ -59,4 +59,15 @@ func StringB64(length int, samples ...string) (string, error) {
 	}
 
 	return base64.StdEncoding.EncodeToString(b), nil
+}
+
+// Hash returns a sha512 hash of a string.
+func Hash(s string) (string, error) {
+	h := sha512.New()
+	_, err := h.Write([]byte(s))
+	if err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(h.Sum(nil)), nil
 }

@@ -196,7 +196,7 @@ type Token struct {
 	// the JWT token body.
 	ClientID string `json:"-"`
 	// ClientIDHash is hash of an ID stored in the client for which
-	// the token was delivered too. A token is only valid when the
+	// the token was delivered to. A token is only valid when the
 	// hash's corresponding ClientID is delivered alongside the JWT token.
 	ClientIDHash string `json:"client_id"`
 	// UserID is the User's ID.
@@ -218,6 +218,14 @@ type Token struct {
 	// validated by ensuring the SHA512 hash of the value matches the
 	// CodeHash embedded in the token.
 	Code string `json:"-"`
+	// RefreshToken is the unhashed refresh token stored securely on
+	// the client and used to refresh an expired JWT token. RefreshTokens
+	// have separate expiry times compared to the JWT token.
+	RefreshToken string `json:"-"`
+	// RefreshTokenHash is the hash of a RefreshToken stored on the client
+	// for which the JWT token was delivered to. A RefreshToken is validated
+	// by ensuring the SHA512 hash of the value matches the RefreshTokenHash.
+	RefreshTokenHash string `json:"refresh_token"`
 	// TFAOptions represents available options a user may use to complete
 	// 2FA.
 	TFAOptions []TFAOptions `json:"tfa_options"`

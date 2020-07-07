@@ -70,6 +70,7 @@ func main() {
 		fs.Int("otp.secret.version", 1, "Current version of encryption key")
 		fs.Int("msgconsumer.workers", 4, "Total number of workers to process outgoing messages")
 		fs.Duration("token.expires-in", time.Minute*20, "JWT token expiry time")
+		fs.Duration("token.refresh-expires-in", time.Hour*24*15, "Refresh token expiry time")
 		fs.String("token.issuer", "authenticator", "JWT token issuer")
 		fs.String("token.secret", "", "JWT token secret")
 		fs.String("webauthn.display-name", "Authenticator", "Webauthn display name")
@@ -201,6 +202,7 @@ func main() {
 		token.WithLogger(logger),
 		token.WithDB(redisDB),
 		token.WithTokenExpiry(viper.GetDuration("token.expires-in")),
+		token.WithRefreshTokenExpiry(viper.GetDuration("token.refresh-expires-in")),
 		token.WithEntropy(entropy),
 		token.WithIssuer(viper.GetString("token.issuer")),
 		token.WithSecret(viper.GetString("token.secret")),

@@ -25,6 +25,7 @@
     }
   },
   "token": {
+    "refresh-expires-in": "360h",
     "expires-in": "20m",
     "issuer": "authenticator",
     "secret": "secret"

@@ -2,8 +2,7 @@ package token
 
 import (
 	"context"
-	"crypto/sha512"
-	"encoding/hex"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,7 +17,12 @@ import (
 	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
-	"github.com/fmitra/authenticator/internal/random"
+	"github.com/fmitra/authenticator/internal/crypto"
+)
+
+const (
+	clientIDLen     = 40
+	refreshTokenLen = 40
 )
 
 // ClientIDCookie is the cookie name used to set the token's
@@ -63,15 +67,16 @@ func WithRefreshableToken(token *auth.Token) auth.TokenOption {
 // service is an implementation of auth.TokenService
 // backed by redis.
 type service struct {
-	logger       log.Logger
-	tokenExpiry  time.Duration
-	entropy      io.Reader
-	secret       []byte
-	issuer       string
-	db           Rediser
-	otp          auth.OTPService
-	cookieMaxAge int
-	cookieDomain string
+	logger             log.Logger
+	tokenExpiry        time.Duration
+	refreshTokenExpiry time.Duration
+	entropy            io.Reader
+	secret             []byte
+	issuer             string
+	db                 Rediser
+	otp                auth.OTPService
+	cookieMaxAge       int
+	cookieDomain       string
 }
 
 // Create creates a new, unsigned JWT token for a User
@@ -97,6 +102,11 @@ func (s *service) Create(ctx context.Context, user *auth.User, state auth.TokenS
 		return nil, err
 	}
 
+	refreshToken, refreshTokenHash, err := s.genRefreshTokenAndHash(conf)
+	if err != nil {
+		return nil, err
+	}
+
 	expiresAt := time.Now().Add(s.tokenExpiry).Unix()
 	tfaOptions := s.genTFAOptions(user)
 
@@ -106,15 +116,17 @@ func (s *service) Create(ctx context.Context, user *auth.User, state auth.TokenS
 			Id:        tokenULID,
 			Issuer:    s.issuer,
 		},
-		Code:         code,
-		CodeHash:     codeHash,
-		UserID:       user.ID,
-		Email:        user.Email.String,
-		Phone:        user.Phone.String,
-		ClientID:     clientID,
-		ClientIDHash: clientIDHash,
-		State:        state,
-		TFAOptions:   tfaOptions,
+		Code:             code,
+		CodeHash:         codeHash,
+		RefreshToken:     refreshToken,
+		RefreshTokenHash: refreshTokenHash,
+		UserID:           user.ID,
+		Email:            user.Email.String,
+		Phone:            user.Phone.String,
+		ClientID:         clientID,
+		ClientIDHash:     clientIDHash,
+		State:            state,
+		TFAOptions:       tfaOptions,
 	}
 
 	return &token, nil
@@ -212,7 +224,7 @@ func (s *service) Cookie(ctx context.Context, token *auth.Token) *http.Cookie {
 }
 
 func (s *service) isClientIDValid(clientID, clientIDHash string) bool {
-	h, err := genClientIDHash(clientID)
+	h, err := crypto.Hash(clientID)
 	if err != nil {
 		return false
 	}
@@ -264,12 +276,12 @@ func (s *service) genClientIDAndHash(conf *auth.TokenConfiguration) (string, str
 		return "", conf.RefreshableToken.ClientIDHash, nil
 	}
 
-	clientID, err := random.StringB64(40)
+	clientID, err := crypto.StringB64(clientIDLen)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate client ID: %w", err)
 	}
 
-	clientIDHash, err := genClientIDHash(clientID)
+	clientIDHash, err := crypto.Hash(clientID)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to hash client ID: %w", err)
 	}
@@ -313,12 +325,25 @@ func (s *service) genOTPAndHash(conf *auth.TokenConfiguration, user *auth.User) 
 	return code, codeHash, nil
 }
 
-func genClientIDHash(clientID string) (string, error) {
-	h := sha512.New()
-	_, err := h.Write([]byte(clientID))
-	if err != nil {
-		return "", err
+func (s *service) genRefreshTokenAndHash(conf *auth.TokenConfiguration) (string, string, error) {
+	if conf.RefreshableToken != nil {
+		return "", conf.RefreshableToken.RefreshTokenHash, nil
 	}
 
-	return hex.EncodeToString(h.Sum(nil)), nil
+	r, err := crypto.String(refreshTokenLen)
+	if err != nil {
+		return "", "", err
+	}
+
+	expiresAt := time.Now().Add(s.refreshTokenExpiry).Unix()
+	refreshToken := base64.StdEncoding.EncodeToString([]byte(
+		fmt.Sprintf("%s:%v", r, expiresAt),
+	))
+
+	h, err := crypto.Hash(refreshToken)
+	if err != nil {
+		return "", "", err
+	}
+
+	return refreshToken, h, nil
 }

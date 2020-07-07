@@ -77,12 +77,16 @@ func TestTokenSvc_CreateAuthorized(t *testing.T) {
 		t.Error("invalid ID generated for token")
 	}
 
-	if token.ClientID == "" {
+	if token.ClientID == "" || token.ClientIDHash == "" {
 		t.Error("invalid clientID generated for token")
 	}
 
 	if token.Code != "" || token.CodeHash != "" {
-		t.Error("otp codes should not be generated for authorized tokens")
+		t.Error("otp code generation should be optional")
+	}
+
+	if token.RefreshToken == "" || token.RefreshTokenHash == "" {
+		t.Error("invalid refresh token generated")
 	}
 
 	if token.State != auth.JWTAuthorized {
@@ -95,9 +99,20 @@ func TestTokenSvc_CreateAuthorized(t *testing.T) {
 	h.Write([]byte(token.ClientID))
 	clientIDHash := hex.EncodeToString(h.Sum(nil))
 
-	if clientIDHash != token.ClientIDHash {
-		t.Errorf("client ID does not match: want %s got %s",
-			clientIDHash, token.ClientID)
+	if !cmp.Equal(clientIDHash, token.ClientIDHash) {
+		t.Error("client ID does not match", cmp.Diff(
+			clientIDHash, token.ClientIDHash,
+		))
+	}
+
+	h = sha512.New()
+	h.Write([]byte(token.RefreshToken))
+	refreshTokenHash := hex.EncodeToString(h.Sum(nil))
+
+	if !cmp.Equal(refreshTokenHash, token.RefreshTokenHash) {
+		t.Error("refresh token does not match", cmp.Diff(
+			refreshTokenHash, token.RefreshTokenHash,
+		))
 	}
 }
 
