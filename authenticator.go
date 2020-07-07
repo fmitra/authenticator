@@ -249,6 +249,8 @@ type MessageRepository interface {
 
 // LoginHistoryRepository represents a local storage for LoginHistory.
 type LoginHistoryRepository interface {
+	// ByTokenID retrieves a LoginHistory record by a JWT token ID.
+	ByTokenID(ctx context.Context, tokenID string) (*LoginHistory, error)
 	// ByUserID retrieves recent LoginHistory associated with a User's ID.
 	// It supports pagination through a limit or offset value.
 	ByUserID(ctx context.Context, userID string, limit, offset int) ([]*LoginHistory, error)

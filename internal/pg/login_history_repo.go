@@ -14,6 +14,21 @@ type LoginHistoryRepository struct {
 	client *Client
 }
 
+// ByTokenID retrieves a LoginHistory record with matching JWT token ID.
+func (r *LoginHistoryRepository) ByTokenID(ctx context.Context, tokenID string) (*auth.LoginHistory, error) {
+	login := auth.LoginHistory{}
+	row := r.client.queryRowContext(ctx, r.client.loginHistoryQ["byTokenID"], tokenID)
+	err := row.Scan(
+		&login.UserID, &login.TokenID, &login.IsRevoked, &login.ExpiresAt,
+		&login.CreatedAt, &login.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &login, nil
+}
+
 // ByUserID retrieves all LoginHistory records associated with a User.
 func (r *LoginHistoryRepository) ByUserID(ctx context.Context, userID string, limit, offset int) ([]*auth.LoginHistory, error) {
 	rows, err := r.client.queryContext(

@@ -32,6 +32,11 @@ type Client struct {
 
 func (c *Client) createQueries() {
 	c.loginHistoryQ = map[string]string{
+		"byTokenID": `
+			SELECT user_id, token_id, is_revoked, expires_at, created_at, updated_at
+			FROM login_history
+			WHERE token_id = $1;
+		`,
 		"byUserID": `
 			SELECT user_id, token_id, is_revoked, expires_at, created_at, updated_at
 			FROM login_history

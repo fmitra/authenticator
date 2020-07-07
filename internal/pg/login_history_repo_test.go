@@ -6,11 +6,63 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/oklog/ulid"
 
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/test"
 )
+
+func TestLoginHistoryRepository_ByTokenID(t *testing.T) {
+	pgDB, err := test.NewPGDB()
+	if err != nil {
+		t.Fatal("failed to create test database:", err)
+	}
+	defer pgDB.DropDB()
+
+	c := TestClient(pgDB.DB)
+
+	ctx := context.Background()
+	user := auth.User{
+		Password:  "swordfish",
+		TFASecret: "tfa_secret",
+		Email: sql.NullString{
+			String: "jane@example.com",
+			Valid:  true,
+		},
+	}
+	err = c.User().Create(ctx, &user)
+	if err != nil {
+		t.Fatal("failed to create user:", err)
+	}
+
+	tokenID, err := ulid.New(ulid.Now(), c.entropy)
+	if err != nil {
+		t.Fatal("failed to generate token ID:", err)
+	}
+
+	login := auth.LoginHistory{
+		UserID:    user.ID,
+		TokenID:   tokenID.String(),
+		IsRevoked: false,
+		ExpiresAt: time.Now().Add(time.Minute * 30),
+	}
+	err = c.LoginHistory().Create(ctx, &login)
+	if err != nil {
+		t.Fatal("failed to create LoginHistory:", err)
+	}
+
+	fetchedLogin, err := c.LoginHistory().ByTokenID(ctx, tokenID.String())
+	if err != nil {
+		t.Fatal("failed to retrieve LoginHistory:", err)
+	}
+
+	if !cmp.Equal(fetchedLogin.TokenID, login.TokenID) {
+		t.Error("LoginHistory.ID does not match", cmp.Diff(
+			fetchedLogin.TokenID, login.TokenID,
+		))
+	}
+}
 
 func TestLoginHistoryRepository_Create(t *testing.T) {
 	pgDB, err := test.NewPGDB()

@@ -81,6 +81,7 @@ type RepositoryManager struct {
 
 // LoginHistoryRepository mocks auth.LoginHistoryRepository.
 type LoginHistoryRepository struct {
+	ByTokenIDFn    func() (*auth.LoginHistory, error)
 	ByUserIDFn     func() ([]*auth.LoginHistory, error)
 	CreateFn       func() error
 	GetForUpdateFn func() (*auth.LoginHistory, error)
@@ -90,6 +91,7 @@ type LoginHistoryRepository struct {
 		Create       int
 		GetForUpdate int
 		Update       int
+		ByTokenID    int
 	}
 }
 
@@ -403,6 +405,15 @@ func (m *LoginHistoryRepository) ByUserID(ctx context.Context, userID string, li
 	logins := make([]*auth.LoginHistory, 1)
 	logins = append(logins, &auth.LoginHistory{})
 	return logins, nil
+}
+
+// ByTokenID mock.
+func (m *LoginHistoryRepository) ByTokenID(ctx context.Context, tokenID string) (*auth.LoginHistory, error) {
+	m.Calls.ByTokenID++
+	if m.ByTokenIDFn != nil {
+		return m.ByTokenIDFn()
+	}
+	return &auth.LoginHistory{}, nil
 }
 
 // Create mock.
