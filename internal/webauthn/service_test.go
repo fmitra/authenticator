@@ -16,7 +16,7 @@ import (
 	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
-	"github.com/fmitra/authenticator/internal/pg"
+	"github.com/fmitra/authenticator/internal/postgres"
 	"github.com/fmitra/authenticator/internal/test"
 )
 
@@ -433,7 +433,7 @@ func TestWebAuthnSvc_FinishSignUpSuccess(t *testing.T) {
 	}
 	defer pgDB.DropDB()
 
-	repoMngr := pg.TestClient(pgDB.DB)
+	repoMngr := postgres.TestClient(pgDB.DB)
 
 	ctx := context.Background()
 	user := &auth.User{
@@ -507,7 +507,7 @@ func TestWebAuthnSvc_FinishLoginSuccess(t *testing.T) {
 	}
 	defer pgDB.DropDB()
 
-	repoMngr := pg.TestClient(pgDB.DB)
+	repoMngr := postgres.TestClient(pgDB.DB)
 
 	ctx := context.Background()
 	user := &auth.User{

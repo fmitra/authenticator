@@ -16,7 +16,7 @@ import (
 
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/otp"
-	"github.com/fmitra/authenticator/internal/pg"
+	"github.com/fmitra/authenticator/internal/postgres"
 	"github.com/fmitra/authenticator/internal/test"
 )
 
@@ -285,7 +285,7 @@ func TestSignUpAPI_SignUpExistingUser(t *testing.T) {
 	}
 	defer pgDB.DropDB()
 
-	repoMngr := pg.TestClient(pgDB.DB)
+	repoMngr := postgres.TestClient(pgDB.DB)
 
 	ctx := context.Background()
 	user := &auth.User{
@@ -496,7 +496,7 @@ func TestSignUpAPI_VerifyCodeSuccess(t *testing.T) {
 	}
 	defer pgDB.DropDB()
 
-	repoMngr := pg.TestClient(pgDB.DB)
+	repoMngr := postgres.TestClient(pgDB.DB)
 
 	ctx := context.Background()
 	user := &auth.User{

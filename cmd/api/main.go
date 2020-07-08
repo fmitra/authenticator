@@ -34,7 +34,7 @@ import (
 	"github.com/fmitra/authenticator/internal/msgrepo"
 	"github.com/fmitra/authenticator/internal/otp"
 	"github.com/fmitra/authenticator/internal/password"
-	"github.com/fmitra/authenticator/internal/pg"
+	"github.com/fmitra/authenticator/internal/postgres"
 	"github.com/fmitra/authenticator/internal/signupapi"
 	"github.com/fmitra/authenticator/internal/token"
 	"github.com/fmitra/authenticator/internal/totpapi"
@@ -180,11 +180,11 @@ func main() {
 
 	messageRepo := msgrepo.NewService(msgrepo.WithLogger(logger))
 
-	repoMngr := pg.NewClient(
-		pg.WithLogger(logger),
-		pg.WithEntropy(entropy),
-		pg.WithPassword(passwordSvc),
-		pg.WithDB(pgDB),
+	repoMngr := postgres.NewClient(
+		postgres.WithLogger(logger),
+		postgres.WithEntropy(entropy),
+		postgres.WithPassword(passwordSvc),
+		postgres.WithDB(pgDB),
 	)
 
 	otpSvc := otp.NewOTP(

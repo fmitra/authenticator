@@ -16,7 +16,7 @@ import (
 	"github.com/gorilla/mux"
 
 	auth "github.com/fmitra/authenticator"
-	"github.com/fmitra/authenticator/internal/pg"
+	"github.com/fmitra/authenticator/internal/postgres"
 	"github.com/fmitra/authenticator/internal/test"
 )
 
@@ -192,7 +192,7 @@ func TestTOTPAPI_Secret(t *testing.T) {
 			}
 			defer pgDB.DropDB()
 
-			repoMngr := pg.TestClient(pgDB.DB)
+			repoMngr := postgres.TestClient(pgDB.DB)
 			err = repoMngr.User().Create(ctx, &tc.user)
 			if err != nil {
 				t.Fatal("failed to create user:", err)
@@ -521,7 +521,7 @@ func TestTOTPAPI_Verify(t *testing.T) {
 			}
 			defer pgDB.DropDB()
 
-			repoMngr := pg.TestClient(pgDB.DB)
+			repoMngr := postgres.TestClient(pgDB.DB)
 			err = repoMngr.User().Create(ctx, &tc.user)
 			if err != nil {
 				t.Fatal("failed to create user:", err)
@@ -771,7 +771,7 @@ func TestTOTPAPI_Remove(t *testing.T) {
 			}
 			defer pgDB.DropDB()
 
-			repoMngr := pg.TestClient(pgDB.DB)
+			repoMngr := postgres.TestClient(pgDB.DB)
 			err = repoMngr.User().Create(ctx, &tc.user)
 			if err != nil {
 				t.Fatal("failed to create user:", err)
