@@ -481,8 +481,8 @@ type TokenAPI interface {
 	// Verify verifies a User's token is authenticated and
 	// valid. A valid token is not expired and not revoked.
 	Verify(w http.ResponseWriter, r *http.Request) (interface{}, error)
-	// Refresh refreshes a non-expired token with a new expiriry time.
-	// Refreshed tokens always have default permissions.
+	// Refresh refreshes an expired token with a new expiry time.
+	// Refreshed tokens share a token's original ID and client ID.
 	Refresh(w http.ResponseWriter, r *http.Request) (interface{}, error)
 }
 

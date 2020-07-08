@@ -23,8 +23,9 @@
 
 * [Token API](#token-api)
 
-  * [Revoke token](#revoke-token)
-  * [Verify token](#verify-token)
+  * [Revoke token](#token-revoke)
+  * [Verify token](#token-verify)
+  * [Refresh token](#token-refresh)
 
 * [TOTP API](#totp-api)
 
@@ -339,14 +340,19 @@ for authentication. On success, a refreshed JWT token is returned to the user.
 
 Provides endpoints to manage a User's token.
 
-### Revoke a token [POST /api/v1/token/:token_id]
+### <a name="token-revoke">Revoke a token [POST /api/v1/token/:token_id]</a>
 
-A user revokes a token, rendering it invalid for authentication.
+A user revokes a token, rendering it invalid for authentication. Revoked
+tokens can no longer be refreshed.
 
-### Verify a token [GET /api/v1/token/verify]
+### <a name="token-verify">Verify a token [GET /api/v1/token/verify]</a>
 
 A user confirms the currently used token is valid. This endpoint intends to be used
 internally by other trusted services to verify a User's authentication.
+
+### <a name="token-refresh">Refresh a token [GET /api/v1/token/refresh]</a>
+
+A user refreshes an expiring token.
 
 ## <a name="totp-api">TOTP API</a>
 

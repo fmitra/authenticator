@@ -37,6 +37,7 @@ import (
 	"github.com/fmitra/authenticator/internal/postgres"
 	"github.com/fmitra/authenticator/internal/signupapi"
 	"github.com/fmitra/authenticator/internal/token"
+	"github.com/fmitra/authenticator/internal/tokenapi"
 	"github.com/fmitra/authenticator/internal/totpapi"
 	"github.com/fmitra/authenticator/internal/twilio"
 	"github.com/fmitra/authenticator/internal/webauthn"
@@ -263,6 +264,12 @@ func main() {
 		totpapi.WithTokenService(tokenSvc),
 	)
 
+	tokenAPI := tokenapi.NewService(
+		tokenapi.WithLogger(logger),
+		tokenapi.WithRepoManager(repoMngr),
+		tokenapi.WithTokenService(tokenSvc),
+	)
+
 	router := mux.NewRouter()
 	router.HandleFunc("/healthcheck", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -274,6 +281,7 @@ func main() {
 	deviceapi.SetupHTTPHandler(deviceAPI, router, tokenSvc, logger)
 	contactapi.SetupHTTPHandler(contactAPI, router, tokenSvc, logger)
 	totpapi.SetupHTTPHandler(totpAPI, router, tokenSvc, logger)
+	tokenapi.SetupHTTPHandler(tokenAPI, router, tokenSvc, logger)
 
 	server := http.Server{
 		Addr: viper.GetString("api.http-addr"),

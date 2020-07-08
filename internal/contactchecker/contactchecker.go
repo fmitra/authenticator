@@ -29,7 +29,7 @@ func IsEmailValid(email string) bool {
 	return err == nil
 }
 
-// Validator returns ane mail or phoen validator.
+// Validator returns an email or phone validator.
 func Validator(method auth.DeliveryMethod) func(s string) bool {
 	if method == auth.Email {
 		return IsEmailValid
