@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/url"
@@ -31,10 +32,10 @@ type Secret struct {
 // Hash contains a hash of a OTP code and other variables
 // to identify characteristics of the code.
 type Hash struct {
-	CodeHash       string
-	Expiry         int64
-	Address        string
-	DeliveryMethod auth.DeliveryMethod
+	CodeHash       string              `json:"code_hash"`
+	ExpiresAt      int64               `json:"expires_at"`
+	Address        string              `json:"address"`
+	DeliveryMethod auth.DeliveryMethod `json:"delivery_method"`
 }
 
 // OTP is a credential validator for User OTP codes.
@@ -113,7 +114,7 @@ func (o *OTP) ValidateOTP(code string, hash string) error {
 	}
 
 	now := time.Now().Unix()
-	if now >= otp.Expiry {
+	if now >= otp.ExpiresAt {
 		return auth.ErrInvalidCode("code is expired")
 	}
 
@@ -255,39 +256,35 @@ func toOTPHash(code, address string, method auth.DeliveryMethod) (string, error)
 		return "", errors.Wrap(err, "failed to hash code")
 	}
 
-	expiry := time.Now().Add(time.Minute * 5).Unix()
+	expiresAt := time.Now().Add(time.Minute * 5).Unix()
 
-	// format: <hash>:<expiriy>:<address>:<deliveryMethod>
-	return fmt.Sprintf(
-		"%s:%s:%s:%s",
-		codeHash,
-		strconv.FormatInt(expiry, 10),
-		address,
-		string(method),
-	), nil
+	hash := &Hash{
+		CodeHash:       codeHash,
+		Address:        address,
+		DeliveryMethod: method,
+		ExpiresAt:      expiresAt,
+	}
+
+	b, err := json.Marshal(hash)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.RawURLEncoding.EncodeToString(b), nil
 }
 
 // FromOTPHash parses an OTP hash string to individual parts.
 func FromOTPHash(otpHash string) (*Hash, error) {
-	split := strings.Split(otpHash, ":")
-	if len(split) != 4 {
-		return nil, errors.New("incorrect hash")
-	}
-
-	expiry, err := strconv.ParseInt(split[1], 10, 64)
+	decoded, err := base64.RawURLEncoding.DecodeString(otpHash)
 	if err != nil {
-		return nil, errors.Wrap(err, "invalid expiry time")
+		return nil, fmt.Errorf("cannot decode otp hash: %w", err)
 	}
 
-	o := &Hash{}
-	hash := split[0]
-	address := split[2]
-	method := auth.DeliveryMethod(split[3])
+	var o Hash
+	err = json.Unmarshal(decoded, &o)
+	if err != nil {
+		return nil, fmt.Errorf("invalid otp hash format: %w", err)
+	}
 
-	o.CodeHash = hash
-	o.Address = address
-	o.DeliveryMethod = method
-	o.Expiry = expiry
-
-	return o, nil
+	return &o, nil
 }

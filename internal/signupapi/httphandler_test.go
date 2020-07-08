@@ -4,11 +4,9 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strconv"
 	"testing"
 	"time"
 
@@ -21,11 +19,6 @@ import (
 	"github.com/fmitra/authenticator/internal/pg"
 	"github.com/fmitra/authenticator/internal/test"
 )
-
-// OTP Code hash. Validates to 123456.
-const codeHash = "ba3253876aed6bc22d4a6ff53d8406c6ad864195ed144ab5" +
-	"c87621b6c233b548baeae6956df346ec8c17f5ea10f35ee3cbc514797ed7d" +
-	"dd3145464e2a0bab413"
 
 func TestSignUpAPI_SignUp(t *testing.T) {
 	tt := []struct {
@@ -198,7 +191,10 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 				return nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "123456:1:address:email", Code: "123456"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+					State:    auth.JWTPreAuthorized,
+				}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "jwt-token", nil
@@ -310,7 +306,11 @@ func TestSignUpAPI_SignUpExistingUser(t *testing.T) {
 	logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
 	tokenSvc := &test.TokenService{
 		CreateFn: func() (*auth.Token, error) {
-			return &auth.Token{CodeHash: "123456:1:address:email", Code: "123456"}, nil
+			return &auth.Token{
+				CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+				State:    auth.JWTPreAuthorized,
+				Code:     test.OTPCode,
+			}, nil
 		},
 		SignFn: func() (string, error) {
 			return "jwt-token", nil
@@ -377,7 +377,10 @@ func TestSignUpAPI_VerifyCode(t *testing.T) {
 				return nil, errors.New("whoops")
 			},
 			tokenValidateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: codeHash, State: auth.JWTPreAuthorized}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+					State:    auth.JWTPreAuthorized,
+				}, nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
 				return &auth.Token{}, nil
@@ -395,7 +398,10 @@ func TestSignUpAPI_VerifyCode(t *testing.T) {
 				return &auth.User{IsEmailOTPAllowed: true}, nil
 			},
 			tokenValidateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: codeHash, State: auth.JWTPreAuthorized}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+					State:    auth.JWTPreAuthorized,
+				}, nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
 				return &auth.Token{}, nil
@@ -414,12 +420,8 @@ func TestSignUpAPI_VerifyCode(t *testing.T) {
 			},
 			tokenValidateFn: func() (*auth.Token, error) {
 				return &auth.Token{
-					CodeHash: fmt.Sprintf(
-						"%s:%s:address:deliveryMethod",
-						codeHash,
-						strconv.FormatInt(time.Now().Add(time.Minute*5).Unix(), 10),
-					),
-					State: auth.JWTPreAuthorized,
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+					State:    auth.JWTPreAuthorized,
 				}, nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
@@ -522,13 +524,9 @@ func TestSignUpAPI_VerifyCodeSuccess(t *testing.T) {
 		},
 		ValidateFn: func() (*auth.Token, error) {
 			return &auth.Token{
-				CodeHash: fmt.Sprintf(
-					"%s:%s:address:deliveryMethod",
-					codeHash,
-					strconv.FormatInt(time.Now().Add(time.Minute*5).Unix(), 10),
-				),
-				State:  auth.JWTPreAuthorized,
-				UserID: user.ID,
+				CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+				State:    auth.JWTPreAuthorized,
+				UserID:   user.ID,
 			}, nil
 		},
 	}

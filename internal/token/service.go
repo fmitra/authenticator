@@ -2,11 +2,11 @@ package token
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -28,6 +28,13 @@ const (
 // ClientIDCookie is the cookie name used to set the token's
 // ClientID value on a client.
 const ClientIDCookie = "CLIENTID"
+
+// RefreshToken is a token capable of refreshing an expired
+// JWT token.
+type RefreshToken struct {
+	Code      string `json:"code"`
+	ExpiresAt int64  `json:"expires_at"`
+}
 
 // Rediser is an interface to go-redis.
 type Rediser interface {
@@ -187,7 +194,12 @@ func (s *service) Validate(ctx context.Context, signedToken string, clientID str
 		return nil, auth.ErrInvalidToken("token is not associated with user")
 	}
 
-	if !s.isHashValid(clientID, token.ClientIDHash) {
+	decoded, err := base64.RawURLEncoding.DecodeString(clientID)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot decode client ID")
+	}
+
+	if !s.isHashValid(string(decoded), token.ClientIDHash) {
 		return nil, auth.ErrInvalidToken("token source is invalid")
 	}
 
@@ -225,22 +237,23 @@ func (s *service) Cookie(ctx context.Context, token *auth.Token) *http.Cookie {
 
 // Refreshable checks if a provided token can be refreshed.
 func (s *service) Refreshable(ctx context.Context, token *auth.Token, refreshToken string) error {
-	if !s.isHashValid(refreshToken, token.RefreshTokenHash) {
+	decoded, err := base64.RawURLEncoding.DecodeString(refreshToken)
+	if err != nil {
+		return fmt.Errorf("cannot decode refresh token: %w", err)
+	}
+
+	if !s.isHashValid(string(decoded), token.RefreshTokenHash) {
 		return auth.ErrInvalidToken("refresh token is invalid")
 	}
 
-	split := strings.Split(refreshToken, ":")
-	if len(split) != 2 {
-		return fmt.Errorf("incorrect token segments")
-	}
-
-	expiry, err := strconv.ParseInt(split[1], 10, 64)
+	var t RefreshToken
+	err = json.Unmarshal(decoded, &t)
 	if err != nil {
-		return fmt.Errorf("invalid expiry time")
+		return fmt.Errorf("invalid refresh token format: %w", err)
 	}
 
 	now := time.Now().Unix()
-	if now >= expiry {
+	if now >= t.ExpiresAt {
 		return auth.ErrInvalidToken("refresh token is expired")
 	}
 
@@ -300,7 +313,7 @@ func (s *service) genClientIDAndHash(conf *auth.TokenConfiguration) (string, str
 		return "", conf.RefreshableToken.ClientIDHash, nil
 	}
 
-	clientID, err := crypto.StringB64(clientIDLen)
+	clientID, err := crypto.String(clientIDLen)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate client ID: %w", err)
 	}
@@ -310,7 +323,8 @@ func (s *service) genClientIDAndHash(conf *auth.TokenConfiguration) (string, str
 		return "", "", fmt.Errorf("failed to hash client ID: %w", err)
 	}
 
-	return clientID, clientIDHash, nil
+	encodedID := base64.RawURLEncoding.EncodeToString([]byte(clientID))
+	return encodedID, clientIDHash, nil
 }
 
 func (s *service) genOTPAndHash(conf *auth.TokenConfiguration, user *auth.User) (string, string, error) {
@@ -354,18 +368,27 @@ func (s *service) genRefreshTokenAndHash(conf *auth.TokenConfiguration) (string,
 		return "", conf.RefreshableToken.RefreshTokenHash, nil
 	}
 
-	r, err := crypto.StringB64(refreshTokenLen)
+	code, err := crypto.String(refreshTokenLen)
 	if err != nil {
 		return "", "", err
 	}
 
 	expiresAt := time.Now().Add(s.refreshTokenExpiry).Unix()
-	refreshToken := fmt.Sprintf("%s:%v", r, expiresAt)
+	token := &RefreshToken{
+		Code:      code,
+		ExpiresAt: expiresAt,
+	}
 
-	h, err := crypto.Hash(refreshToken)
+	b, err := json.Marshal(token)
 	if err != nil {
 		return "", "", err
 	}
 
-	return refreshToken, h, nil
+	h, err := crypto.Hash(string(b))
+	if err != nil {
+		return "", "", err
+	}
+
+	encodedToken := base64.RawURLEncoding.EncodeToString(b)
+	return encodedToken, h, nil
 }

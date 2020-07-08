@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/go-kit/kit/log"
 	"github.com/google/go-cmp/cmp"
@@ -288,7 +289,9 @@ func TestTOTPAPI_Verify(t *testing.T) {
 				}
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+				}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "token", nil
@@ -321,7 +324,9 @@ func TestTOTPAPI_Verify(t *testing.T) {
 				}
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+				}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "token", nil
@@ -354,7 +359,9 @@ func TestTOTPAPI_Verify(t *testing.T) {
 				}
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+				}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "token", nil
@@ -387,7 +394,9 @@ func TestTOTPAPI_Verify(t *testing.T) {
 				}
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+				}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "token", nil
@@ -420,7 +429,9 @@ func TestTOTPAPI_Verify(t *testing.T) {
 				}
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+				}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "token", nil
@@ -453,7 +464,9 @@ func TestTOTPAPI_Verify(t *testing.T) {
 				}
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+				}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "token", nil
@@ -486,7 +499,9 @@ func TestTOTPAPI_Verify(t *testing.T) {
 				}
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+				}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "token", nil
@@ -602,7 +617,9 @@ func TestTOTPAPI_Remove(t *testing.T) {
 				}
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+				}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "token", nil
@@ -635,7 +652,9 @@ func TestTOTPAPI_Remove(t *testing.T) {
 				}
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+				}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "token", nil
@@ -695,7 +714,9 @@ func TestTOTPAPI_Remove(t *testing.T) {
 				}
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+				}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "token", nil
@@ -728,7 +749,9 @@ func TestTOTPAPI_Remove(t *testing.T) {
 				}
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+				}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "token", nil

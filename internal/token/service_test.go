@@ -2,13 +2,12 @@ package token
 
 import (
 	"context"
-	"crypto/sha512"
 	"database/sql"
-	"encoding/hex"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
-	"strings"
 	"testing"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/oklog/ulid"
 
 	auth "github.com/fmitra/authenticator"
+	"github.com/fmitra/authenticator/internal/crypto"
 	"github.com/fmitra/authenticator/internal/otp"
 	"github.com/fmitra/authenticator/internal/test"
 )
@@ -95,9 +95,15 @@ func TestTokenSvc_CreateAuthorized(t *testing.T) {
 		))
 	}
 
-	h := sha512.New()
-	h.Write([]byte(token.ClientID))
-	clientIDHash := hex.EncodeToString(h.Sum(nil))
+	decoded, err := base64.RawURLEncoding.DecodeString(token.ClientID)
+	if err != nil {
+		t.Error("failed to decode client ID:", err)
+	}
+
+	clientIDHash, err := crypto.Hash(string(decoded))
+	if err != nil {
+		t.Error("failed to create client ID hash:", err)
+	}
 
 	if !cmp.Equal(clientIDHash, token.ClientIDHash) {
 		t.Error("client ID does not match", cmp.Diff(
@@ -105,9 +111,15 @@ func TestTokenSvc_CreateAuthorized(t *testing.T) {
 		))
 	}
 
-	h = sha512.New()
-	h.Write([]byte(token.RefreshToken))
-	refreshTokenHash := hex.EncodeToString(h.Sum(nil))
+	decoded, err = base64.RawURLEncoding.DecodeString(token.RefreshToken)
+	if err != nil {
+		t.Error("failed to decode refresh token:", err)
+	}
+
+	refreshTokenHash, err := crypto.Hash(string(decoded))
+	if err != nil {
+		t.Error("failed to create refresh token hash:", err)
+	}
 
 	if !cmp.Equal(refreshTokenHash, token.RefreshTokenHash) {
 		t.Error("refresh token does not match", cmp.Diff(
@@ -244,15 +256,21 @@ func TestTokenSvc_CreateWithOTP(t *testing.T) {
 		t.Error("otp codes should be generated for pre-authorized tokens")
 	}
 
-	splits := strings.Split(token.CodeHash, ":")
-	if len(splits) != 4 {
-		t.Fatal("incorrect segments in otp hash",
-			cmp.Diff(len(splits), 4))
+	decoded, err := base64.RawURLEncoding.DecodeString(token.CodeHash)
+	if err != nil {
+		t.Error("failed to decode code hash:", err)
 	}
 
-	if splits[3] != "phone" {
-		t.Error("otp delivery method does not match",
-			cmp.Diff(splits[3], "phone"))
+	var o otp.Hash
+	err = json.Unmarshal(decoded, &o)
+	if err != nil {
+		t.Error("failed to unmarshal code hash:", err)
+	}
+
+	if o.DeliveryMethod != auth.Phone {
+		t.Error("otp delivery does not match", cmp.Diff(
+			o.DeliveryMethod, auth.Phone,
+		))
 	}
 }
 
@@ -290,15 +308,21 @@ func TestTokenSvc_CreateWithOTPAndAddress(t *testing.T) {
 		t.Error("otp codes should be generated for pre-authorized tokens")
 	}
 
-	splits := strings.Split(token.CodeHash, ":")
-	if len(splits) != 4 {
-		t.Fatal("incorrect segments in otp hash",
-			cmp.Diff(len(splits), 4))
+	decoded, err := base64.RawURLEncoding.DecodeString(token.CodeHash)
+	if err != nil {
+		t.Error("failed to decode code hash:", err)
 	}
 
-	if splits[2] != "+6594867353" {
-		t.Error("otp delivery address does not match",
-			cmp.Diff(splits[2], "+6594867353"))
+	var o otp.Hash
+	err = json.Unmarshal(decoded, &o)
+	if err != nil {
+		t.Error("failed to unmarshal code hash:", err)
+	}
+
+	if o.Address != "+6594867353" {
+		t.Error("otp address does not match", cmp.Diff(
+			o.Address, "+6594867353",
+		))
 	}
 }
 
@@ -491,7 +515,7 @@ func TestTokenSvc_InvalidateClientIDMismatch(t *testing.T) {
 		t.Error("failed to validate token:", err)
 	}
 
-	_, err = tokenSvc.Validate(ctx, jwtToken, "bad-client-id")
+	_, err = tokenSvc.Validate(ctx, jwtToken, base64.RawURLEncoding.EncodeToString([]byte("bad-client-id")))
 	domainErr := auth.DomainError(err)
 	if domainErr == nil {
 		t.Fatal("expected domain error")

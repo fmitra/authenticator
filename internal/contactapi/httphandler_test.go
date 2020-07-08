@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strconv"
 	"testing"
 	"time"
 
@@ -50,7 +49,11 @@ func TestContactAPI_CheckAddress(t *testing.T) {
 			messagingCalls: 0,
 			reqBody:        []byte(`{"address":"+15555555", "deliveryMethod":"phone"}`),
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+					State:    auth.JWTAuthorized,
+					Code:     test.OTPCode,
+				}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "token", nil
@@ -75,7 +78,11 @@ func TestContactAPI_CheckAddress(t *testing.T) {
 				IsVerified: true,
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+					State:    auth.JWTAuthorized,
+					Code:     test.OTPCode,
+				}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "token", nil
@@ -102,7 +109,11 @@ func TestContactAPI_CheckAddress(t *testing.T) {
 				IsVerified: true,
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+					State:    auth.JWTAuthorized,
+					Code:     test.OTPCode,
+				}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "token", nil
@@ -130,7 +141,11 @@ func TestContactAPI_CheckAddress(t *testing.T) {
 			},
 			messagingCalls: 0,
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+					State:    auth.JWTAuthorized,
+					Code:     test.OTPCode,
+				}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "token", nil
@@ -157,7 +172,11 @@ func TestContactAPI_CheckAddress(t *testing.T) {
 			},
 			messagingCalls: 1,
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+					State:    auth.JWTAuthorized,
+					Code:     test.OTPCode,
+				}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "token", nil
@@ -279,17 +298,19 @@ func TestContactAPI_Verify(t *testing.T) {
 				return "token", nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+					State:    auth.JWTAuthorized,
+					Code:     test.OTPCode,
+				}, nil
 			},
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{
-						UserID: userID,
-						State:  auth.JWTAuthorized,
-						CodeHash: fmt.Sprintf(
-							"123456:%s:address:phone",
-							strconv.FormatInt(time.Now().Add(time.Minute*5).Unix(), 10),
-						),
+						CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+						State:    auth.JWTAuthorized,
+						Code:     test.OTPCode,
+						UserID:   userID,
 					}, nil
 				}
 			},
@@ -319,7 +340,11 @@ func TestContactAPI_Verify(t *testing.T) {
 				return "token", nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+					State:    auth.JWTAuthorized,
+					Code:     test.OTPCode,
+				}, nil
 			},
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
@@ -352,17 +377,19 @@ func TestContactAPI_Verify(t *testing.T) {
 				return "token", nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("+6594867353", "phone", time.Now().Add(time.Minute*5).Unix()),
+					State:    auth.JWTAuthorized,
+					Code:     test.OTPCode,
+				}, nil
 			},
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{
-						UserID: userID,
-						State:  auth.JWTAuthorized,
-						CodeHash: fmt.Sprintf(
-							"123456:%s:+6594867353:phone",
-							strconv.FormatInt(time.Now().Add(time.Minute*5).Unix(), 10),
-						),
+						CodeHash: test.MockTokenHash("+6594867353", "phone", time.Now().Add(time.Minute*5).Unix()),
+						State:    auth.JWTAuthorized,
+						Code:     test.OTPCode,
+						UserID:   userID,
 					}, nil
 				}
 			},
@@ -392,17 +419,19 @@ func TestContactAPI_Verify(t *testing.T) {
 				return "token", nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("+6594867353", "phone", time.Now().Add(time.Minute*5).Unix()),
+					State:    auth.JWTAuthorized,
+					Code:     test.OTPCode,
+				}, nil
 			},
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{
-						UserID: userID,
-						State:  auth.JWTAuthorized,
-						CodeHash: fmt.Sprintf(
-							"123456:%s:+6594867353:phone",
-							strconv.FormatInt(time.Now().Add(time.Minute*5).Unix(), 10),
-						),
+						CodeHash: test.MockTokenHash("+6594867353", "phone", time.Now().Add(time.Minute*5).Unix()),
+						State:    auth.JWTAuthorized,
+						Code:     test.OTPCode,
+						UserID:   userID,
 					}, nil
 				}
 			},
@@ -432,17 +461,19 @@ func TestContactAPI_Verify(t *testing.T) {
 				return "token", nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+					State:    auth.JWTAuthorized,
+					Code:     test.OTPCode,
+				}, nil
 			},
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{
-						UserID: userID,
-						State:  auth.JWTAuthorized,
-						CodeHash: fmt.Sprintf(
-							"123456:%s:jane@example.com:email",
-							strconv.FormatInt(time.Now().Add(time.Minute*5).Unix(), 10),
-						),
+						CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+						State:    auth.JWTAuthorized,
+						Code:     test.OTPCode,
+						UserID:   userID,
 					}, nil
 				}
 			},
@@ -472,17 +503,19 @@ func TestContactAPI_Verify(t *testing.T) {
 				return "token", nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+					State:    auth.JWTAuthorized,
+					Code:     test.OTPCode,
+				}, nil
 			},
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{
-						UserID: userID,
-						State:  auth.JWTAuthorized,
-						CodeHash: fmt.Sprintf(
-							"123456:%s:jane@example.com:email",
-							strconv.FormatInt(time.Now().Add(time.Minute*5).Unix(), 10),
-						),
+						CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+						State:    auth.JWTAuthorized,
+						Code:     test.OTPCode,
+						UserID:   userID,
 					}, nil
 				}
 			},
@@ -512,17 +545,19 @@ func TestContactAPI_Verify(t *testing.T) {
 				return "token", nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+					State:    auth.JWTAuthorized,
+					Code:     test.OTPCode,
+				}, nil
 			},
 			tokenValidateFn: func(userID string) func() (*auth.Token, error) {
 				return func() (*auth.Token, error) {
 					return &auth.Token{
-						UserID: userID,
-						State:  auth.JWTAuthorized,
-						CodeHash: fmt.Sprintf(
-							"123456:%s:jane@example.com:email",
-							strconv.FormatInt(time.Now().Add(time.Minute*5).Unix(), 10),
-						),
+						CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+						State:    auth.JWTAuthorized,
+						Code:     test.OTPCode,
+						UserID:   userID,
 					}, nil
 				}
 			},
@@ -1077,7 +1112,9 @@ func TestContactAPI_Send(t *testing.T) {
 			},
 			reqBody: []byte(`{"deliveryMethod":"phone"}`),
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+				}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "token", nil
@@ -1134,7 +1171,9 @@ func TestContactAPI_Send(t *testing.T) {
 			},
 			reqBody: []byte(`{"deliveryMethod":"phone"}`),
 			tokenCreateFn: func() (*auth.Token, error) {
-				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
+				return &auth.Token{
+					CodeHash: test.MockTokenHash("", "", time.Now().Add(time.Minute*5).Unix()),
+				}, nil
 			},
 			tokenSignFn: func() (string, error) {
 				return "token", nil

@@ -2,6 +2,8 @@ package test
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"net/http"
 	"time"
 
@@ -12,6 +14,42 @@ import (
 
 	auth "github.com/fmitra/authenticator"
 )
+
+const (
+	// OTPCodehash is a SHA512 hash of `123456`
+	OTPCodeHash = "ba3253876aed6bc22d4a6ff53d8406c6ad864195ed144ab5" +
+		"c87621b6c233b548baeae6956df346ec8c17f5ea10f35ee3cbc514797ed7ddd31" +
+		"45464e2a0bab413"
+
+	OTPCode = "123456"
+)
+
+func MockTokenHash(a, m string, t int64) string {
+	addr := "jane@example.com"
+	if a != "" {
+		addr = a
+	}
+
+	method := "email"
+	if m != "" {
+		method = m
+	}
+
+	o := struct {
+		CodeHash       string `json:"code_hash"`
+		ExpiresAt      int64  `json:"expires_at"`
+		Address        string `json:"address"`
+		DeliveryMethod string `json:"delivery_method"`
+	}{
+		CodeHash:       OTPCodeHash,
+		ExpiresAt:      t,
+		Address:        addr,
+		DeliveryMethod: method,
+	}
+
+	b, _ := json.Marshal(o)
+	return base64.RawURLEncoding.EncodeToString(b)
+}
 
 // OTPService mocks auth.OTPService interface.
 type OTPService struct {
