@@ -353,7 +353,7 @@ func TestTokenSvc_InvalidateAfterRevocation(t *testing.T) {
 		t.Error("failed to validate token:", err)
 	}
 
-	err = tokenSvc.Revoke(ctx, token.Id, time.Second)
+	err = tokenSvc.Revoke(ctx, token.Id)
 	if err != nil {
 		t.Error("failed to revoke token:", err)
 	}
@@ -565,5 +565,37 @@ func TestTokenSvc_Refreshable(t *testing.T) {
 				))
 			}
 		})
+	}
+}
+
+func TestTokenSvc_InvalidatesOldTokensWithOTP(t *testing.T) {
+	db, err := test.NewRedisDB()
+	if err != nil {
+		t.Fatal("faliled to create test database:", err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	user := &auth.User{ID: "user_id"}
+	tokenSvc := NewTestTokenSvc(db)
+
+	token, err := tokenSvc.Create(ctx, user, auth.JWTAuthorized,
+		WithOTPDeliveryMethod(auth.Email),
+		WithOTPAddress("jane@example.com"),
+		WithRefreshableToken(&auth.Token{}),
+	)
+	if err != nil {
+		t.Fatal("failed to create token:", err)
+	}
+
+	ts, err := db.WithContext(ctx).Get(invalidationKey(token.Id)).Int64()
+	if err != nil {
+		t.Fatal("no cached token found:", err)
+	}
+
+	if !cmp.Equal(ts, token.IssuedAt) {
+		t.Error("invalidation cut off does not match issuing time", cmp.Diff(
+			ts, token.IssuedAt,
+		))
 	}
 }

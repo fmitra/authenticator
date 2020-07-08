@@ -311,12 +311,6 @@ type UserRepository interface {
 	RemoveDeliveryMethod(ctx context.Context, userID string, method DeliveryMethod) (*User, error)
 }
 
-// TokenRepository represents a local storage for JWT tokens.
-type TokenRepository interface {
-	// IsRevoked checks if a JWT token has been revoked by a User.
-	IsRevoked(ctx context.Context, tokenID string) (bool, error)
-}
-
 // RepositoryManager manages repositories stored in storages
 // with atomic properties.
 type RepositoryManager interface {
@@ -354,8 +348,8 @@ type TokenService interface {
 	// unrevoked, and from the a valid client. On success it will return the unpacked
 	// Token struct.
 	Validate(ctx context.Context, signedToken string, clientID string) (*Token, error)
-	// Revoke Revokes a token for a specified duration of time.
-	Revoke(ctx context.Context, tokenID string, duration time.Duration) error
+	// Revoke Revokes a token by it's ID.
+	Revoke(ctx context.Context, tokenID string) error
 	// Cookie returns a secure cookie to accompany a token.
 	Cookie(ctx context.Context, token *Token) *http.Cookie
 	// Refreshable checks if a provided token can be refreshed.

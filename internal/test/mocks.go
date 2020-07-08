@@ -529,7 +529,7 @@ func (m *TokenService) Validate(ctx context.Context, signedToken string, clientI
 }
 
 // Revoke mock.
-func (m *TokenService) Revoke(ctx context.Context, tokenID string, duration time.Duration) error {
+func (m *TokenService) Revoke(ctx context.Context, tokenID string) error {
 	m.Calls.Revoke++
 	if m.RevokeFn != nil {
 		return m.RevokeFn()

@@ -136,6 +136,10 @@ func (s *service) Create(ctx context.Context, user *auth.User, state auth.TokenS
 		TFAOptions:       tfaOptions,
 	}
 
+	if err = s.invalidateOldTokens(ctx, conf, &token); err != nil {
+		return nil, err
+	}
+
 	return &token, nil
 }
 
@@ -203,21 +207,20 @@ func (s *service) Validate(ctx context.Context, signedToken string, clientID str
 		return nil, auth.ErrInvalidToken("token source is invalid")
 	}
 
-	err = s.db.WithContext(ctx).Get(token.Id).Err()
-	if err == nil {
-		return nil, auth.ErrInvalidToken("token is revoked")
+	if err := s.checkRevocation(ctx, &token); err != nil {
+		return nil, err
 	}
 
-	if err == redislib.Nil {
-		return &token, nil
+	if err := s.checkInvalidation(ctx, &token); err != nil {
+		return nil, err
 	}
 
-	return nil, errors.Wrap(err, "failed to check token in redis")
+	return &token, nil
 }
 
 // Revoke revokes a JWT token by its ID for a specified duration.
-func (s *service) Revoke(ctx context.Context, tokenID string, duration time.Duration) error {
-	return s.db.WithContext(ctx).Set(tokenID, true, duration).Err()
+func (s *service) Revoke(ctx context.Context, tokenID string) error {
+	return s.db.WithContext(ctx).Set(revocationKey(tokenID), true, s.tokenExpiry).Err()
 }
 
 // Cookie returns a secure cookie to accompany a token.
@@ -391,4 +394,56 @@ func (s *service) genRefreshTokenAndHash(conf *auth.TokenConfiguration) (string,
 
 	encodedToken := base64.RawURLEncoding.EncodeToString(b)
 	return encodedToken, h, nil
+}
+
+func (s *service) invalidateOldTokens(ctx context.Context, conf *auth.TokenConfiguration, token *auth.Token) error {
+	proceed := conf.RefreshableToken != nil &&
+		conf.DeliveryMethod != "" &&
+		conf.DeliveryAddress != ""
+
+	if !proceed {
+		return nil
+	}
+
+	key := invalidationKey(token.Id)
+	latestValidTimestamp := token.IssuedAt
+
+	return s.db.WithContext(ctx).Set(key, latestValidTimestamp, s.tokenExpiry).Err()
+}
+
+func (s *service) checkRevocation(ctx context.Context, token *auth.Token) error {
+	key := revocationKey(token.Id)
+	err := s.db.WithContext(ctx).Get(key).Err()
+	if err == nil {
+		return auth.ErrInvalidToken("token is revoked")
+	}
+	if err == redislib.Nil {
+		return nil
+	}
+
+	return fmt.Errorf("cannot lookup token revocation history: %w", err)
+}
+
+func (s *service) checkInvalidation(ctx context.Context, token *auth.Token) error {
+	key := invalidationKey(token.Id)
+	ts, err := s.db.WithContext(ctx).Get(key).Int64()
+	if err == nil {
+		if token.IssuedAt >= ts {
+			return nil
+		}
+	}
+
+	if err == redislib.Nil {
+		return nil
+	}
+
+	return fmt.Errorf("cannot lookup token invalidation history: %w", err)
+}
+
+func invalidationKey(tokenID string) string {
+	return fmt.Sprintf("%s_invalid_after", tokenID)
+}
+
+func revocationKey(tokenID string) string {
+	return fmt.Sprintf("%s_is_revoked", tokenID)
 }
