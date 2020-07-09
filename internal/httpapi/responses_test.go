@@ -130,7 +130,19 @@ func TestHTTPAPI_ErrorResponse(t *testing.T) {
 }
 
 func TestHTTPAPI_RefreshToken(t *testing.T) {
-	t.Error("not implemented")
+	r, err := http.NewRequest("GET", "", bytes.NewBuffer([]byte("{}")))
+	if err != nil {
+		t.Fatal("failed to create mock request:", err)
+	}
+
+	ctx := r.Context()
+	newCtx := context.WithValue(ctx, refreshTokenContextKey, "refreshToken")
+	r = r.WithContext(newCtx)
+
+	refreshToken := GetRefreshToken(r)
+	if refreshToken != "refreshToken" {
+		t.Errorf("incorrect refresh token, want refreshToken got '%s'", refreshToken)
+	}
 }
 
 func TestHTTPAPI_UserID(t *testing.T) {

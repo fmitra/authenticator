@@ -58,10 +58,11 @@ func RefreshTokenMiddleware(jsonHandler JSONAPIHandler) JSONAPIHandler {
 	return func(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 		ctx := r.Context()
 
-		refreshToken, _ := r.Cookie(token.RefreshTokenCookie)
-
-		newCtx := context.WithValue(ctx, refreshTokenContextKey, refreshToken)
-		r = r.WithContext(newCtx)
+		refreshToken, err := r.Cookie(token.RefreshTokenCookie)
+		if err == nil {
+			newCtx := context.WithValue(ctx, refreshTokenContextKey, refreshToken.Value)
+			r = r.WithContext(newCtx)
+		}
 
 		return jsonHandler(w, r)
 	}
