@@ -2,6 +2,7 @@ package token
 
 import (
 	"context"
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -25,9 +26,14 @@ const (
 	refreshTokenLen = 40
 )
 
-// ClientIDCookie is the cookie name used to set the token's
-// ClientID value on a client.
-const ClientIDCookie = "CLIENTID"
+const (
+	// ClientIDCookie is the cookie name used to set the token's
+	// ClientID value on a client.
+	ClientIDCookie = "CLIENTID"
+	// RefreshTokenCookie is the cookie name used to set the refresh
+	// token value on a client.
+	RefreshTokenCookie = "REFRESHTOKEN"
+)
 
 // RefreshToken is a token capable of refreshing an expired
 // JWT token.
@@ -81,6 +87,7 @@ type service struct {
 	secret             []byte
 	issuer             string
 	db                 Rediser
+	repoMngr           auth.RepositoryManager
 	otp                auth.OTPService
 	cookieMaxAge       int
 	cookieDomain       string
@@ -203,7 +210,7 @@ func (s *service) Validate(ctx context.Context, signedToken string, clientID str
 		return nil, errors.Wrap(err, "cannot decode client ID")
 	}
 
-	if !s.isHashValid(string(decoded), token.ClientIDHash) {
+	if !isHashValid(string(decoded), token.ClientIDHash) {
 		return nil, auth.ErrInvalidToken("token source is invalid")
 	}
 
@@ -220,6 +227,36 @@ func (s *service) Validate(ctx context.Context, signedToken string, clientID str
 
 // Revoke revokes a JWT token by its ID for a specified duration.
 func (s *service) Revoke(ctx context.Context, tokenID string) error {
+	_, err := s.repoMngr.LoginHistory().ByTokenID(ctx, tokenID)
+	if err == sql.ErrNoRows {
+		return errors.Wrap(auth.ErrBadRequest("invalid tokenID"), err.Error())
+	}
+	if err != nil {
+		return err
+	}
+
+	tx, err := s.repoMngr.NewWithTransaction(ctx)
+	if err != nil {
+		return fmt.Errorf("cannot start transaction: %w", err)
+	}
+
+	_, err = tx.WithAtomic(func() (interface{}, error) {
+		lh, err := tx.LoginHistory().GetForUpdate(ctx, tokenID)
+		if err != nil {
+			return nil, err
+		}
+
+		lh.IsRevoked = true
+		if err = tx.LoginHistory().Update(ctx, lh); err != nil {
+			return nil, err
+		}
+
+		return lh, nil
+	})
+	if err != nil {
+		return fmt.Errorf("failed to invalidate login history record: %w", err)
+	}
+
 	return s.db.WithContext(ctx).Set(revocationKey(tokenID), true, s.tokenExpiry).Err()
 }
 
@@ -240,40 +277,31 @@ func (s *service) Cookie(ctx context.Context, token *auth.Token) *http.Cookie {
 
 // Refreshable checks if a provided token can be refreshed.
 func (s *service) Refreshable(ctx context.Context, token *auth.Token, refreshToken string) error {
-	decoded, err := base64.RawURLEncoding.DecodeString(refreshToken)
+	_, err := unpackRefreshToken(refreshToken, token.RefreshTokenHash)
 	if err != nil {
-		return fmt.Errorf("cannot decode refresh token: %w", err)
+		return err
 	}
 
-	if !s.isHashValid(string(decoded), token.RefreshTokenHash) {
-		return auth.ErrInvalidToken("refresh token is invalid")
-	}
-
-	var t RefreshToken
-	err = json.Unmarshal(decoded, &t)
+	lh, err := s.repoMngr.LoginHistory().ByTokenID(ctx, token.Id)
 	if err != nil {
-		return fmt.Errorf("invalid refresh token format: %w", err)
+		return fmt.Errorf("failed to retrieve login history record: %w", err)
 	}
 
-	now := time.Now().Unix()
-	if now >= t.ExpiresAt {
-		return auth.ErrInvalidToken("refresh token is expired")
+	if lh.IsRevoked {
+		return auth.ErrInvalidToken("token is revoked")
 	}
 
 	return nil
 }
 
-func (s *service) isHashValid(str, hash string) bool {
-	h, err := crypto.Hash(str)
+// RefreshableTill returns the last validity time of a refresh token.
+func (s *service) RefreshableTill(ctx context.Context, token *auth.Token, refreshToken string) time.Time {
+	r, err := unpackRefreshToken(refreshToken, token.RefreshTokenHash)
 	if err != nil {
-		return false
+		return time.Time{}
 	}
 
-	if h != hash {
-		return false
-	}
-
-	return true
+	return time.Unix(r.ExpiresAt, 0)
 }
 
 func (s *service) genTFAOptions(user *auth.User) []auth.TFAOptions {
@@ -446,4 +474,41 @@ func invalidationKey(tokenID string) string {
 
 func revocationKey(tokenID string) string {
 	return fmt.Sprintf("%s_is_revoked", tokenID)
+}
+
+func isHashValid(str, hash string) bool {
+	h, err := crypto.Hash(str)
+	if err != nil {
+		return false
+	}
+
+	if h != hash {
+		return false
+	}
+
+	return true
+}
+
+func unpackRefreshToken(refreshToken, refreshTokenHash string) (*RefreshToken, error) {
+	decoded, err := base64.RawURLEncoding.DecodeString(refreshToken)
+	if err != nil {
+		return nil, fmt.Errorf("cannot decode refresh token: %w", err)
+	}
+
+	if !isHashValid(string(decoded), refreshTokenHash) {
+		return nil, auth.ErrInvalidToken("refresh token is invalid")
+	}
+
+	var t RefreshToken
+	err = json.Unmarshal(decoded, &t)
+	if err != nil {
+		return nil, fmt.Errorf("invalid refresh token format: %w", err)
+	}
+
+	now := time.Now().Unix()
+	if now >= t.ExpiresAt {
+		return nil, auth.ErrInvalidToken("refresh token is expired")
+	}
+
+	return &t, nil
 }

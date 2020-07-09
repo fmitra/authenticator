@@ -45,6 +45,16 @@ func GetToken(r *http.Request) *auth.Token {
 	return token
 }
 
+// GetRefreshToken retrieves a Refresh Token from context.
+func GetRefreshToken(r *http.Request) string {
+	ctx := r.Context()
+	token, ok := ctx.Value(refreshTokenContextKey).(string)
+	if !ok {
+		return ""
+	}
+	return token
+}
+
 // JSONResponse writes a response body. If a struct is provided
 // and we are unable to marshal it, we return an internal error.
 func JSONResponse(w http.ResponseWriter, v interface{}, statusCode int) {

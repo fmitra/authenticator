@@ -28,6 +28,7 @@ func SetupHTTPHandler(svc auth.TokenAPI, router *mux.Router, tokenSvc auth.Token
 	}
 	{
 		handler = httpapi.AuthMiddleware(svc.Refresh, tokenSvc, auth.JWTAuthorized)
+		handler = httpapi.RefreshTokenMiddleware(handler)
 		handler = httpapi.ErrorLoggingMiddleware(handler, "Token.Refresh", logger)
 		httpHandler := httpapi.ToHandlerFunc(handler, http.StatusOK)
 		router.HandleFunc("/api/v1/token/refresh", httpHandler).Methods("Post")

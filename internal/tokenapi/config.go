@@ -29,16 +29,16 @@ func WithLogger(l log.Logger) ConfigOption {
 	}
 }
 
-// WithRepoManager configures the service with a new RepositoryManager.
-func WithRepoManager(repoMngr auth.RepositoryManager) ConfigOption {
-	return func(s *service) {
-		s.repoMngr = repoMngr
-	}
-}
-
 // WithTokenService configures the service with a TokenService.
 func WithTokenService(t auth.TokenService) ConfigOption {
 	return func(s *service) {
 		s.token = t
+	}
+}
+
+// WithRepoManager configures the service with a new RepositoryManager.
+func WithRepoManager(repoMngr auth.RepositoryManager) ConfigOption {
+	return func(s *service) {
+		s.repoMngr = repoMngr
 	}
 }

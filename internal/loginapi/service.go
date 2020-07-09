@@ -5,7 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
-	"time"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
@@ -105,7 +104,7 @@ func (s *service) VerifyDevice(w http.ResponseWriter, r *http.Request) (interfac
 	loginHistory := &auth.LoginHistory{
 		UserID:    userID,
 		TokenID:   jwtToken.Id,
-		ExpiresAt: time.Unix(jwtToken.ExpiresAt, 0),
+		ExpiresAt: s.token.RefreshableTill(ctx, jwtToken, jwtToken.RefreshToken),
 	}
 	if err = s.repoMngr.LoginHistory().Create(ctx, loginHistory); err != nil {
 		return nil, err
@@ -149,7 +148,7 @@ func (s *service) VerifyCode(w http.ResponseWriter, r *http.Request) (interface{
 	loginHistory := &auth.LoginHistory{
 		UserID:    userID,
 		TokenID:   jwtToken.Id,
-		ExpiresAt: time.Unix(jwtToken.ExpiresAt, 0),
+		ExpiresAt: s.token.RefreshableTill(ctx, jwtToken, jwtToken.RefreshToken),
 	}
 	if err = s.repoMngr.LoginHistory().Create(ctx, loginHistory); err != nil {
 		return nil, err

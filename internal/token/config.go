@@ -107,3 +107,10 @@ func WithCookieMaxAge(age int) ConfigOption {
 		s.cookieMaxAge = age
 	}
 }
+
+// WithRepoManager configures the service with a new RepositoryManager.
+func WithRepoManager(repoMngr auth.RepositoryManager) ConfigOption {
+	return func(s *service) {
+		s.repoMngr = repoMngr
+	}
+}

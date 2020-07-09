@@ -10,6 +10,10 @@ import (
 	"github.com/fmitra/authenticator/internal/test"
 )
 
+func TestHTTPAPI_RefreshTokenMiddleware(t *testing.T) {
+	t.Error("not implemented")
+}
+
 func TestHTTPAPI_AuthMiddleware(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 		return []byte(`{"foo":"bar"}`), nil

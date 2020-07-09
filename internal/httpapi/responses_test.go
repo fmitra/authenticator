@@ -129,6 +129,10 @@ func TestHTTPAPI_ErrorResponse(t *testing.T) {
 	}
 }
 
+func TestHTTPAPI_RefreshToken(t *testing.T) {
+	t.Error("not implemented")
+}
+
 func TestHTTPAPI_UserID(t *testing.T) {
 	r, err := http.NewRequest("GET", "", bytes.NewBuffer([]byte("{}")))
 	if err != nil {

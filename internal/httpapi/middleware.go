@@ -16,6 +16,7 @@ type contextKey string
 const authorizationHeader = "AUTHORIZATION"
 const userIDContextKey contextKey = "userID"
 const tokenContextKey contextKey = "token"
+const refreshTokenContextKey contextKey = "refreshToken"
 
 // AuthMiddleware validates an Authorization header if available.
 func AuthMiddleware(jsonHandler JSONAPIHandler, tokenSvc auth.TokenService, state auth.TokenState) JSONAPIHandler {
@@ -46,6 +47,20 @@ func AuthMiddleware(jsonHandler JSONAPIHandler, tokenSvc auth.TokenService, stat
 			newCtx = context.WithValue(newCtx, tokenContextKey, token)
 		}
 
+		r = r.WithContext(newCtx)
+
+		return jsonHandler(w, r)
+	}
+}
+
+// RefreshTokenMiddleware sets a refresh token in context.
+func RefreshTokenMiddleware(jsonHandler JSONAPIHandler) JSONAPIHandler {
+	return func(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+		ctx := r.Context()
+
+		refreshToken, _ := r.Cookie(token.RefreshTokenCookie)
+
+		newCtx := context.WithValue(ctx, refreshTokenContextKey, refreshToken)
 		r = r.WithContext(newCtx)
 
 		return jsonHandler(w, r)

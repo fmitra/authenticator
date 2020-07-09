@@ -210,6 +210,7 @@ func main() {
 		token.WithOTP(otpSvc),
 		token.WithCookieMaxAge(viper.GetInt("api.cookie-max-age")),
 		token.WithCookieDomain(viper.GetString("api.cookie-domain")),
+		token.WithRepoManager(repoMngr),
 	)
 
 	webauthnSvc, err := webauthn.NewService(
@@ -266,8 +267,8 @@ func main() {
 
 	tokenAPI := tokenapi.NewService(
 		tokenapi.WithLogger(logger),
-		tokenapi.WithRepoManager(repoMngr),
 		tokenapi.WithTokenService(tokenSvc),
+		tokenapi.WithRepoManager(repoMngr),
 	)
 
 	router := mux.NewRouter()

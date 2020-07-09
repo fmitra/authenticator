@@ -354,6 +354,8 @@ type TokenService interface {
 	Cookie(ctx context.Context, token *Token) *http.Cookie
 	// Refreshable checks if a provided token can be refreshed.
 	Refreshable(ctx context.Context, token *Token, refreshToken string) error
+	// RefreshableTill returns the latest validity time for a token's accompanying refresh token.
+	RefreshableTill(ctx context.Context, token *Token, refreshToken string) time.Time
 }
 
 // WebAuthnService manages the protocol for WebAuthn authentication.

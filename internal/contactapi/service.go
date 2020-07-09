@@ -66,7 +66,7 @@ func (s *service) CheckAddress(w http.ResponseWriter, r *http.Request) (interfac
 		return nil, err
 	}
 
-	return &tokenLib.Response{Token: signedToken, ClientID: token.ClientID}, nil
+	return &tokenLib.Response{Token: signedToken}, nil
 }
 
 // Disable disables a verified email or phone number from receiving OTP codes in

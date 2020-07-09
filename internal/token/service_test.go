@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/go-kit/kit/log"
 	"github.com/google/go-cmp/cmp"
 	"github.com/oklog/ulid"
@@ -18,10 +19,11 @@ import (
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/crypto"
 	"github.com/fmitra/authenticator/internal/otp"
+	"github.com/fmitra/authenticator/internal/postgres"
 	"github.com/fmitra/authenticator/internal/test"
 )
 
-func NewTestTokenSvc(db Rediser) auth.TokenService {
+func NewTestTokenSvc(db Rediser, repoMngr auth.RepositoryManager) auth.TokenService {
 	var entropy io.Reader
 	{
 		random := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -38,6 +40,7 @@ func NewTestTokenSvc(db Rediser) auth.TokenService {
 		WithOTP(otp.NewOTP()),
 		WithCookieDomain("authenticator.local"),
 		WithCookieMaxAge(1000),
+		WithRepoManager(repoMngr),
 	)
 
 	return tokenSvc
@@ -52,7 +55,7 @@ func TestTokenSvc_CreateAuthorized(t *testing.T) {
 
 	ctx := context.Background()
 	user := &auth.User{ID: "user_id"}
-	tokenSvc := NewTestTokenSvc(db)
+	tokenSvc := NewTestTokenSvc(db, &test.RepositoryManager{})
 
 	token, err := tokenSvc.Create(ctx, user, auth.JWTAuthorized)
 	if err != nil {
@@ -137,7 +140,7 @@ func TestTokenSvc_CreatePreAuthorized(t *testing.T) {
 
 	ctx := context.Background()
 	user := &auth.User{ID: "user_id", IsEmailOTPAllowed: true}
-	tokenSvc := NewTestTokenSvc(db)
+	tokenSvc := NewTestTokenSvc(db, &test.RepositoryManager{})
 
 	token, err := tokenSvc.Create(ctx, user, auth.JWTPreAuthorized)
 	if err != nil {
@@ -208,7 +211,7 @@ func TestTokenSvc_CreateWithTFAOptions(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := context.Background()
-			tokenSvc := NewTestTokenSvc(db)
+			tokenSvc := NewTestTokenSvc(db, &test.RepositoryManager{})
 
 			token, err := tokenSvc.Create(ctx, &tc.user, auth.JWTAuthorized)
 			if err != nil {
@@ -240,7 +243,7 @@ func TestTokenSvc_CreateWithOTP(t *testing.T) {
 			Valid:  true,
 		},
 	}
-	tokenSvc := NewTestTokenSvc(db)
+	tokenSvc := NewTestTokenSvc(db, &test.RepositoryManager{})
 
 	token, err := tokenSvc.Create(
 		ctx,
@@ -291,7 +294,7 @@ func TestTokenSvc_CreateWithOTPAndAddress(t *testing.T) {
 			Valid:  true,
 		},
 	}
-	tokenSvc := NewTestTokenSvc(db)
+	tokenSvc := NewTestTokenSvc(db, &test.RepositoryManager{})
 
 	token, err := tokenSvc.Create(
 		ctx,
@@ -333,13 +336,40 @@ func TestTokenSvc_InvalidateAfterRevocation(t *testing.T) {
 	}
 	defer db.Close()
 
+	pgDB, err := test.NewPGDB()
+	if err != nil {
+		t.Fatal("failed to create test database:", err)
+	}
+	defer pgDB.DropDB()
+
+	repoMngr := postgres.TestClient(pgDB.DB)
 	ctx := context.Background()
-	user := &auth.User{ID: "user_id"}
-	tokenSvc := NewTestTokenSvc(db)
+	user := &auth.User{
+		Email: sql.NullString{
+			String: "jane@example.com",
+			Valid:  true,
+		},
+		Password: "swordfish",
+	}
+	err = repoMngr.User().Create(ctx, user)
+	if err != nil {
+		t.Fatal("failed to create test user", err)
+	}
+
+	tokenSvc := NewTestTokenSvc(db, repoMngr)
 
 	token, err := tokenSvc.Create(ctx, user, auth.JWTAuthorized)
 	if err != nil {
 		t.Fatal("failed to create token:", err)
+	}
+
+	err = repoMngr.LoginHistory().Create(ctx, &auth.LoginHistory{
+		TokenID:   token.Id,
+		UserID:    user.ID,
+		IsRevoked: false,
+	})
+	if err != nil {
+		t.Fatal("failed to create login history", err)
 	}
 
 	jwtToken, err := tokenSvc.Sign(ctx, token)
@@ -367,6 +397,15 @@ func TestTokenSvc_InvalidateAfterRevocation(t *testing.T) {
 	if code != auth.EInvalidToken {
 		t.Errorf("incorrect error code: want %s got %s",
 			auth.EInvalidToken, code)
+	}
+
+	loginHistory, err := repoMngr.LoginHistory().ByTokenID(ctx, token.Id)
+	if err != nil {
+		t.Fatal("no login history record found", err)
+	}
+
+	if !loginHistory.IsRevoked {
+		t.Error("login history was not revoked")
 	}
 }
 
@@ -422,7 +461,7 @@ func TestTokenSvc_InvalidateNotBearer(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	tokenSvc := NewTestTokenSvc(db)
+	tokenSvc := NewTestTokenSvc(db, &test.RepositoryManager{})
 
 	_, err = tokenSvc.Validate(ctx, "jwt-token", "client-id")
 	domainErr := auth.DomainError(err)
@@ -532,25 +571,69 @@ func TestTokenSvc_Refreshable(t *testing.T) {
 		name               string
 		errCode            auth.ErrCode
 		refreshTokenExpiry time.Duration
+		isRevoked          bool
 	}{
 		{
 			name:               "Validates refreshable token",
 			refreshTokenExpiry: time.Minute * 2,
 			errCode:            auth.ErrCode(""),
+			isRevoked:          false,
 		},
 		{
-			name:               "Invalidates refreshable token",
+			name:               "Invalidates expired refreshable token",
 			errCode:            auth.EInvalidToken,
 			refreshTokenExpiry: time.Millisecond,
+			isRevoked:          false,
+		},
+		{
+			name:               "Invalidates revoked refreshable token",
+			errCode:            auth.EInvalidToken,
+			refreshTokenExpiry: time.Minute * 2,
+			isRevoked:          true,
 		},
 	}
-	for _, tc := range tt {
+	for idx, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
+			pgDB, err := test.NewPGDB()
+			if err != nil {
+				t.Fatal("failed to create test database:", err)
+			}
+			defer pgDB.DropDB()
+
+			repoMngr := postgres.TestClient(pgDB.DB)
 			ctx := context.Background()
+
+			user := &auth.User{
+				Email: sql.NullString{
+					String: "jane@example.com",
+					Valid:  true,
+				},
+				Password: "swordfish",
+			}
+			err = repoMngr.User().Create(ctx, user)
+			if err != nil {
+				t.Fatal("failed to create test user", err)
+			}
+
 			tokenSvc := &service{
 				refreshTokenExpiry: tc.refreshTokenExpiry,
+				repoMngr:           repoMngr,
 			}
-			token := &auth.Token{}
+			token := &auth.Token{
+				StandardClaims: jwt.StandardClaims{
+					Id: fmt.Sprintf("%v", idx),
+				},
+			}
+
+			err = repoMngr.LoginHistory().Create(ctx, &auth.LoginHistory{
+				TokenID:   token.Id,
+				UserID:    user.ID,
+				IsRevoked: tc.isRevoked,
+			})
+			if err != nil {
+				t.Fatal("failed to create login history", err)
+			}
+
 			refreshToken, refreshTokenHash, err := tokenSvc.genRefreshTokenAndHash(&auth.TokenConfiguration{})
 			if err != nil {
 				t.Fatal("failed to create refresh token")
@@ -577,7 +660,7 @@ func TestTokenSvc_InvalidatesOldTokensWithOTP(t *testing.T) {
 
 	ctx := context.Background()
 	user := &auth.User{ID: "user_id"}
-	tokenSvc := NewTestTokenSvc(db)
+	tokenSvc := NewTestTokenSvc(db, &test.RepositoryManager{})
 
 	token, err := tokenSvc.Create(ctx, user, auth.JWTAuthorized,
 		WithOTPDeliveryMethod(auth.Email),
