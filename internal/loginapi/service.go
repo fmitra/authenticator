@@ -164,7 +164,9 @@ func (s *service) respond(ctx context.Context, w http.ResponseWriter, user *auth
 		return nil, err
 	}
 
-	http.SetCookie(w, s.token.Cookie(ctx, jwtToken))
+	for _, cookie := range s.token.Cookies(ctx, jwtToken) {
+		http.SetCookie(w, cookie)
+	}
 
 	if jwtToken.CodeHash != "" {
 		// Enable in config.json: api.debug
@@ -187,5 +189,9 @@ func (s *service) respond(ctx context.Context, w http.ResponseWriter, user *auth
 		}
 	}
 
-	return &token.Response{Token: tokenStr, ClientID: jwtToken.ClientID}, nil
+	return &token.Response{
+		Token:        tokenStr,
+		ClientID:     jwtToken.ClientID,
+		RefreshToken: jwtToken.RefreshToken,
+	}, nil
 }

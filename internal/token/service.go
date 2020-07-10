@@ -260,19 +260,30 @@ func (s *service) Revoke(ctx context.Context, tokenID string) error {
 	return s.db.WithContext(ctx).Set(revocationKey(tokenID), true, s.tokenExpiry).Err()
 }
 
-// Cookie returns a secure cookie to accompany a token.
-func (s *service) Cookie(ctx context.Context, token *auth.Token) *http.Cookie {
-	cookie := http.Cookie{
-		Name:     ClientIDCookie,
-		Value:    token.ClientID,
-		MaxAge:   s.cookieMaxAge,
-		Domain:   s.cookieDomain,
-		Path:     "/",
-		Secure:   true,
-		HttpOnly: true,
+// Cookies returns a secure cookies to accompany a token.
+func (s *service) Cookies(ctx context.Context, token *auth.Token) []*http.Cookie {
+	cookies := []*http.Cookie{
+		{
+			Name:     ClientIDCookie,
+			Value:    token.ClientID,
+			MaxAge:   s.cookieMaxAge,
+			Domain:   s.cookieDomain,
+			Path:     "/",
+			Secure:   true,
+			HttpOnly: true,
+		},
+		{
+			Name:     RefreshTokenCookie,
+			Value:    token.RefreshToken,
+			MaxAge:   s.cookieMaxAge,
+			Domain:   s.cookieDomain,
+			Path:     "/",
+			Secure:   true,
+			HttpOnly: true,
+		},
 	}
 
-	return &cookie
+	return cookies
 }
 
 // Refreshable checks if a provided token can be refreshed.

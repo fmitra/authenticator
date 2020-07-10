@@ -93,7 +93,7 @@ type TokenService struct {
 	SignFn            func() (string, error)
 	ValidateFn        func() (*auth.Token, error)
 	RevokeFn          func() error
-	CookieFn          func() *http.Cookie
+	CookiesFn         func() []*http.Cookie
 	Calls             struct {
 		RefreshableTill int
 		Refreshable     int
@@ -101,7 +101,7 @@ type TokenService struct {
 		Sign            int
 		Validate        int
 		Revoke          int
-		Cookie          int
+		Cookies         int
 	}
 }
 
@@ -503,13 +503,13 @@ func (m *TokenService) Refreshable(ctx context.Context, token *auth.Token, refre
 	return nil
 }
 
-// Cookie mock.
-func (m *TokenService) Cookie(ctx context.Context, token *auth.Token) *http.Cookie {
-	m.Calls.Cookie++
-	if m.CookieFn != nil {
-		return m.CookieFn()
+// Cookies mock.
+func (m *TokenService) Cookies(ctx context.Context, token *auth.Token) []*http.Cookie {
+	m.Calls.Cookies++
+	if m.CookiesFn != nil {
+		return m.CookiesFn()
 	}
-	return &http.Cookie{}
+	return []*http.Cookie{{}}
 }
 
 // Create mock.

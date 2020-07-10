@@ -350,8 +350,8 @@ type TokenService interface {
 	Validate(ctx context.Context, signedToken string, clientID string) (*Token, error)
 	// Revoke Revokes a token by it's ID.
 	Revoke(ctx context.Context, tokenID string) error
-	// Cookie returns a secure cookie to accompany a token.
-	Cookie(ctx context.Context, token *Token) *http.Cookie
+	// Cookies returns secure cookies to accompany a token.
+	Cookies(ctx context.Context, token *Token) []*http.Cookie
 	// Refreshable checks if a provided token can be refreshed.
 	Refreshable(ctx context.Context, token *Token, refreshToken string) error
 	// RefreshableTill returns the latest validity time for a token's accompanying refresh token.
