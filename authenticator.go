@@ -404,7 +404,7 @@ type MessagingService interface {
 // LoginAPI provides HTTP handlers for user authentication.
 type LoginAPI interface {
 	// Login is the initial login step to identify a User.
-	// On success it will return a JWT token in an identified state.
+	// On success it will return a JWT token in a pre_authorized state.
 	Login(w http.ResponseWriter, r *http.Request) (interface{}, error)
 	// DeviceChallenge retrieves a device challenge to be signed by the client.
 	DeviceChallenge(w http.ResponseWriter, r *http.Request) (interface{}, error)

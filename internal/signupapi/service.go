@@ -191,11 +191,14 @@ func (s *service) respond(ctx context.Context, w http.ResponseWriter, user *auth
 		}
 	}
 
-	return &token.Response{
-		Token:        tokenStr,
-		ClientID:     jwtToken.ClientID,
-		RefreshToken: jwtToken.RefreshToken,
-	}, nil
+	resp := token.Response{
+		Token:    tokenStr,
+		ClientID: jwtToken.ClientID,
+	}
+	if jwtToken.State == auth.JWTAuthorized {
+		resp.RefreshToken = jwtToken.RefreshToken
+	}
+	return &resp, nil
 }
 
 func (s *service) markUserVerified(ctx context.Context, user *auth.User) error {

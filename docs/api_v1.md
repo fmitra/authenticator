@@ -1,7 +1,12 @@
 # Authenticator API
 
-
 ## Contents
+
+* [Overview](#overview)
+
+  * [JWT Token](#overview-jwt)
+  * [Client ID](#overview-client-id)
+  * [Refresh Token](#overview-refresh-token)
 
 * [Sign Up API](#signup-api)
 
@@ -41,6 +46,68 @@
   * [Remove address](#remove-address)
   * [Resend OTP to address](#resend-otp)
 
+## <a name="overview">Overview</a>
+
+This document details all available HTTP API endpoints exposed by the service to manage
+JWT tokens.
+
+### <a name="overview-jwt">JWT Token</a>
+
+JWT tokens asserts the User's identity and status as an authorized user and my be received
+in 2 states: `authorized` or `pre_authorized`
+
+* `authorized` - User is fully authenticated and has completed 2FA
+* `pre_authroized` - User has been identified via their email or phone number, but has yet complete 2FA authentication
+
+JWT tokens are short lived but may be refreshed with a refresh token. They have the following properties:
+
+| Property | Description |
+| -------- | ----------- |
+| client_id | The hash of a JWT Token's accompanying client ID |
+| user_id | Unique ID (ULID) of the User. This value will not change |
+| email | Email address of the User. This value may be modified |
+| phone | Phone number of the User. This value may be modified |
+| state | State of the user in our system, either `authorized` or `pre_authorized` (pending 2FA) |
+| refresh_token | The hash of a JWT Token's accompanying refresh token |
+| tfa_options | A list of available 2FA options for the client to render for a user (`phone`, `email`, `device`) |
+| expires_at | The latest validity time of a token as a unix timestamps. Expired tokens may be refreshed |
+
+#### Authentication with JWT
+
+Clients are expected to deliver the JWT token through the following header:
+
+```
+Authorization: Bearer <jwtToken>
+```
+
+In addition to the JWT token, the client ID is also expected to be sent back in a cookie
+header to verify the user.
+
+### <a name="overview-client-id">Client ID</a>
+
+To mitigate XSS attacks, tokens are fingerprinted with the hash value of a client ID. The client ID
+is expected to be store securely on the client (e.g. HTTP Only, Secure Only cookie) and returned
+back to us in a cookie header. If a client ID is not provided, authentication will fail.
+
+Client ID's are only provided to a user after signup/login. Other endpoints will refresh
+a token and therefore share the same client ID.
+
+```
+Cookie: CLIENTID=<clientID>
+```
+
+### <a name="overview-refresh-token">Refresh Token</a>
+
+Refresh tokens are long lived tokens that allow a user to refresh a non-revoked JWT token.
+Refresh tokens are supplied to a user after successful authentication alongside a client ID
+and are expected to be returned back in a cookie header to refresh a token.
+
+New refresh tokens may only be retrieved from a successful login.
+
+```
+Cookie: REFRESHTOKEN=<refreshToken>
+```
+
 ## <a name="signup-api">SignUp API</a>
 
 Provides endpoints to manage user registration. It is a 2-step API and a pre-requisite
@@ -59,15 +126,16 @@ we will send a random code to their contact address and a JWT token with status 
 
   * Parameters
 
-      * email (optional, string) - Email address of the user.
-      * phone (optional, string) - Phone number of the user.
+      * type (required, string) - Description of idenitty, either `email` or `phone`
+      * identity (required, string) - Phone number or email address of the user.
+      * password (required, string) - Password of the user.
 
 * Response 201 (application/json)
 
 ```json
 {
   "token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTE4MTg2MDUsImp0aSI6IjAxRUFGVkMxMFBSRzE5REQyNUZFWUFRQVpLIiwiaXNzIjoiYXV0aGVudGljYXRvciIsImNsaWVudF9pZCI6IjA3ZmE3ODBiNjdmNTI3N2YzZTE0MDRjNDMyN2Y0NTBkYjllMzBlNGZjYTE4MmMwNmFkNzEyZDA5NTYwMWI0MTI1NWVlNjg2Y2JlNWI5NDBlZGZmMGVhYzcwZTVkZmY0NDU0MmVlZTI2ODE2NDBmNjA4YTljNmRmYWM2ZDg4NWNmIiwidXNlcl9pZCI6IjAxRUFGVkMwWUowUzZLM0Y5VjdKNDNGR1FCIiwiZW1haWwiOiJ0ZXN0OEB0ZXN0LmNvbSIsInBob25lX251bWJlciI6IiIsInN0YXRlIjoicHJlX2F1dGhvcml6ZWQiLCJjb2RlIjoiYjUwMDZhODU3MTIyNWIyMWNkZjVmYzgwZGNkNGU5ZGFmYzZlNGY3ODZhZTk1OTRjMmMzZGQ3NGY4NzRlYWM3OGNjYTVmYmRjYjk4ZjZjMDUxNDI2MmVlYjQzZDQ0ZWFmODhiNzUyODBkZWMyMjhhZjJhNWJmOTA5YWM4NGI4MjEifQ.N8l-mqp6hnWN2Z630hpGNITvfDR6PT4Yl2Rt52_HzWjG4NqWG8CfXJ8AntNDOfsvIGLR6t7qlVmUlUwd4cEwuA",
-  "clientID": "aIXvJGIm72dqiwgUWNm3R4UyQIbByLDCzQCzOZWz"
+  "clientID": "TSF9SUpSdj8rQmcpXTc9VX1VUzQtVC96fVdBZ0lKIXxdKycvVGNVMw"
 }
 ```
 
@@ -86,7 +154,7 @@ we will send a random code to their contact address and a JWT token with status 
 
 A user proves their identity to us by sending back the randomly generated code we
 delivered to them. On success they will receive a JWT token asserting their status
-as a new authorized user.
+as a new `authorized` user.
 
 * Request (application/json)
 
@@ -104,7 +172,8 @@ as a new authorized user.
 ```json
 {
   "token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTE4MTg2MDUsImp0aSI6IjAxRUFGVkMxMFBSRzE5REQyNUZFWUFRQVpLIiwiaXNzIjoiYXV0aGVudGljYXRvciIsImNsaWVudF9pZCI6IjA3ZmE3ODBiNjdmNTI3N2YzZTE0MDRjNDMyN2Y0NTBkYjllMzBlNGZjYTE4MmMwNmFkNzEyZDA5NTYwMWI0MTI1NWVlNjg2Y2JlNWI5NDBlZGZmMGVhYzcwZTVkZmY0NDU0MmVlZTI2ODE2NDBmNjA4YTljNmRmYWM2ZDg4NWNmIiwidXNlcl9pZCI6IjAxRUFGVkMwWUowUzZLM0Y5VjdKNDNGR1FCIiwiZW1haWwiOiJ0ZXN0OEB0ZXN0LmNvbSIsInBob25lX251bWJlciI6IiIsInN0YXRlIjoicHJlX2F1dGhvcml6ZWQiLCJjb2RlIjoiYjUwMDZhODU3MTIyNWIyMWNkZjVmYzgwZGNkNGU5ZGFmYzZlNGY3ODZhZTk1OTRjMmMzZGQ3NGY4NzRlYWM3OGNjYTVmYmRjYjk4ZjZjMDUxNDI2MmVlYjQzZDQ0ZWFmODhiNzUyODBkZWMyMjhhZjJhNWJmOTA5YWM4NGI4MjEifQ.N8l-mqp6hnWN2Z630hpGNITvfDR6PT4Yl2Rt52_HzWjG4NqWG8CfXJ8AntNDOfsvIGLR6t7qlVmUlUwd4cEwuA",
-  "clientID": "aIXvJGIm72dqiwgUWNm3R4UyQIbByLDCzQCzOZWz"
+  "clientID": "TSF9SUpSdj8rQmcpXTc9VX1VUzQtVC96fVdBZ0lKIXxdKycvVGNVMw",
+  "refreshToken:" "eyJjb2RlIjoiWCxMN2Q2LWA6JzJcdTAwM2UhenFNb1FcImJaZlFLUyRwOGRPWj1bamBAZm9BXHUwMDNlIiwiZXhwaXJlc19hdCI6MTU5NDQwNTc1MX0",
 }
 ```
 * Response 400 (application/json)
@@ -126,41 +195,205 @@ will complete the multi-factor authentication requirement with a POST request to
 `api/v1/login/device` or `api/v1/login/code` to verify a device, randomly generated
 code or TOTP code.
 
-### Initiate login [POST /api/v1/login]
+### <a name="initiate-login">Initiate login [POST /api/v1/login]</a>
 
 A user provides either an email or phone number and password for us to identify them.
-On success we will return a JWT token with status `identified`.
+On success we will return a JWT token with state `pre_authorized`.
 
-### Complete login with code [POST /api/v1/login/verify-code]
+* Request (application/json)
+
+  * Parameters
+
+      * type (required, string) - Description of idenitty, either `email` or `phone`
+      * identity (required, string) - Phone number or email address of the user.
+      * password (required, string) - Password of the user.
+
+* Response 201 (application/json)
+
+```json
+{
+  "token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTE4MTg2MDUsImp0aSI6IjAxRUFGVkMxMFBSRzE5REQyNUZFWUFRQVpLIiwiaXNzIjoiYXV0aGVudGljYXRvciIsImNsaWVudF9pZCI6IjA3ZmE3ODBiNjdmNTI3N2YzZTE0MDRjNDMyN2Y0NTBkYjllMzBlNGZjYTE4MmMwNmFkNzEyZDA5NTYwMWI0MTI1NWVlNjg2Y2JlNWI5NDBlZGZmMGVhYzcwZTVkZmY0NDU0MmVlZTI2ODE2NDBmNjA4YTljNmRmYWM2ZDg4NWNmIiwidXNlcl9pZCI6IjAxRUFGVkMwWUowUzZLM0Y5VjdKNDNGR1FCIiwiZW1haWwiOiJ0ZXN0OEB0ZXN0LmNvbSIsInBob25lX251bWJlciI6IiIsInN0YXRlIjoicHJlX2F1dGhvcml6ZWQiLCJjb2RlIjoiYjUwMDZhODU3MTIyNWIyMWNkZjVmYzgwZGNkNGU5ZGFmYzZlNGY3ODZhZTk1OTRjMmMzZGQ3NGY4NzRlYWM3OGNjYTVmYmRjYjk4ZjZjMDUxNDI2MmVlYjQzZDQ0ZWFmODhiNzUyODBkZWMyMjhhZjJhNWJmOTA5YWM4NGI4MjEifQ.N8l-mqp6hnWN2Z630hpGNITvfDR6PT4Yl2Rt52_HzWjG4NqWG8CfXJ8AntNDOfsvIGLR6t7qlVmUlUwd4cEwuA",
+  "clientID": "TSF9SUpSdj8rQmcpXTc9VX1VUzQtVC96fVdBZ0lKIXxdKycvVGNVMw"
+}
+```
+
+* Response 400 (application/json)
+
+```json
+{
+  "error": {
+    "code": "invalid_field",
+    "message": "Email address is invalid"
+  }
+}
+```
+
+### <a name="login-with-code">Complete login with code [POST /api/v1/login/verify-code]</a>
 
 A user submits a random server generated code or TOTP code. On success we will return
-a JWT token with status `authorized`.
+a JWT token with state `authorized`.
 
-### Complete login with device [POST /api/v1/login/verify-device]
+* Request (application/json)
+
+  * Parameters
+
+      * code (required, string) - 6 digit code sent to user.
+
+  * Headers
+
+      * Authorization: `Bearer <jwtToken>`
+      * Cookie: `CLIENTID=<clientID>`
+
+* Response 201 (application/json)
+
+```json
+{
+  "token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTE4MTg2MDUsImp0aSI6IjAxRUFGVkMxMFBSRzE5REQyNUZFWUFRQVpLIiwiaXNzIjoiYXV0aGVudGljYXRvciIsImNsaWVudF9pZCI6IjA3ZmE3ODBiNjdmNTI3N2YzZTE0MDRjNDMyN2Y0NTBkYjllMzBlNGZjYTE4MmMwNmFkNzEyZDA5NTYwMWI0MTI1NWVlNjg2Y2JlNWI5NDBlZGZmMGVhYzcwZTVkZmY0NDU0MmVlZTI2ODE2NDBmNjA4YTljNmRmYWM2ZDg4NWNmIiwidXNlcl9pZCI6IjAxRUFGVkMwWUowUzZLM0Y5VjdKNDNGR1FCIiwiZW1haWwiOiJ0ZXN0OEB0ZXN0LmNvbSIsInBob25lX251bWJlciI6IiIsInN0YXRlIjoicHJlX2F1dGhvcml6ZWQiLCJjb2RlIjoiYjUwMDZhODU3MTIyNWIyMWNkZjVmYzgwZGNkNGU5ZGFmYzZlNGY3ODZhZTk1OTRjMmMzZGQ3NGY4NzRlYWM3OGNjYTVmYmRjYjk4ZjZjMDUxNDI2MmVlYjQzZDQ0ZWFmODhiNzUyODBkZWMyMjhhZjJhNWJmOTA5YWM4NGI4MjEifQ.N8l-mqp6hnWN2Z630hpGNITvfDR6PT4Yl2Rt52_HzWjG4NqWG8CfXJ8AntNDOfsvIGLR6t7qlVmUlUwd4cEwuA",
+  "clientID": "TSF9SUpSdj8rQmcpXTc9VX1VUzQtVC96fVdBZ0lKIXxdKycvVGNVMw",
+  "refreshToken:" "eyJjb2RlIjoiWCxMN2Q2LWA6JzJcdTAwM2UhenFNb1FcImJaZlFLUyRwOGRPWj1bamBAZm9BXHUwMDNlIiwiZXhwaXJlc19hdCI6MTU5NDQwNTc1MX0",
+}
+```
+* Response 400 (application/json)
+
+```json
+{
+  "error": {
+    "code": "invalid_code",
+    "message": "incorrect code provided"
+  }
+}
+```
+
+### <a name="login-with-device">Complete login with device [POST /api/v1/login/verify-device]</a>
 
 A user signs a server challenge with their WebAuthn capable device. On success we will
 return a JWT token with status `authorized`.
 
-### Request device challenge [GET /api/v1/login/verify-device]
+* Request (application/json)
+
+  * Parameters
+
+      * id (required, string) - `id` generated from browser's navigator.credentials.create API
+      * rawId (required, string) - `rawId` generated from browser's navigator.credentials.create API and parsed from a `BufferSource` to a Base64 encoded string
+      * response (required, object)
+          * attestationObject (required, string) - `attestationObject` generated from browser's navigator.credentials.create API and parsed from a `BufferSource` to a Base64 encoded string
+          * clientDataJSON (required, string) - `clientDataJSON` generated from browser's navigator.credentials.create API and parsed from a `BufferSource` to a Base64 encoded string
+      * type (required, string) - Credential type. This should always be `"public-key"`
+
+  * Headers
+
+      * Authorization: `Bearer <jwtToken>`
+      * Cookie: `CLIENTID=<clientID>`
+
+* Response 201 (application/json)
+
+```json
+{
+  "token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTE4MTg2MDUsImp0aSI6IjAxRUFGVkMxMFBSRzE5REQyNUZFWUFRQVpLIiwiaXNzIjoiYXV0aGVudGljYXRvciIsImNsaWVudF9pZCI6IjA3ZmE3ODBiNjdmNTI3N2YzZTE0MDRjNDMyN2Y0NTBkYjllMzBlNGZjYTE4MmMwNmFkNzEyZDA5NTYwMWI0MTI1NWVlNjg2Y2JlNWI5NDBlZGZmMGVhYzcwZTVkZmY0NDU0MmVlZTI2ODE2NDBmNjA4YTljNmRmYWM2ZDg4NWNmIiwidXNlcl9pZCI6IjAxRUFGVkMwWUowUzZLM0Y5VjdKNDNGR1FCIiwiZW1haWwiOiJ0ZXN0OEB0ZXN0LmNvbSIsInBob25lX251bWJlciI6IiIsInN0YXRlIjoicHJlX2F1dGhvcml6ZWQiLCJjb2RlIjoiYjUwMDZhODU3MTIyNWIyMWNkZjVmYzgwZGNkNGU5ZGFmYzZlNGY3ODZhZTk1OTRjMmMzZGQ3NGY4NzRlYWM3OGNjYTVmYmRjYjk4ZjZjMDUxNDI2MmVlYjQzZDQ0ZWFmODhiNzUyODBkZWMyMjhhZjJhNWJmOTA5YWM4NGI4MjEifQ.N8l-mqp6hnWN2Z630hpGNITvfDR6PT4Yl2Rt52_HzWjG4NqWG8CfXJ8AntNDOfsvIGLR6t7qlVmUlUwd4cEwuA",
+  "clientID": "TSF9SUpSdj8rQmcpXTc9VX1VUzQtVC96fVdBZ0lKIXxdKycvVGNVMw",
+  "refreshToken:" "eyJjb2RlIjoiWCxMN2Q2LWA6JzJcdTAwM2UhenFNb1FcImJaZlFLUyRwOGRPWj1bamBAZm9BXHUwMDNlIiwiZXhwaXJlc19hdCI6MTU5NDQwNTc1MX0",
+}
+```
+* Response 400 (application/json)
+
+```json
+{
+  "error": {
+    "code": "webauthn",
+    "message": "invalid signature"
+  }
+}
+```
+
+### <a name="request-device-challenge">Request device challenge [GET /api/v1/login/verify-device]</a>
 
 A user holding a JWT token with status `identified` may request this endpoint to receive
 a challenge value to sign. The signed value must be POSTed back to our service to
 complete authentication.
+
+* Request (application/json)
+
+  * Headers
+
+      * Authorization: `Bearer <jwtToken>`
+      * Cookie: `CLIENTID=<clientID>`
 
 * Response 200 (application/json)
 
 ```
 {
   "publicKey": {
-    "challenge": "",
-    "rp": "",
-    "user": "",
-    "pubKeyCredParams": "",
-    "authenticatorSelection": "",
-    "timeout": "",
-    "excludeCredentials": "",
-    "attestation": "",
-  },
+    "challenge": "b9aqYRIe/grw/Z4QfK1QvhYxrgsD3Cm743sFdrKdphI=",
+    "rp": {
+      "name": "Authenticator",
+      "id": "authenticator.local"
+    },
+    "user": {
+      "name": "ddddd@ddd.com",
+      "displayName": "ddddd@ddd.com",
+      "id": "MDFFQUREMjM4WFNaSkVUSDk4QUVEVkIyWVo="
+    },
+    "pubKeyCredParams": [
+      {
+        "type": "public-key",
+        "alg": -7
+      },
+      {
+        "type": "public-key",
+        "alg": -35
+      },
+      {
+        "type": "public-key",
+        "alg": -36
+      },
+      {
+        "type": "public-key",
+        "alg": -257
+      },
+      {
+        "type": "public-key",
+        "alg": -258
+      },
+      {
+        "type": "public-key",
+        "alg": -259
+      },
+      {
+        "type": "public-key",
+        "alg": -37
+      },
+      {
+        "type": "public-key",
+        "alg": -38
+      },
+      {
+        "type": "public-key",
+        "alg": -39
+      },
+      {
+        "type": "public-key",
+        "alg": -8
+      }
+    ],
+    "authenticatorSelection": {
+      "authenticatorAttachment": "cross-platform",
+      "requireResidentKey": false,
+      "userVerification": "preferred"
+    },
+    "timeout": 60000,
+    "attestation": "direct"
+  }
+}
+```
+
+* Response 400 (application/json)
+
+```
+{
+  "error": {
+    "code": "webauthn",
+    "message": "Error validating origin"
+  }
 }
 ```
 
@@ -345,14 +578,92 @@ Provides endpoints to manage a User's token.
 A user revokes a token, rendering it invalid for authentication. Revoked
 tokens can no longer be refreshed.
 
+* Request (application/json)
+
+  * Headers
+
+      * Authorization: `Bearer <jwtToken>`
+      * Cookie: `CLIENTID=<clientID>`
+
+* Response 200 (application/json)
+
+```json
+{
+  "status": "ok"
+}
+```
+* Response 400 (application/json)
+
+```json
+{
+  "error": {
+    "code": "bad_request",
+    "message": "invalid token ID"
+  }
+}
+```
+
 ### <a name="token-verify">Verify a token [GET /api/v1/token/verify]</a>
 
 A user confirms the currently used token is valid. This endpoint intends to be used
-internally by other trusted services to verify a User's authentication.
+internally by other trusted services to verify a User is in possession of a JWT token
+in an `authorized` state with accompanying client ID.
+
+* Request (application/json)
+
+  * Headers
+
+      * Authorization: `Bearer <jwtToken>`
+      * Cookie: `CLIENTID=<clientID>`
+
+* Response 200 (application/json)
+
+```json
+{
+  "status": "ok"
+}
+```
+
+* Response 401 (application/json)
+
+```json
+{
+  "error": {
+    "code": "invalid_token",
+    "message": "Token is invalid"
+  }
+}
+```
 
 ### <a name="token-refresh">Refresh a token [GET /api/v1/token/refresh]</a>
 
-A user refreshes an expiring token.
+A user refreshes an expiring token. Only `authorized` tokens may be refreshed.
+
+* Request (application/json)
+
+  * Headers
+
+      * Authorization: `Bearer <jwtToken>`
+      * Cookie: `CLIENTID=<clientID>`
+
+* Response 200 (application/json)
+
+```json
+{
+  "token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTE4MTg2MDUsImp0aSI6IjAxRUFGVkMxMFBSRzE5REQyNUZFWUFRQVpLIiwiaXNzIjoiYXV0aGVudGljYXRvciIsImNsaWVudF9pZCI6IjA3ZmE3ODBiNjdmNTI3N2YzZTE0MDRjNDMyN2Y0NTBkYjllMzBlNGZjYTE4MmMwNmFkNzEyZDA5NTYwMWI0MTI1NWVlNjg2Y2JlNWI5NDBlZGZmMGVhYzcwZTVkZmY0NDU0MmVlZTI2ODE2NDBmNjA4YTljNmRmYWM2ZDg4NWNmIiwidXNlcl9pZCI6IjAxRUFGVkMwWUowUzZLM0Y5VjdKNDNGR1FCIiwiZW1haWwiOiJ0ZXN0OEB0ZXN0LmNvbSIsInBob25lX251bWJlciI6IiIsInN0YXRlIjoicHJlX2F1dGhvcml6ZWQiLCJjb2RlIjoiYjUwMDZhODU3MTIyNWIyMWNkZjVmYzgwZGNkNGU5ZGFmYzZlNGY3ODZhZTk1OTRjMmMzZGQ3NGY4NzRlYWM3OGNjYTVmYmRjYjk4ZjZjMDUxNDI2MmVlYjQzZDQ0ZWFmODhiNzUyODBkZWMyMjhhZjJhNWJmOTA5YWM4NGI4MjEifQ.N8l-mqp6hnWN2Z630hpGNITvfDR6PT4Yl2Rt52_HzWjG4NqWG8CfXJ8AntNDOfsvIGLR6t7qlVmUlUwd4cEwuA"
+}
+```
+
+* Response 400 (application/json)
+
+```json
+{
+  "error": {
+    "code": "invalid_token",
+    "message": "Token is revoked"
+  }
+}
+```
 
 ## <a name="totp-api">TOTP API</a>
 

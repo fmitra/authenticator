@@ -8,6 +8,8 @@ Account management is one of the more boring and yet necessary portions of most 
 facing systems. Authenticator attempts to provide some sane, secure defaults so you can
 focus on building your product instead.
 
+For an overview of the API, refer to the [documentation here](docs/api_v1.md)
+
 ### Authentication Tokens
 
 [JWT tokens](https://jwt.io) are used for authentication. Their stateless nature allows
@@ -19,7 +21,7 @@ Tokens are embeded with a fingerprint to help prevent [token sidejacking](https:
 
 ### Passwordless Authentication
 
-Passwordless authentication is an optional system wide configuration. It is often used
+Passwordless authentication is planned as an optional system wide configuration. It is often used
 to ease onboarding flows. Popular examples can be seen by popular start ups such as
 Uber, Grab, and Square Cash.  We support this this as we [can argue](https://auth0.com/passwordless) that randomly
 generated, time sensitive multi-character codes are oftentimes more secure then common
@@ -31,18 +33,20 @@ Registration requires either a phone number or email address as it is a requirem
 verify the authenticity of a user. The service may be required to enforce email only
 registration, phone only, or a combination of both.
 
-### Authentication
+### Authentication and 2FA
 
 Authentication requires a password (unless passwordless authentication is enabled) and
-an assertion of identity. The assertion may be one of the following:
+an assertion of identity. The assertion may be one of the following 2FA methods:
 
-* Submission of a code delivered via email or SMS - this is the default setting and may
-be disabled if a user enables a separate MFA method.
+* **OTP**: A one time password (by default, a 6 digit code) will be delivered to the
+user's email address or phone number. This is the default setting and may be disabled
+after the user enables an alternative 2FA method.
 
-* Submission of TOTP - TOTP authentication may be enabled after registration
+* **TOTP**: Users may generate a time based one time password through a supported
+application.
 
-* Submission of a signed WebAuthn challenge - WebAuthn authentication may be enabled
-during or after registration.
+* **FIDO** Users may submit a signed WebAuthn challenge to authenticate with any standard
+FIDO device (e.g. MacOS fingerprint reader, YubiKey)
 
 ### Client Flow/Storage
 
@@ -59,7 +63,7 @@ case of the browser) and sent along with the token for validation.
 ### Revocation
 
 Token revocation is an inherit problem with JWT tokens as revocation relies on an expiry
-date. In order to accomplish revocation without a session store, we instead maintain a [blacklist](https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets/JSON_Web_Token_Cheat_Sheet_for_Java.md#token-explicit-revocation-by-the-user).
+date. In order to accomplish revocation without a session store, we instead maintain a [blacklist](https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.html#blacklist-storage).
 
 Tokens are blacklisted in a fast storage (here Redis is used) and removed upon expiry.
 
@@ -67,13 +71,14 @@ Tokens are blacklisted in a fast storage (here Redis is used) and removed upon e
 
 Records for login history are created upon each successful login and associated with a
 JWT token ID. This history allows us to provide users a way audit their account and
-revoke tokens.
+revoke tokens. After revocations, tokens may no longer refresh and the user must login in
+again to retrieve a new JWT token and accompanying refresh token.
 
 ### Design Rationale
 
 **Token storage**: We avoid setting authentication tokens to cookies to avoid the need to
 provide CSRF token support and allow us to rely solely on the contents of a JWT token
-for authenticaiton. Fingerprinting the token with a securely stored value is instead
+for authenticaiton. [Fingerprinting](https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.html#how-to-prevent_1) the token with a securely stored value is instead
 used to mitigate risks of XSS attacks that may occur by allowing clients to save their
 tokens in other storages.
 
@@ -86,12 +91,12 @@ additional security methods and do not penalize them by offering a fallback.
 It was left out as an authentication protocol for this service as it would add significant
 complexity to client side auth flow  and competes with building adoption for WebAuthn.
 
-## Open Topics
+## Pending
 
-Following topics are still being planned out
+Following features are still being planned out
 
 * Password reset
-* Token expiry/refresh
+* Passwordless authentication
 
 ## Development
 
@@ -135,8 +140,10 @@ is less mature than it's competitor and more expensive at low tier plans.
 
 ## References
 
-* [JWT Token Revokation](https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets/JSON_Web_Token_Cheat_Sheet_for_Java.md#token-explicit-revocation-by-the-user)
+* [JWT Token Revokation](https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.html#no-built-in-token-revocation-by-the-user)
 
-* [Token Sidejacking](https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets/JSON_Web_Token_Cheat_Sheet_for_Java.md#token-sidejacking)
+* [Token Sidejacking](https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.html#token-sidejacking)
 
 * [Passwordless Authentication](https://auth0.com/passwordless)
+
+* [Token refresh](https://auth0.com/learn/refresh-tokens)

@@ -229,7 +229,7 @@ func (s *service) Validate(ctx context.Context, signedToken string, clientID str
 func (s *service) Revoke(ctx context.Context, tokenID string) error {
 	_, err := s.repoMngr.LoginHistory().ByTokenID(ctx, tokenID)
 	if err == sql.ErrNoRows {
-		return errors.Wrap(auth.ErrBadRequest("invalid tokenID"), err.Error())
+		return errors.Wrap(auth.ErrBadRequest("invalid token ID"), err.Error())
 	}
 	if err != nil {
 		return err

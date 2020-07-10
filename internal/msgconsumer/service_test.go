@@ -219,7 +219,7 @@ func TestMsgConsumer_ProcessMessage(t *testing.T) {
 						tc.smsCount, smsLib.callCount,
 					))
 				}
-			default:
+			case <-time.After(time.Second):
 				if tc.emailCount != 0 && tc.smsCount != 0 {
 					t.Error("no messages processed")
 				}
