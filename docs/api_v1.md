@@ -53,7 +53,7 @@ JWT tokens.
 
 ### <a name="overview-jwt">JWT Token</a>
 
-JWT tokens asserts the User's identity and status as an authorized user and my be received
+JWT tokens assert the User's identity and status as an authorized user and my be received
 in 2 states: `authorized` or `pre_authorized`
 
 * `authorized` - User is fully authenticated and has completed 2FA
@@ -89,7 +89,7 @@ To mitigate XSS attacks, tokens are fingerprinted with the hash value of a clien
 is expected to be store securely on the client (e.g. HTTP Only, Secure Only cookie) and returned
 back to us in a cookie header. If a client ID is not provided, authentication will fail.
 
-Client ID's are only provided to a user after signup/login. Other endpoints will refresh
+Client IDs are only provided to a user after signup/login. Other endpoints will refresh
 a token and therefore share the same client ID.
 
 ```

@@ -1,14 +1,17 @@
 # authenticator
 
-A generic user authentication micro-service supporting Email/SMS, TOTP, FIDO U2F and WebAuthn.
+A generic user authentication service supporting FIDO U2F, TOTP, Email, and SMS.
 
 ## Overview
 
 Account management is one of the more boring and yet necessary portions of most user
-facing systems. Authenticator attempts to provide some sane, secure defaults so you can
+facing systems. Here we attempt to provide some sane, secure defaults so you can
 focus on building your product instead.
 
 For an overview of the API, refer to the [documentation here](docs/api_v1.md)
+
+For an example clientside implementation of some of the core API's provided here,
+refer to the [client repository](https://github.com/fmitra/authenticator-client)
 
 ### Authentication Tokens
 
@@ -17,7 +20,11 @@ us to check verification without managing a session in a database. Additionally 
 tokens provide data integrity, providing our other applications a degree of trust
 with the user identity information contained within it.
 
-Tokens are embeded with a fingerprint to help prevent [token sidejacking](https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets/JSON_Web_Token_Cheat_Sheet_for_Java.md#token-sidejacking).
+JWT Tokens are embeded with a fingerprint, which we refer to here as a `client ID` to help prevent [token sidejacking](https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets/JSON_Web_Token_Cheat_Sheet_for_Java.md#token-sidejacking).
+
+JWT Tokens are short lived by default (20 minutes) but may be refreshed after expiry
+with a valid `refresh token`. Refresh tokens have their own, configurable long lived expiry time
+(15 days by default) and set on the client securely along side the client ID.
 
 ### Passwordless Authentication
 
@@ -51,14 +58,16 @@ FIDO device (e.g. MacOS fingerprint reader, YubiKey)
 ### Client Flow/Storage
 
 While secure cookie storage is available on web browsers, tokens are instead expected
-to be stored in either LocalStorage or SessionStorage (or secure storage in a native
-mobile app). Clients are expected to create an authentication header and pass their tokens
-with a `Bearer` prefix. This eliminates the complexity of additionally supporting CSRF
-tokens.
+to be stored in either LocalStorage or SessionStorage (or some secure storage in a native
+mobile app). This ensure clients have access to the token to retrieve basic information
+about the user's idenitty. To authenticate, clients are expected to create an authentication
+header and pass their tokens with a `Bearer` prefix. This eliminates the complexity of
+additionally supporting CSRF tokens.
 
 To mitigate XSS attacks targeted at token storages, tokens are fingerprinted with a random
-string's hash. The hash value is securely stored in the (secure cookie storage in the
-case of the browser) and sent along with the token for validation.
+string's hash. The hash value (the `client ID`) should be securely stored on the client. After
+authentication, the client ID is set as a secure cookie on the browser. It is additionally
+available as part of the response payload so mobile clients can store it themselves.
 
 ### Revocation
 
@@ -97,31 +106,35 @@ Following features are still being planned out
 
 * Password reset
 * Passwordless authentication
+* Retrieval of login history and old JWT token IDs
+* Retrieval of registered FIDO devices
 
 ## Development
 
 For a default development set up:
 
-Generate default config
+**Generate default config**
 
 ```
 make dev
 ```
 
-Start Postgres and Redis
+**Start Postgres and Redis**
 
 ```
 docker-compose up -d
 ```
 
-Build and run project
+**Build and run the project**
 
 ```
 go build ./cmd/api
 ./api --config=./config.json
 ```
 
-Test and lint project
+**Test and lint the project**
+
+Make sure [golangci-lint](https://golangci-lint.run/usage/install/) is installed prior to running the linter.
 
 ```
 make test
