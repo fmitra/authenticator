@@ -13,6 +13,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 	redislib "github.com/go-redis/redis"
 	"github.com/oklog/ulid"
 	"github.com/pkg/errors"
@@ -126,6 +127,7 @@ func (s *service) Create(ctx context.Context, user *auth.User, state auth.TokenS
 
 	token := auth.Token{
 		StandardClaims: jwt.StandardClaims{
+			IssuedAt:  time.Now().Unix(),
 			ExpiresAt: expiresAt,
 			Id:        tokenULID,
 			Issuer:    s.issuer,
@@ -467,10 +469,20 @@ func (s *service) checkRevocation(ctx context.Context, token *auth.Token) error 
 func (s *service) checkInvalidation(ctx context.Context, token *auth.Token) error {
 	key := invalidationKey(token.Id)
 	ts, err := s.db.WithContext(ctx).Get(key).Int64()
+
+	level.Info(s.logger).Log(
+		"source", "TokenService.checkInvalidation",
+		"message", "invalidation check",
+		"invalidation_ts", ts,
+		"token_ts", token.IssuedAt,
+		"err", err,
+	)
+
 	if err == nil {
 		if token.IssuedAt >= ts {
 			return nil
 		}
+		return auth.ErrInvalidToken("token is revoked")
 	}
 
 	if err == redislib.Nil {

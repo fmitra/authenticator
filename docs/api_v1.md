@@ -71,7 +71,8 @@ JWT tokens are short lived but may be refreshed with a refresh token. They have 
 | refresh_token | The hash of a JWT Token's accompanying refresh token |
 | tfa_options | A list of available 2FA options for the client to render for a user (`totp`, `otp_email`, `otp_phone`, `device`) |
 | default_tfa | The recommended enabled TFA option a client should show a user |
-| expires_at | The latest validity time of a token as a unix timestamps. Expired tokens may be refreshed |
+| exp | The latest validity time of a token as a unix timestamps. Expired tokens may be refreshed |
+| iat | The issuing time of the token as a unix timestamp |
 
 #### Authentication with JWT
 
@@ -524,7 +525,7 @@ for authentication. On success, a refreshed JWT token is returned to the user.
 
 Provides endpoints to manage a User's token.
 
-### <a name="token-revoke">Revoke a token [POST /api/v1/token/:token_id]</a>
+### <a name="token-revoke">Revoke a token [DELETE /api/v1/token/:token_id]</a>
 
 A user revokes a token, rendering it invalid for authentication. Revoked
 tokens can no longer be refreshed.
