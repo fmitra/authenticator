@@ -141,6 +141,7 @@ func (s *service) Create(ctx context.Context, user *auth.User, state auth.TokenS
 		ClientIDHash:     clientIDHash,
 		State:            state,
 		TFAOptions:       tfaOptions,
+		DefaultTFA:       user.DefaultTFA(),
 	}
 
 	if err = s.invalidateOldTokens(ctx, conf, &token); err != nil {

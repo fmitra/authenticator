@@ -69,7 +69,8 @@ JWT tokens are short lived but may be refreshed with a refresh token. They have 
 | phone | Phone number of the User. This value may be modified |
 | state | State of the user in our system, either `authorized` or `pre_authorized` (pending 2FA) |
 | refresh_token | The hash of a JWT Token's accompanying refresh token |
-| tfa_options | A list of available 2FA options for the client to render for a user (`phone`, `email`, `device`) |
+| tfa_options | A list of available 2FA options for the client to render for a user (`totp`, `otp_email`, `otp_phone`, `device`) |
+| default_tfa | The recommended enabled TFA option a client should show a user |
 | expires_at | The latest validity time of a token as a unix timestamps. Expired tokens may be refreshed |
 
 #### Authentication with JWT
@@ -173,7 +174,7 @@ as a new `authorized` user.
 {
   "token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTE4MTg2MDUsImp0aSI6IjAxRUFGVkMxMFBSRzE5REQyNUZFWUFRQVpLIiwiaXNzIjoiYXV0aGVudGljYXRvciIsImNsaWVudF9pZCI6IjA3ZmE3ODBiNjdmNTI3N2YzZTE0MDRjNDMyN2Y0NTBkYjllMzBlNGZjYTE4MmMwNmFkNzEyZDA5NTYwMWI0MTI1NWVlNjg2Y2JlNWI5NDBlZGZmMGVhYzcwZTVkZmY0NDU0MmVlZTI2ODE2NDBmNjA4YTljNmRmYWM2ZDg4NWNmIiwidXNlcl9pZCI6IjAxRUFGVkMwWUowUzZLM0Y5VjdKNDNGR1FCIiwiZW1haWwiOiJ0ZXN0OEB0ZXN0LmNvbSIsInBob25lX251bWJlciI6IiIsInN0YXRlIjoicHJlX2F1dGhvcml6ZWQiLCJjb2RlIjoiYjUwMDZhODU3MTIyNWIyMWNkZjVmYzgwZGNkNGU5ZGFmYzZlNGY3ODZhZTk1OTRjMmMzZGQ3NGY4NzRlYWM3OGNjYTVmYmRjYjk4ZjZjMDUxNDI2MmVlYjQzZDQ0ZWFmODhiNzUyODBkZWMyMjhhZjJhNWJmOTA5YWM4NGI4MjEifQ.N8l-mqp6hnWN2Z630hpGNITvfDR6PT4Yl2Rt52_HzWjG4NqWG8CfXJ8AntNDOfsvIGLR6t7qlVmUlUwd4cEwuA",
   "clientID": "TSF9SUpSdj8rQmcpXTc9VX1VUzQtVC96fVdBZ0lKIXxdKycvVGNVMw",
-  "refreshToken:" "eyJjb2RlIjoiWCxMN2Q2LWA6JzJcdTAwM2UhenFNb1FcImJaZlFLUyRwOGRPWj1bamBAZm9BXHUwMDNlIiwiZXhwaXJlc19hdCI6MTU5NDQwNTc1MX0",
+  "refreshToken:" "eyJjb2RlIjoiWCxMN2Q2LWA6JzJcdTAwM2UhenFNb1FcImJaZlFLUyRwOGRPWj1bamBAZm9BXHUwMDNlIiwiZXhwaXJlc19hdCI6MTU5NDQwNTc1MX0"
 }
 ```
 * Response 400 (application/json)
@@ -250,7 +251,7 @@ a JWT token with state `authorized`.
 {
   "token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTE4MTg2MDUsImp0aSI6IjAxRUFGVkMxMFBSRzE5REQyNUZFWUFRQVpLIiwiaXNzIjoiYXV0aGVudGljYXRvciIsImNsaWVudF9pZCI6IjA3ZmE3ODBiNjdmNTI3N2YzZTE0MDRjNDMyN2Y0NTBkYjllMzBlNGZjYTE4MmMwNmFkNzEyZDA5NTYwMWI0MTI1NWVlNjg2Y2JlNWI5NDBlZGZmMGVhYzcwZTVkZmY0NDU0MmVlZTI2ODE2NDBmNjA4YTljNmRmYWM2ZDg4NWNmIiwidXNlcl9pZCI6IjAxRUFGVkMwWUowUzZLM0Y5VjdKNDNGR1FCIiwiZW1haWwiOiJ0ZXN0OEB0ZXN0LmNvbSIsInBob25lX251bWJlciI6IiIsInN0YXRlIjoicHJlX2F1dGhvcml6ZWQiLCJjb2RlIjoiYjUwMDZhODU3MTIyNWIyMWNkZjVmYzgwZGNkNGU5ZGFmYzZlNGY3ODZhZTk1OTRjMmMzZGQ3NGY4NzRlYWM3OGNjYTVmYmRjYjk4ZjZjMDUxNDI2MmVlYjQzZDQ0ZWFmODhiNzUyODBkZWMyMjhhZjJhNWJmOTA5YWM4NGI4MjEifQ.N8l-mqp6hnWN2Z630hpGNITvfDR6PT4Yl2Rt52_HzWjG4NqWG8CfXJ8AntNDOfsvIGLR6t7qlVmUlUwd4cEwuA",
   "clientID": "TSF9SUpSdj8rQmcpXTc9VX1VUzQtVC96fVdBZ0lKIXxdKycvVGNVMw",
-  "refreshToken:" "eyJjb2RlIjoiWCxMN2Q2LWA6JzJcdTAwM2UhenFNb1FcImJaZlFLUyRwOGRPWj1bamBAZm9BXHUwMDNlIiwiZXhwaXJlc19hdCI6MTU5NDQwNTc1MX0",
+  "refreshToken:" "eyJjb2RlIjoiWCxMN2Q2LWA6JzJcdTAwM2UhenFNb1FcImJaZlFLUyRwOGRPWj1bamBAZm9BXHUwMDNlIiwiZXhwaXJlc19hdCI6MTU5NDQwNTc1MX0"
 }
 ```
 * Response 400 (application/json)
@@ -291,7 +292,7 @@ return a JWT token with status `authorized`.
 {
   "token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTE4MTg2MDUsImp0aSI6IjAxRUFGVkMxMFBSRzE5REQyNUZFWUFRQVpLIiwiaXNzIjoiYXV0aGVudGljYXRvciIsImNsaWVudF9pZCI6IjA3ZmE3ODBiNjdmNTI3N2YzZTE0MDRjNDMyN2Y0NTBkYjllMzBlNGZjYTE4MmMwNmFkNzEyZDA5NTYwMWI0MTI1NWVlNjg2Y2JlNWI5NDBlZGZmMGVhYzcwZTVkZmY0NDU0MmVlZTI2ODE2NDBmNjA4YTljNmRmYWM2ZDg4NWNmIiwidXNlcl9pZCI6IjAxRUFGVkMwWUowUzZLM0Y5VjdKNDNGR1FCIiwiZW1haWwiOiJ0ZXN0OEB0ZXN0LmNvbSIsInBob25lX251bWJlciI6IiIsInN0YXRlIjoicHJlX2F1dGhvcml6ZWQiLCJjb2RlIjoiYjUwMDZhODU3MTIyNWIyMWNkZjVmYzgwZGNkNGU5ZGFmYzZlNGY3ODZhZTk1OTRjMmMzZGQ3NGY4NzRlYWM3OGNjYTVmYmRjYjk4ZjZjMDUxNDI2MmVlYjQzZDQ0ZWFmODhiNzUyODBkZWMyMjhhZjJhNWJmOTA5YWM4NGI4MjEifQ.N8l-mqp6hnWN2Z630hpGNITvfDR6PT4Yl2Rt52_HzWjG4NqWG8CfXJ8AntNDOfsvIGLR6t7qlVmUlUwd4cEwuA",
   "clientID": "TSF9SUpSdj8rQmcpXTc9VX1VUzQtVC96fVdBZ0lKIXxdKycvVGNVMw",
-  "refreshToken:" "eyJjb2RlIjoiWCxMN2Q2LWA6JzJcdTAwM2UhenFNb1FcImJaZlFLUyRwOGRPWj1bamBAZm9BXHUwMDNlIiwiZXhwaXJlc19hdCI6MTU5NDQwNTc1MX0",
+  "refreshToken:" "eyJjb2RlIjoiWCxMN2Q2LWA6JzJcdTAwM2UhenFNb1FcImJaZlFLUyRwOGRPWj1bamBAZm9BXHUwMDNlIiwiZXhwaXJlc19hdCI6MTU5NDQwNTc1MX0"
 }
 ```
 * Response 400 (application/json)
@@ -323,65 +324,15 @@ complete authentication.
 ```
 {
   "publicKey": {
-    "challenge": "b9aqYRIe/grw/Z4QfK1QvhYxrgsD3Cm743sFdrKdphI=",
-    "rp": {
-      "name": "Authenticator",
-      "id": "authenticator.local"
-    },
-    "user": {
-      "name": "ddddd@ddd.com",
-      "displayName": "ddddd@ddd.com",
-      "id": "MDFFQUREMjM4WFNaSkVUSDk4QUVEVkIyWVo="
-    },
-    "pubKeyCredParams": [
-      {
-        "type": "public-key",
-        "alg": -7
-      },
-      {
-        "type": "public-key",
-        "alg": -35
-      },
-      {
-        "type": "public-key",
-        "alg": -36
-      },
-      {
-        "type": "public-key",
-        "alg": -257
-      },
-      {
-        "type": "public-key",
-        "alg": -258
-      },
-      {
-        "type": "public-key",
-        "alg": -259
-      },
-      {
-        "type": "public-key",
-        "alg": -37
-      },
-      {
-        "type": "public-key",
-        "alg": -38
-      },
-      {
-        "type": "public-key",
-        "alg": -39
-      },
-      {
-        "type": "public-key",
-        "alg": -8
-      }
-    ],
-    "authenticatorSelection": {
-      "authenticatorAttachment": "cross-platform",
-      "requireResidentKey": false,
-      "userVerification": "preferred"
-    },
+    "challenge": "4xH0vUsr6b2oHTKn7GS3I9ZbqEHSF4aLAil9exrCWoI=",
     "timeout": 60000,
-    "attestation": "direct"
+    "rpId": "authenticator.local",
+    "allowCredentials": [
+      {
+        "type": "public-key",
+        "id": "kXV0GAUZjDSncqwfxvxVSN55IhTxty88Fhg3S38LU6w9Jl421SZQlf6epPuLhP5KwKICDUJk+/w3F8DrDj1vqA=="
+      }
+    ]
   }
 }
 ```

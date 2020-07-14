@@ -113,6 +113,24 @@ type User struct {
 	UpdatedAt  time.Time
 }
 
+// DefaultTFA is the recommended enabled TFA option clients should
+// offer a user.
+func (u *User) DefaultTFA() TFAOptions {
+	if u.IsDeviceAllowed {
+		return FIDODevice
+	}
+
+	if u.IsTOTPAllowed {
+		return TOTP
+	}
+
+	if u.IsEmailOTPAllowed {
+		return OTPEmail
+	}
+
+	return OTPPhone
+}
+
 // DefaultOTPDelivery returns the default OTP delivery method.
 func (u *User) DefaultOTPDelivery() DeliveryMethod {
 	if u.Email.String != "" {
@@ -229,6 +247,8 @@ type Token struct {
 	// TFAOptions represents available options a user may use to complete
 	// 2FA.
 	TFAOptions []TFAOptions `json:"tfa_options"`
+	// DefaultTFA is the develop TFA method clients should offer a user.
+	DefaultTFA TFAOptions `json:"default_tfa"`
 }
 
 // Message is a message to be delivered to a user.
