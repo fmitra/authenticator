@@ -27,12 +27,12 @@ func (s *service) Revoke(w http.ResponseWriter, r *http.Request) (interface{}, e
 		return nil, err
 	}
 
-	return []byte(`{"status": "ok"}`), nil
+	return &Response{Result: "success"}, nil
 }
 
 // Verify check's if a User's header credentials (token and matching client ID) are valid.
 func (s *service) Verify(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	return []byte(`{"status": "ok"}`), nil
+	return &Response{Result: "success"}, nil
 }
 
 // Refresh refreshes an expired token with a new expiry time. Refresh tokens share

@@ -3,7 +3,6 @@ package totpapi
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/go-kit/kit/log"
@@ -71,9 +70,7 @@ func (s *service) Secret(w http.ResponseWriter, r *http.Request) (interface{}, e
 		return nil, err
 	}
 
-	return []byte(fmt.Sprintf(`
-		{"totp": "%s"}
-	`, totpQRStr)), nil
+	return &Response{TOTP: totpQRStr}, nil
 }
 
 // Verify validates a recently generated TOTP code. If a code is valid, TOTP is enabled

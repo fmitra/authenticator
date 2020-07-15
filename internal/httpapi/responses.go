@@ -3,7 +3,6 @@ package httpapi
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	auth "github.com/fmitra/authenticator"
@@ -59,7 +58,7 @@ func GetRefreshToken(r *http.Request) string {
 // and we are unable to marshal it, we return an internal error.
 func JSONResponse(w http.ResponseWriter, v interface{}, statusCode int) {
 	if v == nil {
-		response(w, []byte("{}"), statusCode)
+		response(w, []byte(`{}`), statusCode)
 		return
 	}
 
@@ -101,13 +100,18 @@ func ErrorResponse(w http.ResponseWriter, err error) {
 }
 
 func errorMessage(code, message string) []byte {
-	responseStr := `{
+	response := map[string]map[string]string{
 		"error": {
-			"code": "%s",
-			"message": "%s"
-		}
-	}`
-	return []byte(fmt.Sprintf(responseStr, code, message))
+			"code":    code,
+			"message": message,
+		},
+	}
+	b, err := json.Marshal(response)
+	if err != nil {
+		return []byte(`{}`)
+	}
+
+	return b
 }
 
 func response(w http.ResponseWriter, content []byte, statusCode int) {
