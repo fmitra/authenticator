@@ -94,12 +94,12 @@ func TestHTTPAPI_ErrorResponse(t *testing.T) {
 		{
 			name:    "Handles auth error",
 			err:     auth.ErrInvalidToken("token is invalid"),
-			message: "token is invalid",
+			message: "Token is invalid",
 		},
 		{
 			name:    "Handles default domain error",
 			err:     auth.ErrBadRequest("something bad happened"),
-			message: "something bad happened",
+			message: "Something bad happened",
 		},
 		{
 			name:    "Handles internal error",

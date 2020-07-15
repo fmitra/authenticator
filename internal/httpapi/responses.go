@@ -3,7 +3,9 @@ package httpapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 
 	auth "github.com/fmitra/authenticator"
 )
@@ -102,10 +104,16 @@ func ErrorResponse(w http.ResponseWriter, err error) {
 }
 
 func errorMessage(code, message string) []byte {
+	var friendlyMsg string
+	if message != "" {
+		c := strings.ToUpper(string(message[0]))
+		friendlyMsg = fmt.Sprintf("%s%s", c, message[1:])
+	}
+
 	response := map[string]map[string]string{
 		"error": {
 			"code":    code,
-			"message": message,
+			"message": friendlyMsg,
 		},
 	}
 	b, err := json.Marshal(response)

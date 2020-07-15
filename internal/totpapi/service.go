@@ -33,7 +33,7 @@ func (s *service) Secret(w http.ResponseWriter, r *http.Request) (interface{}, e
 	}
 
 	if user.IsTOTPAllowed {
-		return nil, auth.ErrBadRequest("totp is already configured")
+		return nil, auth.ErrBadRequest("TOTP is already configured")
 	}
 
 	client, err := s.repoMngr.NewWithTransaction(ctx)
@@ -85,7 +85,7 @@ func (s *service) Verify(w http.ResponseWriter, r *http.Request) (interface{}, e
 	}
 
 	if user.IsTOTPAllowed {
-		return nil, auth.ErrBadRequest("totp is already configured")
+		return nil, auth.ErrBadRequest("TOTP is already configured")
 	}
 
 	isEnabled := true
@@ -104,7 +104,7 @@ func (s *service) Remove(w http.ResponseWriter, r *http.Request) (interface{}, e
 	}
 
 	if !user.IsTOTPAllowed {
-		return nil, auth.ErrBadRequest("totp is not enabled")
+		return nil, auth.ErrBadRequest("TOTP is not enabled")
 	}
 
 	isEnabled := false

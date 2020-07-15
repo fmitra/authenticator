@@ -41,7 +41,7 @@ func TestLoginAPI_Login(t *testing.T) {
 				"identity": "jane@example.com"
 			}`),
 			messagingCalls: 0,
-			errMessage:     "invalid username or password",
+			errMessage:     "Invalid username or password",
 			userFn: func() (*auth.User, error) {
 				return nil, sql.ErrNoRows
 			},
@@ -61,7 +61,7 @@ func TestLoginAPI_Login(t *testing.T) {
 				"identity": "jane@example.com"
 			}`),
 			messagingCalls: 0,
-			errMessage:     "invalid username or password",
+			errMessage:     "Invalid username or password",
 			userFn: func() (*auth.User, error) {
 				return &auth.User{Password: validPassword}, nil
 			},
@@ -104,7 +104,7 @@ func TestLoginAPI_Login(t *testing.T) {
 				"identity": "jane@example.com"
 			}`),
 			messagingCalls: 0,
-			errMessage:     "identity type must be email or phone",
+			errMessage:     "Identity type must be email or phone",
 			userFn: func() (*auth.User, error) {
 				return &auth.User{Password: validPassword}, nil
 			},
@@ -243,7 +243,7 @@ func TestLoginAPI_DeviceChallenge(t *testing.T) {
 			name:           "Invalid token failure",
 			statusCode:     http.StatusUnauthorized,
 			messagingCalls: 0,
-			errMessage:     "token state is not supported",
+			errMessage:     "Token state is not supported",
 			webauthnFn: func() ([]byte, error) {
 				return []byte(""), nil
 			},
@@ -258,7 +258,7 @@ func TestLoginAPI_DeviceChallenge(t *testing.T) {
 			name:           "User query failure",
 			statusCode:     http.StatusBadRequest,
 			messagingCalls: 0,
-			errMessage:     "no user found",
+			errMessage:     "No user found",
 			webauthnFn: func() ([]byte, error) {
 				return []byte(""), nil
 			},
@@ -273,7 +273,7 @@ func TestLoginAPI_DeviceChallenge(t *testing.T) {
 			name:           "Webauthn failure",
 			statusCode:     http.StatusBadRequest,
 			messagingCalls: 0,
-			errMessage:     "cannot create challenge",
+			errMessage:     "Cannot create challenge",
 			webauthnFn: func() ([]byte, error) {
 				return nil, auth.ErrBadRequest("cannot create challenge")
 			},
@@ -376,7 +376,7 @@ func TestLoginAPI_VerifyDevice(t *testing.T) {
 			name:           "Invalid token failure",
 			statusCode:     http.StatusUnauthorized,
 			messagingCalls: 0,
-			errMessage:     "token state is not supported",
+			errMessage:     "Token state is not supported",
 			reqBody:        []byte(""),
 			webauthnFn: func() error {
 				return nil
@@ -401,7 +401,7 @@ func TestLoginAPI_VerifyDevice(t *testing.T) {
 			name:           "User query failure",
 			statusCode:     http.StatusBadRequest,
 			messagingCalls: 0,
-			errMessage:     "user does not exist",
+			errMessage:     "User does not exist",
 			reqBody:        []byte(""),
 			webauthnFn: func() error {
 				return nil
@@ -426,7 +426,7 @@ func TestLoginAPI_VerifyDevice(t *testing.T) {
 			name:           "Webauthn login failure",
 			statusCode:     http.StatusBadRequest,
 			messagingCalls: 0,
-			errMessage:     "failed to login",
+			errMessage:     "Failed to login",
 			reqBody:        []byte(""),
 			webauthnFn: func() error {
 				return auth.ErrWebAuthn("failed to login")
@@ -451,7 +451,7 @@ func TestLoginAPI_VerifyDevice(t *testing.T) {
 			name:           "Login history persisted failure",
 			statusCode:     http.StatusBadRequest,
 			messagingCalls: 0,
-			errMessage:     "cannot save login",
+			errMessage:     "Cannot save login",
 			reqBody:        []byte(""),
 			webauthnFn: func() error {
 				return nil
@@ -476,7 +476,7 @@ func TestLoginAPI_VerifyDevice(t *testing.T) {
 			name:           "Token signing failure",
 			statusCode:     http.StatusBadRequest,
 			messagingCalls: 0,
-			errMessage:     "cannot sign token",
+			errMessage:     "Cannot sign token",
 			reqBody:        []byte(""),
 			webauthnFn: func() error {
 				return nil
@@ -611,7 +611,7 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 			statusCode:     http.StatusUnauthorized,
 			messagingCalls: 0,
 			reqBody:        []byte(`{"code": "123456"}`),
-			errMessage:     "token state is not supported",
+			errMessage:     "Token state is not supported",
 			userFn: func() (*auth.User, error) {
 				return &auth.User{IsEmailOTPAllowed: true}, nil
 			},
@@ -636,7 +636,7 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 			name:           "User query failure",
 			statusCode:     http.StatusBadRequest,
 			messagingCalls: 0,
-			errMessage:     "user does not exist",
+			errMessage:     "User does not exist",
 			reqBody:        []byte(`{"code": "123456"}`),
 			userFn: func() (*auth.User, error) {
 				return nil, auth.ErrNotFound("user does not exist")
@@ -662,7 +662,7 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 			name:           "Invalid OTP code failure",
 			statusCode:     http.StatusBadRequest,
 			messagingCalls: 0,
-			errMessage:     "incorrect code provided",
+			errMessage:     "Incorrect code provided",
 			reqBody:        []byte(`{"code": "222222"}`),
 			userFn: func() (*auth.User, error) {
 				return &auth.User{IsEmailOTPAllowed: true}, nil
@@ -688,7 +688,7 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 			name:           "Token creation failure",
 			statusCode:     http.StatusBadRequest,
 			messagingCalls: 0,
-			errMessage:     "cannot create token",
+			errMessage:     "Cannot create token",
 			reqBody:        []byte(`{"code": "123456"}`),
 			userFn: func() (*auth.User, error) {
 				return &auth.User{IsEmailOTPAllowed: true}, nil
@@ -714,7 +714,7 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 			name:           "Persist login history failure",
 			statusCode:     http.StatusBadRequest,
 			messagingCalls: 0,
-			errMessage:     "cannot save history",
+			errMessage:     "Cannot save history",
 			reqBody:        []byte(`{"code": "123456"}`),
 			userFn: func() (*auth.User, error) {
 				return &auth.User{IsEmailOTPAllowed: true}, nil
@@ -740,7 +740,7 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 			name:           "Token signing failure",
 			statusCode:     http.StatusBadRequest,
 			messagingCalls: 0,
-			errMessage:     "cannot sign token",
+			errMessage:     "Cannot sign token",
 			reqBody:        []byte(`{"code": "123456"}`),
 			userFn: func() (*auth.User, error) {
 				return &auth.User{IsEmailOTPAllowed: true}, nil

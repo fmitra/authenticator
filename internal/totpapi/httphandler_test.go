@@ -37,7 +37,7 @@ func TestTOTPAPI_Secret(t *testing.T) {
 			name:       "Authentication error with no token",
 			statusCode: http.StatusUnauthorized,
 			authHeader: false,
-			errMessage: "user is not authenticated",
+			errMessage: "User is not authenticated",
 			tfaSecret:  "",
 			user: auth.User{
 				Password:  "swordfish",
@@ -67,7 +67,7 @@ func TestTOTPAPI_Secret(t *testing.T) {
 			statusCode: http.StatusUnauthorized,
 			authHeader: true,
 			tfaSecret:  "",
-			errMessage: "bad token",
+			errMessage: "Bad token",
 			user: auth.User{
 				Password:  "swordfish",
 				TFASecret: "",
@@ -96,7 +96,7 @@ func TestTOTPAPI_Secret(t *testing.T) {
 			statusCode: http.StatusBadRequest,
 			authHeader: true,
 			tfaSecret:  "",
-			errMessage: "totp is already configured",
+			errMessage: "TOTP is already configured",
 			user: auth.User{
 				Password:  "swordfish",
 				TFASecret: "",
@@ -269,7 +269,7 @@ func TestTOTPAPI_Verify(t *testing.T) {
 			name:       "Authentication error with no token",
 			statusCode: http.StatusUnauthorized,
 			authHeader: false,
-			errMessage: "user is not authenticated",
+			errMessage: "User is not authenticated",
 			user: auth.User{
 				Password:  "swordfish",
 				TFASecret: "SECRET",
@@ -304,7 +304,7 @@ func TestTOTPAPI_Verify(t *testing.T) {
 			name:       "Authentication error with bad token",
 			statusCode: http.StatusUnauthorized,
 			authHeader: true,
-			errMessage: "bad token",
+			errMessage: "Bad token",
 			user: auth.User{
 				Password:  "swordfish",
 				TFASecret: "SECRET",
@@ -339,7 +339,7 @@ func TestTOTPAPI_Verify(t *testing.T) {
 			name:       "TOTP already configured",
 			statusCode: http.StatusBadRequest,
 			authHeader: true,
-			errMessage: "totp is already configured",
+			errMessage: "TOTP is already configured",
 			user: auth.User{
 				Password:  "swordfish",
 				TFASecret: "SECRET",
@@ -409,7 +409,7 @@ func TestTOTPAPI_Verify(t *testing.T) {
 			name:       "Incorrect code provided",
 			statusCode: http.StatusBadRequest,
 			authHeader: true,
-			errMessage: "incorrect code provided",
+			errMessage: "Incorrect code provided",
 			user: auth.User{
 				Password:  "swordfish",
 				TFASecret: "SECRET",
@@ -444,7 +444,7 @@ func TestTOTPAPI_Verify(t *testing.T) {
 			name:       "Missing code in request",
 			statusCode: http.StatusBadRequest,
 			authHeader: true,
-			errMessage: "code must be provided",
+			errMessage: "Code must be provided",
 			user: auth.User{
 				Password:  "swordfish",
 				TFASecret: "SECRET",
@@ -479,7 +479,7 @@ func TestTOTPAPI_Verify(t *testing.T) {
 			name:       "Empty body sent",
 			statusCode: http.StatusBadRequest,
 			authHeader: true,
-			errMessage: "invalid JSON request",
+			errMessage: "Invalid JSON request",
 			user: auth.User{
 				Password:  "swordfish",
 				TFASecret: "SECRET",
@@ -597,7 +597,7 @@ func TestTOTPAPI_Remove(t *testing.T) {
 			name:       "Authentication error with no token",
 			statusCode: http.StatusUnauthorized,
 			authHeader: false,
-			errMessage: "user is not authenticated",
+			errMessage: "User is not authenticated",
 			user: auth.User{
 				Password:  "swordfish",
 				TFASecret: "SECRET",
@@ -632,7 +632,7 @@ func TestTOTPAPI_Remove(t *testing.T) {
 			name:       "Authentication error with bad token",
 			statusCode: http.StatusUnauthorized,
 			authHeader: true,
-			errMessage: "bad token",
+			errMessage: "Bad token",
 			user: auth.User{
 				Password:  "swordfish",
 				TFASecret: "SECRET",
@@ -667,7 +667,7 @@ func TestTOTPAPI_Remove(t *testing.T) {
 			name:       "TOTP not configured",
 			statusCode: http.StatusBadRequest,
 			authHeader: true,
-			errMessage: "totp is not enabled",
+			errMessage: "TOTP is not enabled",
 			user: auth.User{
 				Password:  "swordfish",
 				TFASecret: "SECRET",
@@ -729,7 +729,7 @@ func TestTOTPAPI_Remove(t *testing.T) {
 			name:       "Incorrect code provided",
 			statusCode: http.StatusBadRequest,
 			authHeader: true,
-			errMessage: "incorrect code provided",
+			errMessage: "Incorrect code provided",
 			user: auth.User{
 				Password:  "swordfish",
 				TFASecret: "SECRET",

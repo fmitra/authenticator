@@ -60,7 +60,7 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 		{
 			name:       "User already verified",
 			statusCode: http.StatusBadRequest,
-			errMessage: "cannot register user",
+			errMessage: "Cannot register user",
 			reqBody: []byte(`{
 				"type": "email",
 				"password": "swordfish",
@@ -156,7 +156,7 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 		{
 			name:            "Bad request body",
 			statusCode:      http.StatusBadRequest,
-			errMessage:      "identity type must be email or phone",
+			errMessage:      "Identity type must be email or phone",
 			reqBody:         []byte(`{}`),
 			userCreateCalls: 0,
 			messagingCalls:  0,

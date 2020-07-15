@@ -33,7 +33,7 @@ func TestDeviceAPI_Create(t *testing.T) {
 			name:       "Authentication error with no token",
 			statusCode: http.StatusUnauthorized,
 			authHeader: false,
-			errMessage: "user is not authenticated",
+			errMessage: "User is not authenticated",
 			tokenValidateFn: func() (*auth.Token, error) {
 				return &auth.Token{UserID: "user-id", State: auth.JWTAuthorized}, nil
 			},
@@ -48,7 +48,7 @@ func TestDeviceAPI_Create(t *testing.T) {
 			name:       "Authentication error with bad token",
 			statusCode: http.StatusUnauthorized,
 			authHeader: true,
-			errMessage: "bad token",
+			errMessage: "Bad token",
 			tokenValidateFn: func() (*auth.Token, error) {
 				return nil, auth.ErrInvalidToken("bad token")
 			},
@@ -63,7 +63,7 @@ func TestDeviceAPI_Create(t *testing.T) {
 			name:       "User query error",
 			statusCode: http.StatusBadRequest,
 			authHeader: true,
-			errMessage: "no user found",
+			errMessage: "No user found",
 			tokenValidateFn: func() (*auth.Token, error) {
 				return &auth.Token{UserID: "user-id", State: auth.JWTAuthorized}, nil
 			},
@@ -171,7 +171,7 @@ func TestDeviceAPI_Verify(t *testing.T) {
 			name:       "Authentication error with no token",
 			statusCode: http.StatusUnauthorized,
 			authHeader: false,
-			errMessage: "user is not authenticated",
+			errMessage: "User is not authenticated",
 			tokenCreateFn: func() (*auth.Token, error) {
 				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
 			},
@@ -192,7 +192,7 @@ func TestDeviceAPI_Verify(t *testing.T) {
 			name:       "Authentication error with bad token",
 			statusCode: http.StatusUnauthorized,
 			authHeader: true,
-			errMessage: "bad token",
+			errMessage: "Bad token",
 			tokenCreateFn: func() (*auth.Token, error) {
 				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
 			},
@@ -213,7 +213,7 @@ func TestDeviceAPI_Verify(t *testing.T) {
 			name:       "User query error",
 			statusCode: http.StatusBadRequest,
 			authHeader: true,
-			errMessage: "no user found",
+			errMessage: "No user found",
 			tokenValidateFn: func() (*auth.Token, error) {
 				return &auth.Token{UserID: "user-id", State: auth.JWTAuthorized}, nil
 			},
@@ -339,7 +339,7 @@ func TestDeviceAPI_Remove(t *testing.T) {
 			name:       "Authentication error with no token",
 			statusCode: http.StatusUnauthorized,
 			authHeader: false,
-			errMessage: "user is not authenticated",
+			errMessage: "User is not authenticated",
 			tokenCreateFn: func() (*auth.Token, error) {
 				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
 			},
@@ -415,7 +415,7 @@ func TestDeviceAPI_Remove(t *testing.T) {
 			name:       "Device not found",
 			statusCode: http.StatusBadRequest,
 			authHeader: true,
-			errMessage: "device does not exist",
+			errMessage: "Device does not exist",
 			tokenCreateFn: func() (*auth.Token, error) {
 				return &auth.Token{CodeHash: "token:1:address:phone"}, nil
 			},

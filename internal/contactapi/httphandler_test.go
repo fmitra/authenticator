@@ -37,7 +37,7 @@ func TestContactAPI_CheckAddress(t *testing.T) {
 			name:       "Authentication error with no token",
 			statusCode: http.StatusUnauthorized,
 			authHeader: false,
-			errMessage: "user is not authenticated",
+			errMessage: "User is not authenticated",
 			user: auth.User{
 				Password: "swordfish",
 				Email: sql.NullString{
@@ -68,7 +68,7 @@ func TestContactAPI_CheckAddress(t *testing.T) {
 			name:       "Authentication error with bad token",
 			statusCode: http.StatusUnauthorized,
 			authHeader: true,
-			errMessage: "bad token",
+			errMessage: "Bad token",
 			user: auth.User{
 				Password: "swordfish",
 				Email: sql.NullString{
@@ -99,7 +99,7 @@ func TestContactAPI_CheckAddress(t *testing.T) {
 			name:       "Authentication error with no token",
 			statusCode: http.StatusUnauthorized,
 			authHeader: false,
-			errMessage: "user is not authenticated",
+			errMessage: "User is not authenticated",
 			user: auth.User{
 				Password: "swordfish",
 				Email: sql.NullString{
@@ -130,7 +130,7 @@ func TestContactAPI_CheckAddress(t *testing.T) {
 			name:       "Request error with invalid address",
 			statusCode: http.StatusBadRequest,
 			authHeader: true,
-			errMessage: "address format is invalid",
+			errMessage: "Address format is invalid",
 			user: auth.User{
 				Password: "swordfish",
 				Email: sql.NullString{
@@ -277,7 +277,7 @@ func TestContactAPI_Verify(t *testing.T) {
 			name:       "Authentication error with no token",
 			statusCode: http.StatusUnauthorized,
 			authHeader: false,
-			errMessage: "user is not authenticated",
+			errMessage: "User is not authenticated",
 			user: auth.User{
 				Password: "swordfish",
 				Email: sql.NullString{
@@ -319,7 +319,7 @@ func TestContactAPI_Verify(t *testing.T) {
 			name:       "Authentication error with bad token",
 			statusCode: http.StatusUnauthorized,
 			authHeader: true,
-			errMessage: "bad token",
+			errMessage: "Bad token",
 			user: auth.User{
 				Password: "swordfish",
 				Email: sql.NullString{
@@ -524,7 +524,7 @@ func TestContactAPI_Verify(t *testing.T) {
 			name:       "Invalid OTP code",
 			statusCode: http.StatusBadRequest,
 			authHeader: true,
-			errMessage: "invalid code",
+			errMessage: "Invalid code",
 			user: auth.User{
 				Password: "swordfish",
 				Phone: sql.NullString{
@@ -664,7 +664,7 @@ func TestContactAPI_Disable(t *testing.T) {
 			name:       "Authentication error with no token",
 			statusCode: http.StatusUnauthorized,
 			authHeader: false,
-			errMessage: "user is not authenticated",
+			errMessage: "User is not authenticated",
 			user: auth.User{
 				Password: "swordfish",
 				Email: sql.NullString{
@@ -694,7 +694,7 @@ func TestContactAPI_Disable(t *testing.T) {
 			name:       "Authentication error with bad token",
 			statusCode: http.StatusUnauthorized,
 			authHeader: true,
-			errMessage: "bad token",
+			errMessage: "Bad token",
 			user: auth.User{
 				Password: "swordfish",
 				Email: sql.NullString{
@@ -758,7 +758,7 @@ func TestContactAPI_Disable(t *testing.T) {
 			name:       "OTP disabling failed",
 			statusCode: http.StatusBadRequest,
 			authHeader: true,
-			errMessage: "a 2FA option must be enabled to disable email OTP",
+			errMessage: "A 2FA option must be enabled to disable email OTP",
 			user: auth.User{
 				Password: "swordfish",
 				Email: sql.NullString{
@@ -884,7 +884,7 @@ func TestContactAPI_Remove(t *testing.T) {
 			name:       "Authentication error with no token",
 			statusCode: http.StatusUnauthorized,
 			authHeader: false,
-			errMessage: "user is not authenticated",
+			errMessage: "User is not authenticated",
 			user: auth.User{
 				Password: "swordfish",
 				Email: sql.NullString{
@@ -914,7 +914,7 @@ func TestContactAPI_Remove(t *testing.T) {
 			name:       "Authentication error with bad token",
 			statusCode: http.StatusUnauthorized,
 			authHeader: true,
-			errMessage: "bad token",
+			errMessage: "Bad token",
 			user: auth.User{
 				Password: "swordfish",
 				Email: sql.NullString{
@@ -978,7 +978,7 @@ func TestContactAPI_Remove(t *testing.T) {
 			name:       "Address removal failed",
 			statusCode: http.StatusBadRequest,
 			authHeader: true,
-			errMessage: "a 2FA option must be enabled to remove email",
+			errMessage: "A 2FA option must be enabled to remove email",
 			user: auth.User{
 				Password: "swordfish",
 				Email: sql.NullString{
@@ -1130,7 +1130,7 @@ func TestContactAPI_Send(t *testing.T) {
 		},
 		{
 			name:           "OTP creation failure",
-			errMessage:     "phone is not a valid delivery method",
+			errMessage:     "Phone is not a valid delivery method",
 			statusCode:     http.StatusBadRequest,
 			messagingCalls: 0,
 			user: auth.User{
