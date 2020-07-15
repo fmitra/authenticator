@@ -21,6 +21,8 @@ const (
 	ENotFound ErrCode = "not_found"
 	// EWebAuthn represents a webauthn authentication error.
 	EWebAuthn ErrCode = "webauthn"
+	// EThrottle represents a rate limiting error.
+	EThrottle ErrCode = "too_many_requests"
 )
 
 // Error represents an error within the authenticator domain.
@@ -76,6 +78,13 @@ type ErrWebAuthn string
 func (e ErrWebAuthn) Code() ErrCode   { return EWebAuthn }
 func (e ErrWebAuthn) Error() string   { return fmt.Sprintf("[%s] %s", e.Code(), string(e)) }
 func (e ErrWebAuthn) Message() string { return string(e) }
+
+// ErrThrottle represents a rate limiting error.
+type ErrThrottle string
+
+func (e ErrThrottle) Code() ErrCode   { return EThrottle }
+func (e ErrThrottle) Error() string   { return fmt.Sprintf("[%s] %s", e.Code(), string(e)) }
+func (e ErrThrottle) Message() string { return string(e) }
 
 // DomainError returns a domain error if available.
 func DomainError(err error) Error {

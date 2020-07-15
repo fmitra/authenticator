@@ -3,6 +3,7 @@ package deviceapi
 import (
 	"net/http"
 
+	"github.com/didip/tollbooth/v6"
 	"github.com/go-kit/kit/log"
 	"github.com/gorilla/mux"
 
@@ -16,18 +17,27 @@ func SetupHTTPHandler(svc auth.DeviceAPI, router *mux.Router, tokenSvc auth.Toke
 	var handler httpapi.JSONAPIHandler
 	{
 		handler = httpapi.AuthMiddleware(svc.Create, tokenSvc, auth.JWTAuthorized)
+		handler = httpapi.RateLimitMiddleware(handler, tollbooth.NewLimiter(
+			httpapi.ThrottleEveryOneSec, nil,
+		))
 		handler = httpapi.ErrorLoggingMiddleware(handler, "DeviceAPI.Create", logger)
 		httpHandler := httpapi.ToHandlerFunc(handler, http.StatusOK)
 		router.HandleFunc("/api/v1/device", httpHandler).Methods("Post")
 	}
 	{
 		handler = httpapi.AuthMiddleware(svc.Verify, tokenSvc, auth.JWTAuthorized)
+		handler = httpapi.RateLimitMiddleware(handler, tollbooth.NewLimiter(
+			httpapi.ThrottleEveryOneSec, nil,
+		))
 		handler = httpapi.ErrorLoggingMiddleware(handler, "DeviceAPI.Verify", logger)
 		httpHandler := httpapi.ToHandlerFunc(handler, http.StatusCreated)
 		router.HandleFunc("/api/v1/device/verify", httpHandler).Methods("Post")
 	}
 	{
 		handler = httpapi.AuthMiddleware(svc.Remove, tokenSvc, auth.JWTAuthorized)
+		handler = httpapi.RateLimitMiddleware(handler, tollbooth.NewLimiter(
+			httpapi.ThrottleEveryOneSec, nil,
+		))
 		handler = httpapi.ErrorLoggingMiddleware(handler, "DeviceAPI.Remove", logger)
 		httpHandler := httpapi.ToHandlerFunc(handler, http.StatusOK)
 		router.HandleFunc("/api/v1/device/{deviceID}", httpHandler).Methods("Delete")

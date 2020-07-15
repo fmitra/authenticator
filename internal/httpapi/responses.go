@@ -91,6 +91,8 @@ func ErrorResponse(w http.ResponseWriter, err error) {
 	switch domainErr.Code() {
 	case auth.EInvalidToken:
 		statusCode = http.StatusUnauthorized
+	case auth.EThrottle:
+		statusCode = http.StatusTooManyRequests
 	default:
 		statusCode = http.StatusBadRequest
 	}

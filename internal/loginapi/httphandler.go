@@ -3,6 +3,7 @@ package loginapi
 import (
 	"net/http"
 
+	"github.com/didip/tollbooth/v6"
 	"github.com/go-kit/kit/log"
 	"github.com/gorilla/mux"
 
@@ -16,24 +17,36 @@ func SetupHTTPHandler(svc auth.LoginAPI, router *mux.Router, tokenSvc auth.Token
 	var handler httpapi.JSONAPIHandler
 	{
 		handler = svc.Login
+		handler = httpapi.RateLimitMiddleware(handler, tollbooth.NewLimiter(
+			httpapi.ThrottleEveryOneSec, nil,
+		))
 		handler = httpapi.ErrorLoggingMiddleware(handler, "LoginAPI.Login", logger)
 		httpHandler := httpapi.ToHandlerFunc(handler, http.StatusOK)
 		router.HandleFunc("/api/v1/login", httpHandler).Methods("Post")
 	}
 	{
 		handler = httpapi.AuthMiddleware(svc.DeviceChallenge, tokenSvc, auth.JWTPreAuthorized)
+		handler = httpapi.RateLimitMiddleware(handler, tollbooth.NewLimiter(
+			httpapi.ThrottleEveryOneSec, nil,
+		))
 		handler = httpapi.ErrorLoggingMiddleware(handler, "LoginAPI.DeviceChallenge", logger)
 		httpHandler := httpapi.ToHandlerFunc(handler, http.StatusOK)
 		router.HandleFunc("/api/v1/login/verify-device", httpHandler).Methods("Get")
 	}
 	{
 		handler = httpapi.AuthMiddleware(svc.VerifyDevice, tokenSvc, auth.JWTPreAuthorized)
+		handler = httpapi.RateLimitMiddleware(handler, tollbooth.NewLimiter(
+			httpapi.ThrottleEveryOneSec, nil,
+		))
 		handler = httpapi.ErrorLoggingMiddleware(handler, "LoginAPI.VerifyDevice", logger)
 		httpHandler := httpapi.ToHandlerFunc(handler, http.StatusOK)
 		router.HandleFunc("/api/v1/login/verify-device", httpHandler).Methods("Post")
 	}
 	{
 		handler = httpapi.AuthMiddleware(svc.VerifyCode, tokenSvc, auth.JWTPreAuthorized)
+		handler = httpapi.RateLimitMiddleware(handler, tollbooth.NewLimiter(
+			httpapi.ThrottleEveryOneSec, nil,
+		))
 		handler = httpapi.ErrorLoggingMiddleware(handler, "LoginAPI.VerifyCode", logger)
 		httpHandler := httpapi.ToHandlerFunc(handler, http.StatusOK)
 		router.HandleFunc("/api/v1/login/verify-code", httpHandler).Methods("Post")

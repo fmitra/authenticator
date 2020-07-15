@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/didip/tollbooth/v6"
+	"github.com/didip/tollbooth/v6/limiter"
 	"github.com/go-kit/kit/log"
 
 	auth "github.com/fmitra/authenticator"
@@ -17,6 +19,29 @@ const authorizationHeader = "AUTHORIZATION"
 const userIDContextKey contextKey = "userID"
 const tokenContextKey contextKey = "token"
 const refreshTokenContextKey contextKey = "refreshToken"
+
+// ThrottleEveryOneSec limits a user requests to roughly every second.
+const ThrottleEveryOneSec = float64(1)
+
+// ThrottleEveryTenSec limits a user requests to roughly every ten seconds.
+const ThrottleEveryTenSec = float64(.1)
+
+// ThrottleEveryFiveMin limits a user requests to roughly every five minutes.
+const ThrottleEveryFiveMin = float64(.003)
+
+// RateLimitMiddleware is an adapter to use tollbooth's ratelimiting library
+// with our HTTP middleware.
+func RateLimitMiddleware(jsonHandler JSONAPIHandler, lmt *limiter.Limiter) JSONAPIHandler {
+	return func(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+		httpErr := tollbooth.LimitByRequest(lmt, w, r)
+		if httpErr != nil {
+			lmt.ExecOnLimitReached(w, r)
+			return nil, auth.ErrThrottle("requests are throttled, try again later")
+		}
+
+		return jsonHandler(w, r)
+	}
+}
 
 // AuthMiddleware validates an Authorization header if available.
 func AuthMiddleware(jsonHandler JSONAPIHandler, tokenSvc auth.TokenService, state auth.TokenState) JSONAPIHandler {
