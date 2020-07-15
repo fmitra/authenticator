@@ -5,8 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"io"
-	"math/rand"
 	"net/http"
 	"net/smtp"
 	"os"
@@ -21,7 +19,6 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/oklog/run"
-	"github.com/oklog/ulid"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
@@ -116,12 +113,6 @@ func main() {
 		logger = level.NewFilter(logger, level.AllowInfo())
 	}
 
-	var entropy io.Reader
-	{
-		random := rand.New(rand.NewSource(time.Now().UnixNano()))
-		entropy = ulid.Monotonic(random, 0)
-	}
-
 	passwordSvc := password.NewPassword(
 		password.WithMinLength(viper.GetInt("password.min-length")),
 		password.WithMaxLength(viper.GetInt("password.max-length")),
@@ -183,7 +174,6 @@ func main() {
 
 	repoMngr := postgres.NewClient(
 		postgres.WithLogger(logger),
-		postgres.WithEntropy(entropy),
 		postgres.WithPassword(passwordSvc),
 		postgres.WithDB(pgDB),
 	)
@@ -204,7 +194,6 @@ func main() {
 		token.WithDB(redisDB),
 		token.WithTokenExpiry(viper.GetDuration("token.expires-in")),
 		token.WithRefreshTokenExpiry(viper.GetDuration("token.refresh-expires-in")),
-		token.WithEntropy(entropy),
 		token.WithIssuer(viper.GetString("token.issuer")),
 		token.WithSecret(viper.GetString("token.secret")),
 		token.WithOTP(otpSvc),

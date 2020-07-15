@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/oklog/ulid"
+	"github.com/oklog/ulid/v2"
 
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/test"

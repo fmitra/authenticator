@@ -2,11 +2,11 @@ package postgres
 
 import (
 	"database/sql"
-	"io"
 
 	"github.com/go-kit/kit/log"
 
 	auth "github.com/fmitra/authenticator"
+	"github.com/fmitra/authenticator/internal/entropy"
 )
 
 // NewClient returns a new Postgres client to manage repositories.
@@ -21,6 +21,8 @@ func NewClient(options ...ConfigOption) *Client {
 	for _, opt := range options {
 		opt(&c)
 	}
+
+	c.entropy = entropy.New()
 
 	c.createQueries()
 
@@ -40,14 +42,6 @@ type ConfigOption func(*Client)
 func WithLogger(l log.Logger) ConfigOption {
 	return func(c *Client) {
 		c.logger = l
-	}
-}
-
-// WithEntropy configures the client with random entropy
-// for generating ULIDs.
-func WithEntropy(entropy io.Reader) ConfigOption {
-	return func(c *Client) {
-		c.entropy = entropy
 	}
 }
 

@@ -1,12 +1,12 @@
 package token
 
 import (
-	"io"
 	"time"
 
 	"github.com/go-kit/kit/log"
 
 	auth "github.com/fmitra/authenticator"
+	"github.com/fmitra/authenticator/internal/entropy"
 )
 
 const (
@@ -23,6 +23,8 @@ func NewService(options ...ConfigOption) auth.TokenService {
 		refreshTokenExpiry: defaultRefreshTokenExpiry,
 		issuer:             defaultIssuer,
 	}
+
+	s.entropy = entropy.New()
 
 	for _, opt := range options {
 		opt(&s)
@@ -61,14 +63,6 @@ func WithTokenExpiry(expiresIn time.Duration) ConfigOption {
 func WithRefreshTokenExpiry(expiresIn time.Duration) ConfigOption {
 	return func(s *service) {
 		s.refreshTokenExpiry = expiresIn
-	}
-}
-
-// WithEntropy configures the client with random entropy
-// for generating ULIDs.
-func WithEntropy(entropy io.Reader) ConfigOption {
-	return func(s *service) {
-		s.entropy = entropy
 	}
 }
 

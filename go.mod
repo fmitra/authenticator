@@ -18,7 +18,7 @@ require (
 	github.com/lib/pq v1.1.1
 	github.com/nyaruka/phonenumbers v1.0.40
 	github.com/oklog/run v1.0.0
-	github.com/oklog/ulid v1.3.1
+	github.com/oklog/ulid/v2 v2.0.2
 	github.com/onsi/ginkgo v1.8.0 // indirect
 	github.com/onsi/gomega v1.5.0 // indirect
 	github.com/pkg/errors v0.8.1

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/oklog/ulid"
+	"github.com/oklog/ulid/v2"
 	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"

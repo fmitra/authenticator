@@ -6,15 +6,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
-	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-kit/kit/log"
 	"github.com/google/go-cmp/cmp"
-	"github.com/oklog/ulid"
+	"github.com/oklog/ulid/v2"
 
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/crypto"
@@ -24,16 +22,9 @@ import (
 )
 
 func NewTestTokenSvc(db Rediser, repoMngr auth.RepositoryManager) auth.TokenService {
-	var entropy io.Reader
-	{
-		random := rand.New(rand.NewSource(time.Now().UnixNano()))
-		entropy = ulid.Monotonic(random, 0)
-	}
-
 	tokenSvc := NewService(
 		WithLogger(log.NewNopLogger()),
 		WithDB(db),
-		WithEntropy(entropy),
 		WithTokenExpiry(time.Second*10),
 		WithSecret("my-signing-secret"),
 		WithIssuer("authenticator"),
@@ -418,12 +409,9 @@ func TestTokenSvc_InvalidateAfterExpiry(t *testing.T) {
 
 	ctx := context.Background()
 	user := &auth.User{ID: "user_id"}
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	entropy := ulid.Monotonic(random, 0)
 
 	tokenSvc := NewService(
 		WithDB(db),
-		WithEntropy(entropy),
 		WithTokenExpiry(time.Millisecond),
 		WithSecret("my-signing-secret"),
 		WithIssuer("authenticator"),
@@ -489,12 +477,9 @@ func TestTokenSvc_InvalidateNoUserID(t *testing.T) {
 
 	ctx := context.Background()
 	user := &auth.User{}
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	entropy := ulid.Monotonic(random, 0)
 
 	tokenSvc := NewService(
 		WithDB(db),
-		WithEntropy(entropy),
 		WithTokenExpiry(time.Millisecond),
 		WithSecret("my-signing-secret"),
 		WithIssuer("authenticator"),
@@ -526,12 +511,9 @@ func TestTokenSvc_InvalidateClientIDMismatch(t *testing.T) {
 
 	ctx := context.Background()
 	user := &auth.User{ID: "user_id"}
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	entropy := ulid.Monotonic(random, 0)
 
 	tokenSvc := NewService(
 		WithDB(db),
-		WithEntropy(entropy),
 		WithTokenExpiry(time.Millisecond),
 		WithSecret("my-signing-secret"),
 		WithIssuer("authenticator"),
