@@ -12,6 +12,7 @@ import (
 const (
 	defaultTokenExpiry        = time.Minute * 20
 	defaultRefreshTokenExpiry = time.Hour * 24 * 15
+	defaultIssuer             = "authenticator"
 )
 
 // NewService returns a new TokenService.
@@ -20,7 +21,7 @@ func NewService(options ...ConfigOption) auth.TokenService {
 		logger:             log.NewNopLogger(),
 		tokenExpiry:        defaultTokenExpiry,
 		refreshTokenExpiry: defaultRefreshTokenExpiry,
-		issuer:             auth.Issuer,
+		issuer:             defaultIssuer,
 	}
 
 	for _, opt := range options {

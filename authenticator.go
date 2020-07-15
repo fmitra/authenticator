@@ -46,33 +46,6 @@ const (
 )
 
 const (
-	// Issuer is the default issuer of a JWT token.
-	Issuer = "authenticator"
-)
-
-const (
-	// NoPassword specifies User registration and authentication
-	// is allowed without a password. This allows user onboarding
-	// through verification of an email or SMS token.
-	NoPassword = "no_password"
-	// Password specifies User registration and authentication
-	// must be completed with a password at all times.
-	Password = "password"
-)
-
-const (
-	// IDPhone specifies we allow registration
-	// with a phone number.
-	IDPhone = "phone"
-	// IDEmail specifies we allow registration with
-	// an email address.
-	IDEmail = "email"
-	// IDContact specifies we allow registration with
-	// either a phone number or email.
-	IDContact = "contact"
-)
-
-const (
 	// JWTPreAuthorized represents the state of a user before completing
 	// the TFA step of signup or login.
 	JWTPreAuthorized TokenState = "pre_authorized"

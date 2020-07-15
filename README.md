@@ -28,7 +28,7 @@ with a valid `refresh token`. Refresh tokens have their own, configurable long l
 
 ### Passwordless Authentication
 
-Passwordless authentication is planned as an optional system wide configuration. It is often used
+Passwordless authentication is **planned** as an optional system wide configuration. It is often used
 to ease onboarding flows. Popular examples can be seen by popular start ups such as
 Uber, Grab, and Square Cash.  We support this this as we [can argue](https://auth0.com/passwordless) that randomly
 generated, time sensitive multi-character codes are oftentimes more secure then common
