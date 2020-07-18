@@ -467,6 +467,13 @@ func (s *service) checkRevocation(ctx context.Context, token *auth.Token) error 
 }
 
 func (s *service) checkInvalidation(ctx context.Context, token *auth.Token) error {
+	// Tokens containing an OTP code hash are checked for timestamp invalidation
+	// to ensure an OTP code cannot be used after a newer code is generated.
+	// If an OTP code was not generated for the token we can skip this.
+	if token.CodeHash == "" {
+		return nil
+	}
+
 	key := invalidationKey(token.Id)
 	ts, err := s.db.WithContext(ctx).Get(key).Int64()
 
