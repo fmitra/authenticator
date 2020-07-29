@@ -155,7 +155,10 @@ func (s *service) Verify(w http.ResponseWriter, r *http.Request) (interface{}, e
 		return user, nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(
+			auth.ErrBadRequest("sorry we can't update your contact details"),
+			err.Error(),
+		)
 	}
 
 	user := entity.(*auth.User)
