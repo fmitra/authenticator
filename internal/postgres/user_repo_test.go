@@ -646,3 +646,43 @@ func TestUserRepository_RemoveDeliveryMethod(t *testing.T) {
 		})
 	}
 }
+
+func TestUserRepository_SantizesUser(t *testing.T) {
+	pgDB, err := test.NewPGDB()
+	if err != nil {
+		t.Fatal("failed to create test database:", err)
+	}
+	defer pgDB.DropDB()
+	c := TestClient(pgDB.DB)
+
+	user := auth.User{
+		Password:  "swordfish",
+		TFASecret: "tfa_secret",
+		Email: sql.NullString{
+			String: "JANE@example.com ",
+			Valid:  true,
+		},
+		Phone: sql.NullString{
+			String: " +6594867353 ",
+			Valid:  true,
+		},
+		IsVerified: false,
+	}
+	ctx := context.Background()
+	err = c.User().Create(ctx, &user)
+	if err != nil {
+		t.Fatal("failed to create user:", err)
+	}
+
+	if user.Email.String != "jane@example.com" {
+		t.Error("email does not match", cmp.Diff(
+			user.Email.String, "jane@example.com",
+		))
+	}
+
+	if user.Phone.String != "+6594867353" {
+		t.Error("phone does not match", cmp.Diff(
+			user.Phone.String, "+6594867353",
+		))
+	}
+}

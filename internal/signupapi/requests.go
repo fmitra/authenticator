@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/pkg/errors"
 
@@ -67,6 +68,8 @@ func decodeSignupRequest(r *http.Request) (*signupRequest, error) {
 		return nil, auth.ErrBadRequest("identity type must be email or phone")
 	}
 
+	req.Identity = strings.TrimSpace(req.Identity)
+
 	return &req, nil
 }
 
@@ -80,6 +83,8 @@ func decodeSignupVerifyRequest(r *http.Request) (*signupVerifyRequest, error) {
 	if err != nil {
 		return nil, errors.Wrap(auth.ErrBadRequest("invalid JSON request"), err.Error())
 	}
+
+	req.Code = strings.TrimSpace(req.Code)
 
 	return &req, nil
 }

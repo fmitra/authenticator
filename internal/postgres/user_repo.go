@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -52,6 +53,7 @@ func (r *UserRepository) ByIdentity(ctx context.Context, attribute, value string
 
 // Create persists a new User to local storage.
 func (r *UserRepository) Create(ctx context.Context, user *auth.User) error {
+	sanitizeUser(user)
 	err := validateUserFields(
 		user,
 		validateIdentity,
@@ -107,6 +109,7 @@ func (r *UserRepository) Create(ctx context.Context, user *auth.User) error {
 // remain in an unverified state until completing OTP
 // verification to prove ownership of a phone or email address.
 func (r *UserRepository) ReCreate(ctx context.Context, user *auth.User) error {
+	sanitizeUser(user)
 	err := validateUserFields(
 		user,
 		validateIdentity,
@@ -377,4 +380,9 @@ func validateUserUnverified(user *auth.User) error {
 	}
 
 	return nil
+}
+
+func sanitizeUser(user *auth.User) {
+	user.Phone.String = strings.TrimSpace(user.Phone.String)
+	user.Email.String = strings.ToLower(strings.TrimSpace(user.Email.String))
 }

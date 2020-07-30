@@ -3,6 +3,7 @@ package totpapi
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/pkg/errors"
 
@@ -30,6 +31,8 @@ func decodeTOTPRequest(r *http.Request) (*totpRequest, error) {
 	if req.Code == "" {
 		return nil, auth.ErrBadRequest("code must be provided")
 	}
+
+	req.Code = strings.TrimSpace(req.Code)
 
 	return &req, nil
 }

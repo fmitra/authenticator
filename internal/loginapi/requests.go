@@ -3,6 +3,7 @@ package loginapi
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/pkg/errors"
 
@@ -45,6 +46,8 @@ func decodeLoginRequest(r *http.Request) (*loginRequest, error) {
 		return nil, auth.ErrBadRequest("identity type must be email or phone")
 	}
 
+	req.Identity = strings.TrimSpace(req.Identity)
+
 	return &req, nil
 }
 
@@ -58,6 +61,8 @@ func decodeVerifyCodeRequest(r *http.Request) (*verifyCodeRequest, error) {
 	if err != nil {
 		return nil, errors.Wrap(auth.ErrBadRequest("invalid JSON request"), err.Error())
 	}
+
+	req.Code = strings.TrimSpace(req.Code)
 
 	return &req, nil
 }

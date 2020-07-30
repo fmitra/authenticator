@@ -3,6 +3,7 @@ package contactapi
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/pkg/errors"
 
@@ -79,6 +80,8 @@ func decodeDeliveryRequest(r *http.Request) (*deliveryRequest, error) {
 		return nil, auth.ErrInvalidField("address format is invalid")
 	}
 
+	req.Address = strings.ToLower(strings.TrimSpace(req.Address))
+
 	return &req, nil
 }
 
@@ -125,6 +128,8 @@ func decodeVerifyRequest(r *http.Request) (*verifyRequest, error) {
 	if req.IsDisabled {
 		req.IsOTPEnabled = false
 	}
+
+	req.Code = strings.TrimSpace(req.Code)
 
 	return &req, nil
 }
