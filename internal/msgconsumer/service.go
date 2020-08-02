@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 
 	auth "github.com/fmitra/authenticator"
 )
@@ -71,11 +72,13 @@ func (s *service) processMessage(ctx context.Context, msg *auth.Message) {
 		"source", "msgconsumer.processMessage",
 		"address", msg.Address,
 		"delivery", msg.Delivery,
+		"delivery_attempts", msg.DeliveryAttempts,
+		"expires_at", msg.ExpiresAt,
 	)
 	isExpired := time.Now().After(msg.ExpiresAt)
 
 	if isExpired {
-		logger.Log("message", "dropping expired message")
+		level.Info(logger).Log("message", "dropping expired message")
 		return
 	}
 
@@ -87,14 +90,28 @@ func (s *service) processMessage(ctx context.Context, msg *auth.Message) {
 	}
 
 	if err == nil {
-		logger.Log("message", "message sent")
+		level.Info(logger).Log("message", "message sent")
 		return
 	}
 
 	// Continue to retry the message until expiry.
-	logger.Log("message", "retrying message", "error", err)
+	level.Info(logger).Log("message", "retrying message", "error", err)
 
 	if err := s.messageRepo.Publish(ctx, msg); err != nil {
-		logger.Log("message", "failed to retry message", "error", err)
+		level.Info(logger).Log(
+			"message",
+			"failed to retry message",
+			"error",
+			err,
+		)
+	} else {
+		level.Info(logger).Log(
+			"message", "message sent",
+		)
+		// Enable in config.json: api.debug
+		level.Debug(logger).Log(
+			"content", msg.Content,
+			"message", "message contents",
+		)
 	}
 }

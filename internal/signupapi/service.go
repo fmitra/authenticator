@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
 	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
@@ -160,7 +159,7 @@ func (s *service) createUser(ctx context.Context, newUser *auth.User) error {
 }
 
 // respond creates a JWT token response.
-func (s *service) respond(ctx context.Context, w http.ResponseWriter, user *auth.User, jwtToken *auth.Token) (*token.Response, error) {
+func (s *service) respond(ctx context.Context, w http.ResponseWriter, _ *auth.User, jwtToken *auth.Token) (*token.Response, error) {
 	tokenStr, err := s.token.Sign(ctx, jwtToken)
 	if err != nil {
 		return nil, err
@@ -171,16 +170,6 @@ func (s *service) respond(ctx context.Context, w http.ResponseWriter, user *auth
 	}
 
 	if jwtToken.CodeHash != "" {
-		// Enable in config.json: api.debug
-		level.Debug(s.logger).Log(
-			"source", "SignUp.respond",
-			"message", "signup code generated",
-			"code", jwtToken.Code,
-			"user_id", user.ID,
-			"email", user.Email.String,
-			"phone", user.Phone.String,
-		)
-
 		h, err := otp.FromOTPHash(jwtToken.CodeHash)
 		if err != nil {
 			return nil, errors.Wrap(err, "invalid OTP created")

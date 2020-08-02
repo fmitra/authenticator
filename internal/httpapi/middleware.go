@@ -8,6 +8,7 @@ import (
 	"github.com/didip/tollbooth/v6"
 	"github.com/didip/tollbooth/v6/limiter"
 	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/token"
@@ -100,7 +101,7 @@ func ErrorLoggingMiddleware(jsonHandler JSONAPIHandler, source string, log log.L
 		userID := GetUserID(r)
 		response, err := jsonHandler(w, r)
 		if err != nil {
-			log.Log(
+			level.Info(log).Log(
 				"user_id", userID,
 				"source", source,
 				"error", err.Error(),
