@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -12,7 +13,6 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/gorilla/mux"
-	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/otp"
@@ -45,7 +45,7 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 			userCreateCalls: 0,
 			messagingCalls:  0,
 			userGetFn: func() (*auth.User, error) {
-				return nil, errors.New("database connection error")
+				return nil, fmt.Errorf("database connection error")
 			},
 			userCreateFn: func() error {
 				return nil
@@ -96,7 +96,7 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 				return nil, sql.ErrNoRows
 			},
 			userCreateFn: func() error {
-				return errors.New("faled to create user")
+				return fmt.Errorf("faled to create user")
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
 				return &auth.Token{Code: "123456"}, nil
@@ -123,7 +123,7 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 				return nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return nil, errors.New("failed to create token")
+				return nil, fmt.Errorf("failed to create token")
 			},
 			tokenSignFn: func() (string, error) {
 				return "jwt-token", nil
@@ -150,7 +150,7 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 				return &auth.Token{Code: "123456"}, nil
 			},
 			tokenSignFn: func() (string, error) {
-				return "", errors.New("failed to sign token")
+				return "", fmt.Errorf("failed to sign token")
 			},
 		},
 		{
@@ -374,7 +374,7 @@ func TestSignUpAPI_VerifyCode(t *testing.T) {
 			statusCode: http.StatusInternalServerError,
 			reqBody:    []byte(`{"code": "123456"}`),
 			userFn: func() (*auth.User, error) {
-				return nil, errors.New("whoops")
+				return nil, fmt.Errorf("whoops")
 			},
 			tokenValidateFn: func() (*auth.Token, error) {
 				return &auth.Token{

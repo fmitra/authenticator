@@ -3,12 +3,12 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"io"
 
 	"github.com/go-kit/kit/log"
 	// pg driver registers itself as being available to the database/sql package.
 	_ "github.com/lib/pq"
-	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
 )
@@ -171,7 +171,7 @@ func (c *Client) NewWithTransaction(ctx context.Context) (auth.RepositoryManager
 // is successful it commits it, otherwise the operation will be rolledback.
 func (c *Client) WithAtomic(operation func() (interface{}, error)) (interface{}, error) {
 	if c.tx == nil {
-		return nil, errors.New("cannot complete operation outside of transaction")
+		return nil, fmt.Errorf("cannot complete operation outside of transaction")
 	}
 
 	defer func() {
@@ -180,15 +180,19 @@ func (c *Client) WithAtomic(operation func() (interface{}, error)) (interface{},
 
 	entity, err := operation()
 
-	if err == nil {
-		return entity, errors.Wrap(c.tx.Commit(), "commit failed")
+	if err != nil {
+		if dbErr := c.tx.Rollback(); dbErr != nil {
+			err = fmt.Errorf("%v: %w", dbErr, err)
+		}
+		return nil, err
 	}
 
-	if dbErr := c.tx.Rollback(); dbErr != nil {
-		err = errors.Wrap(err, dbErr.Error())
+	err = c.tx.Commit()
+	if err != nil {
+		return entity, fmt.Errorf("commit failed: %w", err)
 	}
 
-	return nil, err
+	return entity, nil
 }
 
 // Device returns a DeviceRepository.

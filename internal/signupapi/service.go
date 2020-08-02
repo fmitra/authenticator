@@ -4,10 +4,10 @@ package signupapi
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 
 	"github.com/go-kit/kit/log"
-	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/httpapi"
@@ -36,7 +36,7 @@ func (s *service) SignUp(w http.ResponseWriter, r *http.Request) (interface{}, e
 	user, err := s.repoMngr.User().ByIdentity(ctx, req.UserAttribute(), req.Identity)
 
 	if isUserCheckFailed(err) {
-		return nil, errors.Wrap(err, "failed to check user identity")
+		return nil, fmt.Errorf("failed to check user identity: %w", err)
 	}
 
 	if isUserVerified(user, err) {
@@ -139,7 +139,7 @@ func (s *service) reCreateUser(ctx context.Context, userID string, newUser *auth
 		user.Password = newUser.Password
 
 		if err = client.User().ReCreate(ctx, user); err != nil {
-			return nil, errors.Wrap(err, "cannot re-create user")
+			return nil, fmt.Errorf("cannot re-create user: %w", err)
 		}
 
 		return user, nil
@@ -172,7 +172,7 @@ func (s *service) respond(ctx context.Context, w http.ResponseWriter, _ *auth.Us
 	if jwtToken.CodeHash != "" {
 		h, err := otp.FromOTPHash(jwtToken.CodeHash)
 		if err != nil {
-			return nil, errors.Wrap(err, "invalid OTP created")
+			return nil, fmt.Errorf("invalid OTP created: %w", err)
 		}
 
 		if err = s.message.Send(ctx, jwtToken.Code, h.Address, h.DeliveryMethod); err != nil {
@@ -193,18 +193,18 @@ func (s *service) respond(ctx context.Context, w http.ResponseWriter, _ *auth.Us
 func (s *service) markUserVerified(ctx context.Context, user *auth.User) error {
 	client, err := s.repoMngr.NewWithTransaction(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to start transaction")
+		return fmt.Errorf("failed to start transaction: %w", err)
 	}
 
 	entity, err := client.WithAtomic(func() (interface{}, error) {
 		user, err := client.User().GetForUpdate(ctx, user.ID)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get user for update")
+			return nil, fmt.Errorf("failed to get user for update: %w", err)
 		}
 
 		user.IsVerified = true
 		if err = client.User().Update(ctx, user); err != nil {
-			return nil, errors.Wrap(err, "failed to save verified user")
+			return nil, fmt.Errorf("failed to save verified user: %w", err)
 		}
 
 		return user, nil

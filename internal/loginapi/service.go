@@ -4,10 +4,10 @@ package loginapi
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 
 	"github.com/go-kit/kit/log"
-	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/httpapi"
@@ -36,14 +36,14 @@ func (s *service) Login(w http.ResponseWriter, r *http.Request) (interface{}, er
 
 	user, err := s.repoMngr.User().ByIdentity(ctx, req.UserAttribute(), req.Identity)
 	if err == sql.ErrNoRows {
-		return nil, errors.Wrap(auth.ErrBadRequest("invalid username or password"), err.Error())
+		return nil, fmt.Errorf("%v: %w", err, auth.ErrBadRequest("invalid username or password"))
 	}
 	if err != nil {
 		return nil, err
 	}
 
 	if err = s.password.Validate(user, req.Password); err != nil {
-		return nil, errors.Wrap(auth.ErrBadRequest("invalid username or password"), err.Error())
+		return nil, fmt.Errorf("%v: %w", err, auth.ErrBadRequest("invalid username or password"))
 	}
 
 	var jwtToken *auth.Token
@@ -170,7 +170,7 @@ func (s *service) respond(ctx context.Context, w http.ResponseWriter, _ *auth.Us
 	if jwtToken.CodeHash != "" {
 		h, err := otp.FromOTPHash(jwtToken.CodeHash)
 		if err != nil {
-			return nil, errors.Wrap(err, "invalid OTP created")
+			return nil, fmt.Errorf("invalid OTP created: %w", err)
 		}
 
 		if err = s.message.Send(ctx, jwtToken.Code, h.Address, h.DeliveryMethod); err != nil {

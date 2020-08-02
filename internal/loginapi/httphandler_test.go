@@ -3,6 +3,7 @@ package loginapi
 import (
 	"bytes"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/gorilla/mux"
-	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/otp"
@@ -83,7 +83,7 @@ func TestLoginAPI_Login(t *testing.T) {
 			messagingCalls: 0,
 			errMessage:     "An internal error occurred",
 			userFn: func() (*auth.User, error) {
-				return nil, errors.New("db connection failed")
+				return nil, fmt.Errorf("db connection failed")
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
 				return &auth.Token{
@@ -133,7 +133,7 @@ func TestLoginAPI_Login(t *testing.T) {
 				return &auth.User{Password: validPassword}, nil
 			},
 			tokenCreateFn: func() (*auth.Token, error) {
-				return nil, errors.New("can't create token")
+				return nil, fmt.Errorf("can't create token")
 			},
 			tokenSignFn: func() (string, error) {
 				return "jwt-token", nil

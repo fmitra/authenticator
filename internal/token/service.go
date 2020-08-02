@@ -16,7 +16,6 @@ import (
 	"github.com/go-kit/kit/log/level"
 	redislib "github.com/go-redis/redis"
 	"github.com/oklog/ulid/v2"
-	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/crypto"
@@ -147,7 +146,7 @@ func (s *service) Create(ctx context.Context, user *auth.User, state auth.TokenS
 	}
 
 	if err = s.invalidateOldTokens(ctx, conf, &token); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot invalidate old tokens: %w", err)
 	}
 
 	return &token, nil
@@ -158,7 +157,7 @@ func (s *service) Sign(ctx context.Context, token *auth.Token) (string, error) {
 	jwtUnsigned := jwt.NewWithClaims(jwt.SigningMethodHS512, token)
 	jwtSigned, err := jwtUnsigned.SignedString(s.secret)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to sign JWT token")
+		return "", fmt.Errorf("failed to sign JWT token: %w", err)
 	}
 
 	return jwtSigned, nil
@@ -174,7 +173,7 @@ func (s *service) Validate(ctx context.Context, signedToken string, clientID str
 
 	tokenParser := func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.Errorf("unexpected signing method %v", token.Header["alg"])
+			return nil, fmt.Errorf("unexpected signing method %v", token.Header["alg"])
 		}
 
 		return s.secret, nil
@@ -183,24 +182,24 @@ func (s *service) Validate(ctx context.Context, signedToken string, clientID str
 	signedToken = strings.TrimPrefix(signedToken, "Bearer ")
 	unpackedToken, err := jwt.Parse(signedToken, tokenParser)
 	if err != nil {
-		return nil, errors.Wrap(auth.ErrInvalidToken("token is invalid"), err.Error())
+		return nil, fmt.Errorf("%v: %w", err, auth.ErrInvalidToken("token is invalid"))
 	}
 
 	claims, ok := unpackedToken.Claims.(jwt.MapClaims)
 	if !ok || !unpackedToken.Valid {
-		return nil, errors.New("token claims unavailable")
+		return nil, fmt.Errorf("token claims unavailable")
 	}
 
 	var token auth.Token
 	{
 		b, err := json.Marshal(claims)
 		if err != nil {
-			return nil, errors.Wrap(err, "cannot marshal token to JSON")
+			return nil, fmt.Errorf("cannot marshal token to JSON: %w", err)
 		}
 
 		err = json.Unmarshal(b, &token)
 		if err != nil {
-			return nil, errors.Wrap(err, "cannot unmarshall token to struct")
+			return nil, fmt.Errorf("cannot unmarshall token to struct: %w", err)
 		}
 	}
 
@@ -210,7 +209,7 @@ func (s *service) Validate(ctx context.Context, signedToken string, clientID str
 
 	decoded, err := base64.RawURLEncoding.DecodeString(clientID)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot decode client ID")
+		return nil, fmt.Errorf("cannot decode client ID: %w", err)
 	}
 
 	if !isHashValid(string(decoded), token.ClientIDHash) {
@@ -232,7 +231,7 @@ func (s *service) Validate(ctx context.Context, signedToken string, clientID str
 func (s *service) Revoke(ctx context.Context, tokenID string) error {
 	_, err := s.repoMngr.LoginHistory().ByTokenID(ctx, tokenID)
 	if err == sql.ErrNoRows {
-		return errors.Wrap(auth.ErrBadRequest("invalid token ID"), err.Error())
+		return fmt.Errorf("%v: %w", err, auth.ErrBadRequest("invalid token ID"))
 	}
 	if err != nil {
 		return err

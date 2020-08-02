@@ -2,10 +2,9 @@ package contactapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
-
-	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/contactchecker"
@@ -44,7 +43,7 @@ func decodeSendRequest(r *http.Request) (*sendRequest, error) {
 	}
 
 	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return nil, errors.Wrap(auth.ErrBadRequest("invalid JSON request"), err.Error())
+		return nil, fmt.Errorf("%v: %w", err, auth.ErrBadRequest("invalid JSON request"))
 	}
 
 	if req.DeliveryMethod != auth.Phone && req.DeliveryMethod != auth.Email {
@@ -65,7 +64,7 @@ func decodeDeliveryRequest(r *http.Request) (*deliveryRequest, error) {
 	}
 
 	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return nil, errors.Wrap(auth.ErrBadRequest("invalid JSON request"), err.Error())
+		return nil, fmt.Errorf("%v: %w", err, auth.ErrBadRequest("invalid JSON request"))
 	}
 
 	if req.Address == "" {
@@ -96,7 +95,7 @@ func decodeDeactivateRequest(r *http.Request) (*deactivateRequest, error) {
 	}
 
 	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return nil, errors.Wrap(auth.ErrBadRequest("invalid JSON request"), err.Error())
+		return nil, fmt.Errorf("%v: %w", err, auth.ErrBadRequest("invalid JSON request"))
 	}
 
 	if req.DeliveryMethod != auth.Phone && req.DeliveryMethod != auth.Email {
@@ -117,7 +116,7 @@ func decodeVerifyRequest(r *http.Request) (*verifyRequest, error) {
 	}
 
 	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return nil, errors.Wrap(auth.ErrBadRequest("invalid JSON request"), err.Error())
+		return nil, fmt.Errorf("%v: %w", err, auth.ErrBadRequest("invalid JSON request"))
 	}
 
 	if req.Code == "" {

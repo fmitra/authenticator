@@ -12,7 +12,6 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/google/go-cmp/cmp"
 	"github.com/gorilla/mux"
-	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/postgres"
@@ -83,7 +82,7 @@ func TestDeviceAPI_Create(t *testing.T) {
 				return &auth.Token{UserID: "user-id", State: auth.JWTAuthorized}, nil
 			},
 			userFn: func() (*auth.User, error) {
-				return nil, errors.New("whoops")
+				return nil, fmt.Errorf("whoops")
 			},
 			webauthnFn: func() ([]byte, error) {
 				return []byte(`{"result":"challenge"}`), nil
@@ -242,7 +241,7 @@ func TestDeviceAPI_Verify(t *testing.T) {
 				return &auth.User{}, nil
 			},
 			webauthnFn: func() (*auth.Device, error) {
-				return nil, errors.New("whoops")
+				return nil, fmt.Errorf("whoops")
 			},
 		},
 		{

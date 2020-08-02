@@ -2,10 +2,9 @@ package totpapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
-
-	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
 )
@@ -25,7 +24,7 @@ func decodeTOTPRequest(r *http.Request) (*totpRequest, error) {
 	}
 
 	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return nil, errors.Wrap(auth.ErrBadRequest("invalid JSON request"), err.Error())
+		return nil, fmt.Errorf("%v: %w", err, auth.ErrBadRequest("invalid JSON request"))
 	}
 
 	if req.Code == "" {

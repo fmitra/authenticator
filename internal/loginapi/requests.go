@@ -2,10 +2,9 @@ package loginapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
-
-	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
 )
@@ -39,7 +38,7 @@ func decodeLoginRequest(r *http.Request) (*loginRequest, error) {
 
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		return nil, errors.Wrap(auth.ErrBadRequest("invalid JSON request"), err.Error())
+		return nil, fmt.Errorf("%v: %w", err, auth.ErrBadRequest("invalid JSON request"))
 	}
 
 	if req.UserAttribute() == "" {
@@ -59,7 +58,7 @@ func decodeVerifyCodeRequest(r *http.Request) (*verifyCodeRequest, error) {
 
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		return nil, errors.Wrap(auth.ErrBadRequest("invalid JSON request"), err.Error())
+		return nil, fmt.Errorf("%v: %w", err, auth.ErrBadRequest("invalid JSON request"))
 	}
 
 	req.Code = strings.TrimSpace(req.Code)

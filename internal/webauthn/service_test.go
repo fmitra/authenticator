@@ -13,7 +13,6 @@ import (
 	webauthnProto "github.com/duo-labs/webauthn/protocol"
 	webauthnLib "github.com/duo-labs/webauthn/webauthn"
 	"github.com/google/go-cmp/cmp"
-	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/postgres"
@@ -62,7 +61,7 @@ func TestWebAuthnSvc_BeginSignUp(t *testing.T) {
 		{
 			name: "Webauthn library failure",
 			libFn: func() (*webauthnProto.CredentialCreation, *webauthnLib.SessionData, error) {
-				return nil, nil, errors.New("whoops")
+				return nil, nil, fmt.Errorf("whoops")
 			},
 			hasError: true,
 		},
@@ -128,7 +127,7 @@ func TestWebAuthnSvc_FinishSignUpErrorHandling(t *testing.T) {
 		{
 			name: "Webauthn library failure",
 			libFn: func() (*webauthnLib.Credential, error) {
-				return nil, errors.New("whoops")
+				return nil, fmt.Errorf("whoops")
 			},
 			userID: "finish-signup-user-webauthn-err",
 		},
@@ -181,7 +180,7 @@ func TestWebAuthnSvc_BeginLogin(t *testing.T) {
 		{
 			name: "Fails with no devices",
 			devicesFn: func() ([]*auth.Device, error) {
-				return nil, errors.New("no devices found")
+				return nil, fmt.Errorf("no devices found")
 			},
 			libFn: func() (*webauthnProto.CredentialAssertion, *webauthnLib.SessionData, error) {
 				return &webauthnProto.CredentialAssertion{}, &webauthnLib.SessionData{}, nil
@@ -195,7 +194,7 @@ func TestWebAuthnSvc_BeginLogin(t *testing.T) {
 				return devices, nil
 			},
 			libFn: func() (*webauthnProto.CredentialAssertion, *webauthnLib.SessionData, error) {
-				return nil, nil, errors.New("failed to start login")
+				return nil, nil, fmt.Errorf("failed to start login")
 			},
 			hasError: true,
 		},
@@ -273,7 +272,7 @@ func TestWebAuthnSvc_FinishLoginErrorHandling(t *testing.T) {
 				return &webauthnLib.Credential{}, nil
 			},
 			devicesFn: func() ([]*auth.Device, error) {
-				return nil, errors.New("no devices found")
+				return nil, fmt.Errorf("no devices found")
 			},
 			txnFn: func() (auth.RepositoryManager, error) {
 				return &test.RepositoryManager{}, nil
@@ -303,7 +302,7 @@ func TestWebAuthnSvc_FinishLoginErrorHandling(t *testing.T) {
 			name:   "Fails on webauthn error",
 			userID: "finish-login-user-webauthn",
 			libFn: func() (*webauthnLib.Credential, error) {
-				return nil, errors.New("failed to authenticate user")
+				return nil, fmt.Errorf("failed to authenticate user")
 			},
 			devicesFn: func() ([]*auth.Device, error) {
 				devices := make([]*auth.Device, 1)
@@ -350,7 +349,7 @@ func TestWebAuthnSvc_FinishLoginErrorHandling(t *testing.T) {
 				return devices, nil
 			},
 			txnFn: func() (auth.RepositoryManager, error) {
-				return nil, errors.New("failed to start new db txn")
+				return nil, fmt.Errorf("failed to start new db txn")
 			},
 			commitFn: func() (interface{}, error) {
 				return nil, nil
@@ -378,7 +377,7 @@ func TestWebAuthnSvc_FinishLoginErrorHandling(t *testing.T) {
 				return &test.RepositoryManager{}, nil
 			},
 			commitFn: func() (interface{}, error) {
-				return nil, errors.New("failed to commit update")
+				return nil, fmt.Errorf("failed to commit update")
 			},
 		},
 	}

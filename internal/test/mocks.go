@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
 	webauthnProto "github.com/duo-labs/webauthn/protocol"
 	webauthnLib "github.com/duo-labs/webauthn/webauthn"
 	redisLib "github.com/go-redis/redis"
-	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
 )
@@ -233,7 +233,7 @@ func (m *WebAuthnLib) BeginRegistration(user webauthnLib.User, opts ...webauthnL
 	if m.BeginRegistrationFn != nil {
 		return m.BeginRegistrationFn()
 	}
-	return nil, nil, errors.New("failed to begin registration")
+	return nil, nil, fmt.Errorf("failed to begin registration")
 }
 
 // FinishRegistration mock.
@@ -242,7 +242,7 @@ func (m *WebAuthnLib) FinishRegistration(user webauthnLib.User, session webauthn
 	if m.FinishRegistrationFn != nil {
 		return m.FinishRegistrationFn()
 	}
-	return nil, errors.New("failed to fnish registration")
+	return nil, fmt.Errorf("failed to fnish registration")
 }
 
 // BeginLogin mock.
@@ -251,7 +251,7 @@ func (m *WebAuthnLib) BeginLogin(user webauthnLib.User, opts ...webauthnLib.Logi
 	if m.BeginLoginFn != nil {
 		return m.BeginLoginFn()
 	}
-	return nil, nil, errors.New("failed to begin login")
+	return nil, nil, fmt.Errorf("failed to begin login")
 }
 
 // FinishLogin mock.
@@ -261,7 +261,7 @@ func (m *WebAuthnLib) FinishLogin(user webauthnLib.User, session webauthnLib.Ses
 		return m.FinishLoginFn()
 	}
 
-	return nil, errors.New("failed to finish login")
+	return nil, fmt.Errorf("failed to finish login")
 }
 
 // NewWithTransaction mock.
@@ -280,7 +280,7 @@ func (m *RepositoryManager) WithAtomic(operation func() (interface{}, error)) (i
 	if m.WithAtomicFn != nil {
 		return m.WithAtomicFn()
 	}
-	return nil, errors.New("failed to start transaction")
+	return nil, fmt.Errorf("failed to start transaction")
 }
 
 // LoginHistory mock.
@@ -518,7 +518,7 @@ func (m *TokenService) Create(ctx context.Context, u *auth.User, state auth.Toke
 	if m.CreateFn != nil {
 		return m.CreateFn()
 	}
-	return nil, errors.New("failed to create token")
+	return nil, fmt.Errorf("failed to create token")
 }
 
 // Sign mock.
@@ -527,7 +527,7 @@ func (m *TokenService) Sign(ctx context.Context, token *auth.Token) (string, err
 	if m.SignFn != nil {
 		return m.SignFn()
 	}
-	return "", errors.New("failed to sign token")
+	return "", fmt.Errorf("failed to sign token")
 }
 
 // Validate mock.
@@ -536,7 +536,7 @@ func (m *TokenService) Validate(ctx context.Context, signedToken string, clientI
 	if m.ValidateFn != nil {
 		return m.ValidateFn()
 	}
-	return nil, errors.New("token is not valid")
+	return nil, fmt.Errorf("token is not valid")
 }
 
 // Revoke mock.
@@ -545,7 +545,7 @@ func (m *TokenService) Revoke(ctx context.Context, tokenID string) error {
 	if m.RevokeFn != nil {
 		return m.RevokeFn()
 	}
-	return errors.New("token revocation failed")
+	return fmt.Errorf("token revocation failed")
 }
 
 // BeginSignUp mock.
@@ -555,7 +555,7 @@ func (m *WebAuthnService) BeginSignUp(ctx context.Context, user *auth.User) ([]b
 		return m.BeginSignUpFn()
 	}
 
-	return nil, errors.New("failed to start signup")
+	return nil, fmt.Errorf("failed to start signup")
 }
 
 // FinishSignUp mock.
@@ -565,7 +565,7 @@ func (m *WebAuthnService) FinishSignUp(ctx context.Context, user *auth.User, r *
 		return m.FinishSignUpFn()
 	}
 
-	return nil, errors.New("failed to finish signup")
+	return nil, fmt.Errorf("failed to finish signup")
 }
 
 // BeginLogin mock.
@@ -575,7 +575,7 @@ func (m *WebAuthnService) BeginLogin(ctx context.Context, user *auth.User) ([]by
 		return m.BeginLoginFn()
 	}
 
-	return nil, errors.New("failed to begin login")
+	return nil, fmt.Errorf("failed to begin login")
 }
 
 // FinishLogin mock.
@@ -585,7 +585,7 @@ func (m *WebAuthnService) FinishLogin(ctx context.Context, user *auth.User, r *h
 		return m.FinishLoginFn()
 	}
 
-	return errors.New("failed to finsih login")
+	return fmt.Errorf("failed to finsih login")
 }
 
 // Log mock.

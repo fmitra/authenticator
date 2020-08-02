@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
 	otpLib "github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 
@@ -50,12 +49,12 @@ type OTP struct {
 func (o *OTP) OTPCode(address string, method auth.DeliveryMethod) (code string, hash string, err error) {
 	c, err := crypto.String(o.codeLength, "0123456")
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("cannot create random string: %w", err)
 	}
 
 	h, err := toOTPHash(c, address, method)
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("cannot hash otp string: %w", err)
 	}
 
 	return c, h, nil
@@ -72,11 +71,11 @@ func (o *OTP) TOTPSecret(u *auth.User) (string, error) {
 		AccountName: u.DefaultName(),
 	})
 	if err != nil {
-		return "", errors.Wrap(err, "failed to generate secret")
+		return "", fmt.Errorf("failed to generate secret: %w", err)
 	}
 	encryptedKey, err := o.encrypt(key.Secret())
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("cannot encrypt secret: %w", err)
 	}
 	return encryptedKey, nil
 }
@@ -134,7 +133,7 @@ func (o *OTP) ValidateOTP(code string, hash string) error {
 func (o *OTP) ValidateTOTP(user *auth.User, code string) error {
 	secret, err := o.decrypt(user.TFASecret)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot decrypt secret: %w", err)
 	}
 	if totp.Validate(code, secret) {
 		return nil
@@ -253,7 +252,7 @@ func (o *OTP) decrypt(encryptedTxt string) (string, error) {
 func toOTPHash(code, address string, method auth.DeliveryMethod) (string, error) {
 	codeHash, err := crypto.Hash(code)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to hash code")
+		return "", fmt.Errorf("failed to hash code: %w", err)
 	}
 
 	expiresAt := time.Now().Add(time.Minute * 5).Unix()

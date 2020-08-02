@@ -23,7 +23,7 @@ type service struct {
 // in the MessageRepository to be consumed by a separate service.
 func (s *service) Send(ctx context.Context, content, addr string, method auth.DeliveryMethod) error {
 	if !contactchecker.Validator(method)(addr) {
-		return fmt.Errorf("invalid delivery method")
+		return fmt.Errorf("invalid message delivery method")
 	}
 
 	msg := auth.Message{

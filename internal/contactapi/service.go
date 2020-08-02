@@ -3,10 +3,10 @@ package contactapi
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 
 	"github.com/go-kit/kit/log"
-	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/httpapi"
@@ -59,7 +59,7 @@ func (s *service) CheckAddress(w http.ResponseWriter, r *http.Request) (interfac
 
 	h, err := otp.FromOTPHash(token.CodeHash)
 	if err != nil {
-		return nil, errors.Wrap(err, "invalid OTP created")
+		return nil, fmt.Errorf("invalid OTP created: %w", err)
 	}
 
 	if err = s.message.Send(ctx, token.Code, h.Address, h.DeliveryMethod); err != nil {
@@ -155,9 +155,10 @@ func (s *service) Verify(w http.ResponseWriter, r *http.Request) (interface{}, e
 		return user, nil
 	})
 	if err != nil {
-		return nil, errors.Wrap(
+		return nil, fmt.Errorf(
+			"%v: %w",
+			err,
 			auth.ErrBadRequest("sorry we can't update your contact details"),
-			err.Error(),
 		)
 	}
 
@@ -254,7 +255,7 @@ func (s *service) Send(w http.ResponseWriter, r *http.Request) (interface{}, err
 
 	h, err := otp.FromOTPHash(token.CodeHash)
 	if err != nil {
-		return nil, errors.Wrap(err, "invalid OTP created")
+		return nil, fmt.Errorf("invalid OTP created: %w", err)
 	}
 
 	if err = s.message.Send(ctx, token.Code, h.Address, h.DeliveryMethod); err != nil {

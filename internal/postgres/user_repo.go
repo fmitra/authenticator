@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
-	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/contactchecker"
@@ -35,7 +34,7 @@ func (r *UserRepository) ByIdentity(ctx context.Context, attribute, value string
 	case "ID":
 		q = "byID"
 	default:
-		return nil, errors.Errorf("%s is not a valid query parameter", attribute)
+		return nil, fmt.Errorf("%s is not a valid query parameter", attribute)
 	}
 
 	row := r.client.queryRowContext(ctx, r.client.userQ[q], value)
@@ -66,7 +65,7 @@ func (r *UserRepository) Create(ctx context.Context, user *auth.User) error {
 
 	userID, err := ulid.New(ulid.Now(), r.client.entropy)
 	if err != nil {
-		return errors.Wrap(err, "cannot generate unique user ID")
+		return fmt.Errorf("cannot generate unique user ID: %w", err)
 	}
 
 	if err = r.hashPassword(user); err != nil {
@@ -123,7 +122,7 @@ func (r *UserRepository) ReCreate(ctx context.Context, user *auth.User) error {
 
 	userID, err := ulid.New(ulid.Now(), r.client.entropy)
 	if err != nil {
-		return errors.Wrap(err, "cannot generate unique user ID")
+		return fmt.Errorf("cannot generate unique user ID: %w", err)
 	}
 
 	if err = r.hashPassword(user); err != nil {
@@ -154,7 +153,7 @@ func (r *UserRepository) GetForUpdate(ctx context.Context, userID string) (*auth
 		&user.IsVerified, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to retrieve record for update")
+		return nil, fmt.Errorf("failed to retrieve record for update: %w", err)
 	}
 
 	return &user, nil
@@ -289,15 +288,15 @@ func (r *UserRepository) update(ctx context.Context, userID string, user *auth.U
 		user.ID,
 	)
 	if err != nil {
-		return errors.Wrap(err, "failed to execute update")
+		return fmt.Errorf("failed to execute update: %w", err)
 	}
 
 	updatedRows, err := res.RowsAffected()
 	if err != nil {
-		return errors.Wrap(err, "failed to check affected rows")
+		return fmt.Errorf("failed to check affected rows: %w", err)
 	}
 	if updatedRows != 1 {
-		return errors.Errorf("wrong number of users updated: %d", updatedRows)
+		return fmt.Errorf("wrong number of users updated: %d", updatedRows)
 	}
 	return nil
 }
@@ -310,7 +309,7 @@ func (r *UserRepository) hashPassword(user *auth.User) error {
 
 	passwordHash, err := r.password.Hash(user.Password)
 	if err != nil {
-		return errors.Wrap(err, "failed to hash password")
+		return fmt.Errorf("failed to hash password: %w", err)
 	}
 
 	user.Password = string(passwordHash)
@@ -376,7 +375,7 @@ func validateUserUnverified(user *auth.User) error {
 		// another user obtains a lock before re-creation. In this case it
 		// should be  treated as an internal error to prevent clients
 		// from becoming aware of what users exist in our system.
-		return errors.New("cannot re-create already verified user")
+		return fmt.Errorf("cannot re-create already verified user")
 	}
 
 	return nil

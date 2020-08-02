@@ -1,9 +1,8 @@
 package authenticator
 
 import (
+	"errors"
 	"fmt"
-
-	"github.com/pkg/errors"
 )
 
 const (
@@ -92,11 +91,8 @@ func DomainError(err error) Error {
 		return nil
 	}
 
-	if e, ok := err.(Error); ok {
-		return e
-	}
-
-	if e, ok := errors.Cause(err).(Error); ok {
+	var e Error
+	if errors.As(err, &e) {
 		return e
 	}
 

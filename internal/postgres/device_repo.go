@@ -2,10 +2,10 @@ package postgres
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/oklog/ulid/v2"
-	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
 )
@@ -56,7 +56,7 @@ func (r *DeviceRepository) ByUserID(ctx context.Context, userID string) ([]*auth
 func (r *DeviceRepository) Create(ctx context.Context, device *auth.Device) error {
 	deviceID, err := ulid.New(ulid.Now(), r.client.entropy)
 	if err != nil {
-		return errors.Wrap(err, "cannot generate unique device ID")
+		return fmt.Errorf("cannot generate unique device ID: %w", err)
 	}
 
 	device.ID = deviceID.String()
@@ -94,15 +94,15 @@ func (r *DeviceRepository) Update(ctx context.Context, device *auth.Device) erro
 		device.UpdatedAt,
 	)
 	if err != nil {
-		return errors.Wrap(err, "failed to execute update")
+		return fmt.Errorf("failed to execute update: %w", err)
 	}
 
 	updatedRows, err := res.RowsAffected()
 	if err != nil {
-		return errors.Wrap(err, "failed to check affected rows")
+		return fmt.Errorf("failed to check affected rows: %w", err)
 	}
 	if updatedRows != 1 {
-		return errors.Errorf("wrong number of devices updated: %d", updatedRows)
+		return fmt.Errorf("wrong number of devices updated: %d", updatedRows)
 	}
 	return nil
 }
@@ -116,7 +116,7 @@ func (r *DeviceRepository) GetForUpdate(ctx context.Context, deviceID string) (*
 		&device.AAGUID, &device.SignCount, &device.CreatedAt, &device.UpdatedAt,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to retrieve record for update")
+		return nil, fmt.Errorf("failed to retrieve record for update: %w", err)
 	}
 
 	return &device, nil
@@ -126,18 +126,18 @@ func (r *DeviceRepository) GetForUpdate(ctx context.Context, deviceID string) (*
 func (r *DeviceRepository) Remove(ctx context.Context, deviceID, userID string) error {
 	res, err := r.client.execContext(ctx, r.client.deviceQ["delete"], deviceID, userID)
 	if err != nil {
-		return errors.Wrap(err, "failed to execute delete")
+		return fmt.Errorf("failed to execute delete: %w", err)
 	}
 
 	removedRows, err := res.RowsAffected()
 	if err != nil {
-		return errors.Wrap(err, "failed to check affected rows")
+		return fmt.Errorf("failed to check affected rows: %w", err)
 	}
 	if removedRows == 0 {
 		return auth.ErrNotFound("device does not exist")
 	}
 	if removedRows != 1 {
-		return errors.Errorf("wrong number of devices removed: %d", removedRows)
+		return fmt.Errorf("wrong number of devices removed: %d", removedRows)
 	}
 
 	return nil

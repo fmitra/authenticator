@@ -2,7 +2,6 @@ package httpapi
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/didip/tollbooth/v6"
@@ -104,8 +103,7 @@ func ErrorLoggingMiddleware(jsonHandler JSONAPIHandler, source string, log log.L
 			level.Info(log).Log(
 				"user_id", userID,
 				"source", source,
-				"error", err.Error(),
-				"stack_trace", fmt.Sprintf("%+v", err),
+				"error", err,
 			)
 		}
 		return response, err

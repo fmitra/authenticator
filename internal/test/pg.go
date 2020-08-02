@@ -7,8 +7,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/pkg/errors"
-
 	auth "github.com/fmitra/authenticator"
 )
 
@@ -37,31 +35,31 @@ func NewPGDB() (*PGClient, error) {
 
 	sysDB, err := sql.Open("postgres", sysConnDetails)
 	if err != nil {
-		return nil, errors.Wrap(err, "system db connect failed")
+		return nil, fmt.Errorf("system db connect failed: %w", err)
 	}
 	defer sysDB.Close()
 
 	_, err = sysDB.Exec("DROP DATABASE IF EXISTS " + testDBName)
 	if err != nil {
-		return nil, errors.Wrap(err, "test DB drop failed")
+		return nil, fmt.Errorf("test DB drop failed: %w", err)
 	}
 
 	_, err = sysDB.Exec("CREATE DATABASE " + testDBName)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot create test DB")
+		return nil, fmt.Errorf("cannot create test DB: %w", err)
 	}
 
 	db, err := sql.Open("postgres", testConnDetails)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot connect to test DB")
+		return nil, fmt.Errorf("cannot connect to test DB: %w", err)
 	}
 	if err = db.Ping(); err != nil {
-		return nil, errors.Wrap(err, "no response to ping")
+		return nil, fmt.Errorf("no response to ping: %w", err)
 	}
 
 	_, err = db.Exec(auth.Schema)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create tables")
+		return nil, fmt.Errorf("failed to create tables: %w", err)
 	}
 
 	return &PGClient{

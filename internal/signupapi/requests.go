@@ -3,10 +3,9 @@ package signupapi
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
-
-	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
 )
@@ -61,7 +60,7 @@ func decodeSignupRequest(r *http.Request) (*signupRequest, error) {
 
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		return nil, errors.Wrap(auth.ErrBadRequest("invalid JSON request"), err.Error())
+		return nil, fmt.Errorf("%v: %w", err, auth.ErrBadRequest("invalid JSON request"))
 	}
 
 	if req.UserAttribute() == "" {
@@ -81,7 +80,7 @@ func decodeSignupVerifyRequest(r *http.Request) (*signupVerifyRequest, error) {
 
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		return nil, errors.Wrap(auth.ErrBadRequest("invalid JSON request"), err.Error())
+		return nil, fmt.Errorf("%v: %w", err, auth.ErrBadRequest("invalid JSON request"))
 	}
 
 	req.Code = strings.TrimSpace(req.Code)

@@ -3,10 +3,10 @@ package totpapi
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/go-kit/kit/log"
-	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/httpapi"
@@ -54,7 +54,7 @@ func (s *service) Secret(w http.ResponseWriter, r *http.Request) (interface{}, e
 
 		user.TFASecret = secret
 		if err = client.User().Update(ctx, user); err != nil {
-			return nil, errors.Wrap(err, "cannot set tfa secret")
+			return nil, fmt.Errorf("cannot set tfa secret: %w", err)
 		}
 
 		return user, nil
@@ -134,7 +134,7 @@ func (s *service) configureTOTP(ctx context.Context, r *http.Request, user *auth
 
 		user.IsTOTPAllowed = isEnabled
 		if err = client.User().Update(ctx, user); err != nil {
-			return nil, errors.Wrap(err, "cannot update TOTP setting")
+			return nil, fmt.Errorf("cannot update TOTP setting: %w", err)
 		}
 
 		return user, nil

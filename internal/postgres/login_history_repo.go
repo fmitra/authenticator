@@ -2,9 +2,8 @@ package postgres
 
 import (
 	"context"
+	"fmt"
 	"time"
-
-	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
 )
@@ -91,15 +90,15 @@ func (r *LoginHistoryRepository) Update(ctx context.Context, login *auth.LoginHi
 		login.UpdatedAt,
 	)
 	if err != nil {
-		return errors.Wrap(err, "failed to execute update")
+		return fmt.Errorf("failed to execute update: %w", err)
 	}
 
 	updatedRows, err := res.RowsAffected()
 	if err != nil {
-		return errors.Wrap(err, "failed to check affected rows")
+		return fmt.Errorf("failed to check affected rows: %w", err)
 	}
 	if updatedRows != 1 {
-		return errors.Errorf("wrong number of devices updated: %d", updatedRows)
+		return fmt.Errorf("wrong number of devices updated: %d", updatedRows)
 	}
 	return nil
 }
@@ -113,7 +112,7 @@ func (r *LoginHistoryRepository) GetForUpdate(ctx context.Context, tokenID strin
 		&login.CreatedAt, &login.UpdatedAt,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to retrieve record for update")
+		return nil, fmt.Errorf("failed to retrieve record for update: %w", err)
 	}
 
 	return &login, nil

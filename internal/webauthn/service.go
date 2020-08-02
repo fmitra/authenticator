@@ -11,7 +11,6 @@ import (
 	webauthnProto "github.com/duo-labs/webauthn/protocol"
 	webauthnLib "github.com/duo-labs/webauthn/webauthn"
 	"github.com/go-redis/redis"
-	"github.com/pkg/errors"
 
 	auth "github.com/fmitra/authenticator"
 )
@@ -60,7 +59,9 @@ func (w *WebAuthn) BeginSignUp(ctx context.Context, user *auth.User) ([]byte, er
 
 	credentialOptions, session, err := w.lib.BeginRegistration(&wu)
 	if err != nil {
-		return nil, errors.Wrap(auth.ErrWebAuthn(err.Error()), "webauthn registration initialization failed")
+		return nil, fmt.Errorf("webauthn registration initialization failed: %w",
+			auth.ErrWebAuthn(err.Error()),
+		)
 	}
 
 	return w.prepareChallenge(ctx, user, session, credentialOptions)
@@ -78,7 +79,9 @@ func (w *WebAuthn) FinishSignUp(ctx context.Context, user *auth.User, r *http.Re
 
 	credential, err := w.lib.FinishRegistration(&wu, *session, r)
 	if err != nil {
-		return nil, errors.Wrap(auth.ErrWebAuthn(err.Error()), "webauthn registration failed")
+		return nil, fmt.Errorf("webauthn registration failed: %w",
+			auth.ErrWebAuthn(err.Error()),
+		)
 	}
 
 	device := auth.Device{
@@ -98,7 +101,7 @@ func (w *WebAuthn) FinishSignUp(ctx context.Context, user *auth.User, r *http.Re
 
 	err = enableDeviceFn(ctx, user, &device)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create device")
+		return nil, fmt.Errorf("failed to create device: %w", err)
 	}
 
 	return &device, nil
@@ -108,7 +111,7 @@ func (w *WebAuthn) FinishSignUp(ctx context.Context, user *auth.User, r *http.Re
 func (w *WebAuthn) BeginLogin(ctx context.Context, user *auth.User) ([]byte, error) {
 	devices, err := w.repoMngr.Device().ByUserID(ctx, user.ID)
 	if err != nil {
-		return nil, errors.Wrap(auth.ErrWebAuthn("no devices found"), err.Error())
+		return nil, fmt.Errorf("%v: %w", err, auth.ErrWebAuthn("no devices found"))
 	}
 
 	wu := User{
@@ -118,7 +121,9 @@ func (w *WebAuthn) BeginLogin(ctx context.Context, user *auth.User) ([]byte, err
 
 	assertion, session, err := w.lib.BeginLogin(&wu)
 	if err != nil {
-		return nil, errors.Wrap(auth.ErrWebAuthn(err.Error()), "webauthn login request failed")
+		return nil, fmt.Errorf("webauthn login request failed: %w",
+			auth.ErrWebAuthn(err.Error()),
+		)
 	}
 
 	return w.prepareChallenge(ctx, user, session, assertion)
@@ -129,7 +134,7 @@ func (w *WebAuthn) BeginLogin(ctx context.Context, user *auth.User) ([]byte, err
 func (w *WebAuthn) FinishLogin(ctx context.Context, user *auth.User, r *http.Request) error {
 	devices, err := w.repoMngr.Device().ByUserID(ctx, user.ID)
 	if err != nil {
-		return errors.Wrap(auth.ErrWebAuthn("no devices found"), err.Error())
+		return fmt.Errorf("%v: %w", err, auth.ErrWebAuthn("no devices found"))
 	}
 
 	wu := User{
@@ -144,7 +149,9 @@ func (w *WebAuthn) FinishLogin(ctx context.Context, user *auth.User, r *http.Req
 
 	credential, err := w.lib.FinishLogin(&wu, *session, r)
 	if err != nil {
-		return errors.Wrap(auth.ErrWebAuthn(err.Error()), "webauthn login failed")
+		return fmt.Errorf("webauthn login failed: %w",
+			auth.ErrWebAuthn(err.Error()),
+		)
 	}
 
 	if credential.Authenticator.CloneWarning {
@@ -153,7 +160,7 @@ func (w *WebAuthn) FinishLogin(ctx context.Context, user *auth.User, r *http.Req
 
 	client, err := w.repoMngr.NewWithTransaction(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to start transaction")
+		return fmt.Errorf("failed to start transaction: %w", err)
 	}
 
 	deviceID := deviceID(devices, credential.ID)
@@ -173,7 +180,7 @@ func (w *WebAuthn) FinishLogin(ctx context.Context, user *auth.User, r *http.Req
 	})
 
 	if err != nil {
-		return errors.Wrap(err, "failed to update device sign count")
+		return fmt.Errorf("failed to update device sign count: %w", err)
 	}
 
 	return nil
@@ -183,13 +190,13 @@ func (w *WebAuthn) retrieveSession(ctx context.Context, user *auth.User) (*webau
 	sessionKey := newSessionKey(user.ID)
 	b, err := w.db.WithContext(ctx).Get(sessionKey).Bytes()
 	if err != nil {
-		return nil, errors.Wrap(auth.ErrWebAuthn("webauthn session not started"), err.Error())
+		return nil, fmt.Errorf("%v: %w", err, auth.ErrWebAuthn("webauthn session not started"))
 	}
 
 	session := webauthnLib.SessionData{}
 	err = json.Unmarshal(b, &session)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal webauthn session")
+		return nil, fmt.Errorf("failed to unmarshal webauthn session: %w", err)
 	}
 
 	return &session, nil
@@ -198,19 +205,19 @@ func (w *WebAuthn) retrieveSession(ctx context.Context, user *auth.User) (*webau
 func (w *WebAuthn) prepareChallenge(ctx context.Context, user *auth.User, session *webauthnLib.SessionData, credentials interface{}) ([]byte, error) {
 	credentialBytes, err := json.Marshal(credentials)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to marshal webauthn credentials")
+		return nil, fmt.Errorf("failed to marshal webauthn credentials: %w", err)
 	}
 
 	sessionBytes, err := json.Marshal(session)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to marshal webauthn session")
+		return nil, fmt.Errorf("failed to marshal webauthn session: %w", err)
 	}
 
 	sessionKey := newSessionKey(user.ID)
 	expiresIn := time.Minute * 5
 	err = w.db.WithContext(ctx).Set(sessionKey, sessionBytes, expiresIn).Err()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to store webauthn login session")
+		return nil, fmt.Errorf("failed to store webauthn login session: %w", err)
 	}
 
 	return credentialBytes, nil
