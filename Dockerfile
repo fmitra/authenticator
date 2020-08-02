@@ -1,4 +1,4 @@
-FROM golang:1.13-alpine3.10 as builder
+FROM golang:1.14-alpine3.11 as builder
 ENV GO111MODULE=on
 WORKDIR /build-directory
 COPY . .
