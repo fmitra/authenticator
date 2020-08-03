@@ -32,7 +32,7 @@ func NewService(options ...ConfigOption) (auth.WebAuthnService, error) {
 type ConfigOption func(*WebAuthn)
 
 // WithDB configures the service with a redis DB
-func WithDB(db Rediser) ConfigOption {
+func WithDB(db rediser) ConfigOption {
 	return func(s *WebAuthn) {
 		s.db = db
 	}

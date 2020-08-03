@@ -21,7 +21,7 @@ import (
 	"github.com/fmitra/authenticator/internal/test"
 )
 
-func NewTestTokenSvc(db Rediser, repoMngr auth.RepositoryManager) auth.TokenService {
+func NewTestTokenSvc(db rediser, repoMngr auth.RepositoryManager) auth.TokenService {
 	tokenSvc := NewService(
 		WithLogger(log.NewNopLogger()),
 		WithDB(db),

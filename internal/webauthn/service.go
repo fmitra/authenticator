@@ -23,8 +23,8 @@ type Webauthner interface {
 	FinishLogin(user webauthnLib.User, session webauthnLib.SessionData, r *http.Request) (*webauthnLib.Credential, error)
 }
 
-// Rediser is an interface to go-redis.
-type Rediser interface {
+// rediser is an interface to go-redis.
+type rediser interface {
 	Get(ctx context.Context, key string) *redis.StringCmd
 	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
 	Close() error
@@ -46,7 +46,7 @@ type WebAuthn struct {
 	// used by this adapter.
 	lib Webauthner
 	// db is a redis DB to store sessions.
-	db Rediser
+	db rediser
 	// repoMngr is an instance of a RepositoryManager
 	// to manage domain entitites.
 	repoMngr auth.RepositoryManager

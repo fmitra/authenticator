@@ -19,7 +19,7 @@ import (
 	"github.com/fmitra/authenticator/internal/test"
 )
 
-func setSession(ctx context.Context, userID string, redisDB Rediser) error {
+func setSession(ctx context.Context, userID string, redisDB rediser) error {
 	if userID == "" {
 		return nil
 	}

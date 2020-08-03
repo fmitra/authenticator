@@ -46,3 +46,10 @@ func WithSecret(x Secret) ConfigOption {
 		s.secrets = append(s.secrets, x)
 	}
 }
+
+// WithDB configures the service with a redis DB
+func WithDB(db rediser) ConfigOption {
+	return func(s *OTP) {
+		s.db = db
+	}
+}

@@ -187,6 +187,7 @@ func main() {
 			Key:     viper.GetString("otp.secret.key"),
 			Version: viper.GetInt("otp.secret.version"),
 		}),
+		otp.WithDB(redisDB),
 	)
 
 	messagingSvc := msgpublisher.NewService(messageRepo, msgpublisher.WithLogger(logger))

@@ -2,6 +2,7 @@
 package otp
 
 import (
+	"context"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -15,12 +16,20 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	otpLib "github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/crypto"
 )
+
+// rediser is a minimal interface for go-redis
+type rediser interface {
+	Get(ctx context.Context, key string) *redis.StringCmd
+	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
+	Close() error
+}
 
 // Secret stores a versioned secret key for cryptography functions.
 type Secret struct {
@@ -43,6 +52,7 @@ type OTP struct {
 	codeLength int
 	totpIssuer string
 	secrets    []Secret
+	db         rediser
 }
 
 // OTPCode creates a random code and hash.
@@ -129,17 +139,37 @@ func (o *OTP) ValidateOTP(code string, hash string) error {
 	return nil
 }
 
-// ValidateTOTP checks ifa User's TOTP is valid.
-func (o *OTP) ValidateTOTP(user *auth.User, code string) error {
+// ValidateTOTP checks if a User's TOTP is valid.
+// We first validate the TOTP against the user's secret key.
+// If the validation passes, we then check if the code has been
+// set in redis, indicating that it has been used in the past 30
+// seconds. Codes that have been validated are cached to prevent
+// immediate reuse.
+func (o *OTP) ValidateTOTP(ctx context.Context, user *auth.User, code string) error {
 	secret, err := o.decrypt(user.TFASecret)
 	if err != nil {
 		return fmt.Errorf("cannot decrypt secret: %w", err)
 	}
-	if totp.Validate(code, secret) {
-		return nil
+	if !totp.Validate(code, secret) {
+		return auth.ErrInvalidCode("incorrect code provided")
 	}
 
-	return auth.ErrInvalidCode("incorrect code provided")
+	key := fmt.Sprintf("%s_%s", user.ID, code)
+
+	err = o.db.Get(ctx, key).Err()
+
+	// Validated code has previously been used in the past 30 seconds
+	if err == nil {
+		return auth.ErrInvalidCode("code is no longer valid")
+	}
+
+	// No code found in redis, indicating the code is valid. Set it to the
+	// DB to prevent reuse.
+	if err == redis.Nil {
+		return o.db.Set(ctx, key, true, time.Second*30).Err()
+	}
+
+	return fmt.Errorf("failed to vaidated code: %w", err)
 }
 
 func (o *OTP) latestSecret() (Secret, error) {

@@ -42,8 +42,8 @@ type RefreshToken struct {
 	ExpiresAt int64  `json:"expires_at"`
 }
 
-// Rediser is an interface to go-redis.
-type Rediser interface {
+// rediser is an interface to go-redis.
+type rediser interface {
 	Get(ctx context.Context, key string) *redislib.StringCmd
 	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redislib.StatusCmd
 	Close() error
@@ -85,7 +85,7 @@ type service struct {
 	entropy            io.Reader
 	secret             []byte
 	issuer             string
-	db                 Rediser
+	db                 rediser
 	repoMngr           auth.RepositoryManager
 	otp                auth.OTPService
 	cookieMaxAge       int

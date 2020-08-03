@@ -385,7 +385,7 @@ type OTPService interface {
 	// ValidateOTP checks if a User email/sms delivered OTP code is valid.
 	ValidateOTP(code, hash string) error
 	// ValidateTOTP checks if a User TOTP code is valid.
-	ValidateTOTP(user *User, code string) error
+	ValidateTOTP(ctx context.Context, user *User, code string) error
 }
 
 // MessagingService sends messages through email or SMS.

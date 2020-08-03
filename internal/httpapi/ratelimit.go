@@ -31,6 +31,7 @@ const HHMMSS = "15:04:05"
 // Reference: https://yourbasic.org/golang/format-parse-string-time-date-example/
 const HHMM = "15:04"
 
+// rediser is a minimal interface for go-redis
 type rediser interface {
 	TxPipelined(ctx context.Context, fn func(pipe redis.Pipeliner) error) ([]redis.Cmder, error)
 }

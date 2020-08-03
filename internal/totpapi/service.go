@@ -117,7 +117,7 @@ func (s *service) configureTOTP(ctx context.Context, r *http.Request, user *auth
 		return nil, err
 	}
 
-	if err = s.otp.ValidateTOTP(user, req.Code); err != nil {
+	if err = s.otp.ValidateTOTP(ctx, user, req.Code); err != nil {
 		return nil, err
 	}
 

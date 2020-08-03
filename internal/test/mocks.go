@@ -57,7 +57,7 @@ type OTPService struct {
 	TOTPSecretFn   func(u *auth.User) (string, error)
 	OTPCodeFn      func(address string, method auth.DeliveryMethod) (string, string, error)
 	ValidateOTPFn  func(code, hash string) error
-	ValidateTOTPFn func(u *auth.User, code string) error
+	ValidateTOTPFn func(ctx context.Context, u *auth.User, code string) error
 	Calls          struct {
 		TOTPQRString int
 		TOTPSecret   int
@@ -688,10 +688,10 @@ func (s *OTPService) ValidateOTP(code, hash string) error {
 	return nil
 }
 
-func (s *OTPService) ValidateTOTP(u *auth.User, code string) error {
+func (s *OTPService) ValidateTOTP(ctx context.Context, u *auth.User, code string) error {
 	s.Calls.ValidateTOTP++
 	if s.ValidateTOTPFn != nil {
-		return s.ValidateTOTPFn(u, code)
+		return s.ValidateTOTPFn(ctx, u, code)
 	}
 	return nil
 }

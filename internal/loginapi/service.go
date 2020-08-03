@@ -132,7 +132,7 @@ func (s *service) VerifyCode(w http.ResponseWriter, r *http.Request) (interface{
 	if token.CodeHash != "" {
 		err = s.otp.ValidateOTP(req.Code, token.CodeHash)
 	} else {
-		err = s.otp.ValidateTOTP(user, req.Code)
+		err = s.otp.ValidateTOTP(ctx, user, req.Code)
 	}
 
 	if err != nil {

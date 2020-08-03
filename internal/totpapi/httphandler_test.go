@@ -260,7 +260,7 @@ func TestTOTPAPI_Verify(t *testing.T) {
 		errMessage      string
 		statusCode      int
 		tokenValidateFn func(userID string) func() (*auth.Token, error)
-		validateTOTPFn  func(u *auth.User, code string) error
+		validateTOTPFn  func(ctx context.Context, u *auth.User, code string) error
 		tokenCreateFn   func() (*auth.Token, error)
 		tokenSignFn     func() (string, error)
 		authHeader      bool
@@ -297,7 +297,7 @@ func TestTOTPAPI_Verify(t *testing.T) {
 			tokenSignFn: func() (string, error) {
 				return "token", nil
 			},
-			validateTOTPFn: func(u *auth.User, code string) error {
+			validateTOTPFn: func(ctx context.Context, u *auth.User, code string) error {
 				return nil
 			},
 		},
@@ -332,7 +332,7 @@ func TestTOTPAPI_Verify(t *testing.T) {
 			tokenSignFn: func() (string, error) {
 				return "token", nil
 			},
-			validateTOTPFn: func(u *auth.User, code string) error {
+			validateTOTPFn: func(ctx context.Context, u *auth.User, code string) error {
 				return nil
 			},
 		},
@@ -367,7 +367,7 @@ func TestTOTPAPI_Verify(t *testing.T) {
 			tokenSignFn: func() (string, error) {
 				return "token", nil
 			},
-			validateTOTPFn: func(u *auth.User, code string) error {
+			validateTOTPFn: func(ctx context.Context, u *auth.User, code string) error {
 				return nil
 			},
 		},
@@ -402,7 +402,7 @@ func TestTOTPAPI_Verify(t *testing.T) {
 			tokenSignFn: func() (string, error) {
 				return "token", nil
 			},
-			validateTOTPFn: func(u *auth.User, code string) error {
+			validateTOTPFn: func(ctx context.Context, u *auth.User, code string) error {
 				return nil
 			},
 		},
@@ -437,7 +437,7 @@ func TestTOTPAPI_Verify(t *testing.T) {
 			tokenSignFn: func() (string, error) {
 				return "token", nil
 			},
-			validateTOTPFn: func(u *auth.User, code string) error {
+			validateTOTPFn: func(ctx context.Context, u *auth.User, code string) error {
 				return auth.ErrInvalidCode("incorrect code provided")
 			},
 		},
@@ -472,7 +472,7 @@ func TestTOTPAPI_Verify(t *testing.T) {
 			tokenSignFn: func() (string, error) {
 				return "token", nil
 			},
-			validateTOTPFn: func(u *auth.User, code string) error {
+			validateTOTPFn: func(ctx context.Context, u *auth.User, code string) error {
 				return nil
 			},
 		},
@@ -507,7 +507,7 @@ func TestTOTPAPI_Verify(t *testing.T) {
 			tokenSignFn: func() (string, error) {
 				return "token", nil
 			},
-			validateTOTPFn: func(u *auth.User, code string) error {
+			validateTOTPFn: func(ctx context.Context, u *auth.User, code string) error {
 				return nil
 			},
 		},
@@ -592,7 +592,7 @@ func TestTOTPAPI_Remove(t *testing.T) {
 		tokenValidateFn func(userID string) func() (*auth.Token, error)
 		tokenCreateFn   func() (*auth.Token, error)
 		tokenSignFn     func() (string, error)
-		validateTOTPFn  func(u *auth.User, code string) error
+		validateTOTPFn  func(ctx context.Context, u *auth.User, code string) error
 	}{
 		{
 			name:       "Authentication error with no token",
@@ -625,7 +625,7 @@ func TestTOTPAPI_Remove(t *testing.T) {
 			tokenSignFn: func() (string, error) {
 				return "token", nil
 			},
-			validateTOTPFn: func(u *auth.User, code string) error {
+			validateTOTPFn: func(ctx context.Context, u *auth.User, code string) error {
 				return nil
 			},
 		},
@@ -660,7 +660,7 @@ func TestTOTPAPI_Remove(t *testing.T) {
 			tokenSignFn: func() (string, error) {
 				return "token", nil
 			},
-			validateTOTPFn: func(u *auth.User, code string) error {
+			validateTOTPFn: func(ctx context.Context, u *auth.User, code string) error {
 				return nil
 			},
 		},
@@ -687,7 +687,7 @@ func TestTOTPAPI_Remove(t *testing.T) {
 					return &auth.Token{UserID: userID, State: auth.JWTAuthorized}, nil
 				}
 			},
-			validateTOTPFn: func(u *auth.User, code string) error {
+			validateTOTPFn: func(ctx context.Context, u *auth.User, code string) error {
 				return nil
 			},
 		},
@@ -722,7 +722,7 @@ func TestTOTPAPI_Remove(t *testing.T) {
 			tokenSignFn: func() (string, error) {
 				return "token", nil
 			},
-			validateTOTPFn: func(u *auth.User, code string) error {
+			validateTOTPFn: func(ctx context.Context, u *auth.User, code string) error {
 				return nil
 			},
 		},
@@ -757,7 +757,7 @@ func TestTOTPAPI_Remove(t *testing.T) {
 			tokenSignFn: func() (string, error) {
 				return "token", nil
 			},
-			validateTOTPFn: func(u *auth.User, code string) error {
+			validateTOTPFn: func(ctx context.Context, u *auth.User, code string) error {
 				return auth.ErrInvalidCode("incorrect code provided")
 			},
 		},

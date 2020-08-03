@@ -44,7 +44,7 @@ func WithLogger(l log.Logger) ConfigOption {
 }
 
 // WithDB configures the service with a redis DB
-func WithDB(db Rediser) ConfigOption {
+func WithDB(db rediser) ConfigOption {
 	return func(s *service) {
 		s.db = db
 	}
