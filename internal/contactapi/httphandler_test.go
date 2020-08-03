@@ -16,6 +16,7 @@ import (
 	"github.com/gorilla/mux"
 
 	auth "github.com/fmitra/authenticator"
+	"github.com/fmitra/authenticator/internal/httpapi"
 	"github.com/fmitra/authenticator/internal/postgres"
 	"github.com/fmitra/authenticator/internal/test"
 )
@@ -230,7 +231,7 @@ func TestContactAPI_CheckAddress(t *testing.T) {
 			}
 
 			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
-			SetupHTTPHandler(svc, router, tokenSvc, logger)
+			SetupHTTPHandler(svc, router, tokenSvc, logger, &httpapi.MockLimiterFactory{})
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)
@@ -606,7 +607,7 @@ func TestContactAPI_Verify(t *testing.T) {
 			}
 
 			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
-			SetupHTTPHandler(svc, router, tokenSvc, logger)
+			SetupHTTPHandler(svc, router, tokenSvc, logger, &httpapi.MockLimiterFactory{})
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)
@@ -826,7 +827,7 @@ func TestContactAPI_Disable(t *testing.T) {
 			}
 
 			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
-			SetupHTTPHandler(svc, router, tokenSvc, logger)
+			SetupHTTPHandler(svc, router, tokenSvc, logger, &httpapi.MockLimiterFactory{})
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)
@@ -1046,7 +1047,7 @@ func TestContactAPI_Remove(t *testing.T) {
 			}
 
 			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
-			SetupHTTPHandler(svc, router, tokenSvc, logger)
+			SetupHTTPHandler(svc, router, tokenSvc, logger, &httpapi.MockLimiterFactory{})
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)
@@ -1228,7 +1229,7 @@ func TestContactAPI_Send(t *testing.T) {
 
 			test.SetAuthHeaders(req)
 			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
-			SetupHTTPHandler(svc, router, tokenSvc, logger)
+			SetupHTTPHandler(svc, router, tokenSvc, logger, &httpapi.MockLimiterFactory{})
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)

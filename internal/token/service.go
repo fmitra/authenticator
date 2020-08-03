@@ -14,7 +14,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
-	redislib "github.com/go-redis/redis"
+	redislib "github.com/go-redis/redis/v8"
 	"github.com/oklog/ulid/v2"
 
 	auth "github.com/fmitra/authenticator"
@@ -44,9 +44,8 @@ type RefreshToken struct {
 
 // Rediser is an interface to go-redis.
 type Rediser interface {
-	Get(key string) *redislib.StringCmd
-	Set(key string, value interface{}, expiration time.Duration) *redislib.StatusCmd
-	WithContext(ctx context.Context) *redislib.Client
+	Get(ctx context.Context, key string) *redislib.StringCmd
+	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redislib.StatusCmd
 	Close() error
 }
 
@@ -259,7 +258,7 @@ func (s *service) Revoke(ctx context.Context, tokenID string) error {
 		return fmt.Errorf("failed to invalidate login history record: %w", err)
 	}
 
-	return s.db.WithContext(ctx).Set(revocationKey(tokenID), true, s.tokenExpiry).Err()
+	return s.db.Set(ctx, revocationKey(tokenID), true, s.tokenExpiry).Err()
 }
 
 // Cookies returns a secure cookies to accompany a token.
@@ -449,12 +448,12 @@ func (s *service) invalidateOldTokens(ctx context.Context, conf *auth.TokenConfi
 	key := invalidationKey(token.Id)
 	latestValidTimestamp := token.IssuedAt
 
-	return s.db.WithContext(ctx).Set(key, latestValidTimestamp, s.tokenExpiry).Err()
+	return s.db.Set(ctx, key, latestValidTimestamp, s.tokenExpiry).Err()
 }
 
 func (s *service) checkRevocation(ctx context.Context, token *auth.Token) error {
 	key := revocationKey(token.Id)
-	err := s.db.WithContext(ctx).Get(key).Err()
+	err := s.db.Get(ctx, key).Err()
 	if err == nil {
 		return auth.ErrInvalidToken("token is revoked")
 	}
@@ -474,7 +473,7 @@ func (s *service) checkInvalidation(ctx context.Context, token *auth.Token) erro
 	}
 
 	key := invalidationKey(token.Id)
-	ts, err := s.db.WithContext(ctx).Get(key).Int64()
+	ts, err := s.db.Get(ctx, key).Int64()
 
 	level.Info(s.logger).Log(
 		"source", "TokenService.checkInvalidation",

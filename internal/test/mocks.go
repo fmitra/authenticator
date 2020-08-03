@@ -10,7 +10,7 @@ import (
 
 	webauthnProto "github.com/duo-labs/webauthn/protocol"
 	webauthnLib "github.com/duo-labs/webauthn/webauthn"
-	redisLib "github.com/go-redis/redis"
+	redisLib "github.com/go-redis/redis/v8"
 
 	auth "github.com/fmitra/authenticator"
 )
@@ -599,7 +599,7 @@ func (m *Logger) Log(keyvals ...interface{}) error {
 }
 
 // Get mock.
-func (m *Rediser) Get(key string) *redisLib.StringCmd {
+func (m *Rediser) Get(ctx context.Context, key string) *redisLib.StringCmd {
 	m.Calls.Get++
 	if m.GetFn != nil {
 		return m.GetFn()
@@ -608,19 +608,10 @@ func (m *Rediser) Get(key string) *redisLib.StringCmd {
 }
 
 // Set mock.
-func (m *Rediser) Set(key string, v interface{}, t time.Duration) *redisLib.StatusCmd {
+func (m *Rediser) Set(ctx context.Context, key string, v interface{}, t time.Duration) *redisLib.StatusCmd {
 	m.Calls.Set++
 	if m.SetFn != nil {
 		return m.SetFn()
-	}
-	return nil
-}
-
-// WithContext mock.
-func (m *Rediser) WithContext(ctxt context.Context) *redisLib.Client {
-	m.Calls.WithContext++
-	if m.WithContextFn != nil {
-		return m.WithContextFn()
 	}
 	return nil
 }

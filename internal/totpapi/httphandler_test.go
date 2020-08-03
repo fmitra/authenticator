@@ -16,6 +16,7 @@ import (
 	"github.com/gorilla/mux"
 
 	auth "github.com/fmitra/authenticator"
+	"github.com/fmitra/authenticator/internal/httpapi"
 	"github.com/fmitra/authenticator/internal/postgres"
 	"github.com/fmitra/authenticator/internal/test"
 )
@@ -221,7 +222,7 @@ func TestTOTPAPI_Secret(t *testing.T) {
 			}
 
 			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
-			SetupHTTPHandler(svc, router, tokenSvc, logger)
+			SetupHTTPHandler(svc, router, tokenSvc, logger, &httpapi.MockLimiterFactory{})
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)
@@ -553,7 +554,7 @@ func TestTOTPAPI_Verify(t *testing.T) {
 			}
 
 			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
-			SetupHTTPHandler(svc, router, tokenSvc, logger)
+			SetupHTTPHandler(svc, router, tokenSvc, logger, &httpapi.MockLimiterFactory{})
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)
@@ -803,7 +804,7 @@ func TestTOTPAPI_Remove(t *testing.T) {
 			}
 
 			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
-			SetupHTTPHandler(svc, router, tokenSvc, logger)
+			SetupHTTPHandler(svc, router, tokenSvc, logger, &httpapi.MockLimiterFactory{})
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)

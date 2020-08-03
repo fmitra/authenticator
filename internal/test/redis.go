@@ -1,12 +1,13 @@
 package test
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"strconv"
 	"time"
 
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 )
 
 // NewRedisDB returns a redis DB for testing.
@@ -22,8 +23,9 @@ func NewRedisDB() (*redis.Client, error) {
 		return nil, err
 	}
 
+	ctx := context.Background()
 	db := redis.NewClient(redisConfig)
-	_, err = db.Ping().Result()
+	_, err = db.Ping(ctx).Result()
 	if err != nil {
 		db.Close()
 

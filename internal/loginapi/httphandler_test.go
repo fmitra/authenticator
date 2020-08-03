@@ -14,6 +14,7 @@ import (
 	"github.com/gorilla/mux"
 
 	auth "github.com/fmitra/authenticator"
+	"github.com/fmitra/authenticator/internal/httpapi"
 	"github.com/fmitra/authenticator/internal/otp"
 	"github.com/fmitra/authenticator/internal/password"
 	"github.com/fmitra/authenticator/internal/test"
@@ -206,7 +207,7 @@ func TestLoginAPI_Login(t *testing.T) {
 			}
 
 			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
-			SetupHTTPHandler(svc, router, tokenSvc, logger)
+			SetupHTTPHandler(svc, router, tokenSvc, logger, &httpapi.MockLimiterFactory{})
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)
@@ -335,7 +336,7 @@ func TestLoginAPI_DeviceChallenge(t *testing.T) {
 			test.SetAuthHeaders(req)
 
 			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
-			SetupHTTPHandler(svc, router, tokenSvc, logger)
+			SetupHTTPHandler(svc, router, tokenSvc, logger, &httpapi.MockLimiterFactory{})
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)
@@ -570,7 +571,7 @@ func TestLoginAPI_VerifyDevice(t *testing.T) {
 			test.SetAuthHeaders(req)
 
 			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
-			SetupHTTPHandler(svc, router, tokenSvc, logger)
+			SetupHTTPHandler(svc, router, tokenSvc, logger, &httpapi.MockLimiterFactory{})
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)
@@ -834,7 +835,7 @@ func TestLoginAPI_VerifyCode(t *testing.T) {
 			test.SetAuthHeaders(req)
 
 			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
-			SetupHTTPHandler(svc, router, tokenSvc, logger)
+			SetupHTTPHandler(svc, router, tokenSvc, logger, &httpapi.MockLimiterFactory{})
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)

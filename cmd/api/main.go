@@ -15,7 +15,7 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/oklog/run"
@@ -24,6 +24,7 @@ import (
 
 	"github.com/fmitra/authenticator/internal/contactapi"
 	"github.com/fmitra/authenticator/internal/deviceapi"
+	"github.com/fmitra/authenticator/internal/httpapi"
 	"github.com/fmitra/authenticator/internal/loginapi"
 	"github.com/fmitra/authenticator/internal/mail"
 	"github.com/fmitra/authenticator/internal/msgconsumer"
@@ -41,8 +42,9 @@ import (
 )
 
 func main() {
-	var err error
+	ctx, cancel := context.WithCancel(context.Background())
 
+	var err error
 	var logger log.Logger
 	{
 		logger = log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
@@ -162,7 +164,7 @@ func main() {
 			}
 		}
 
-		if _, err = redisDB.Ping().Result(); err != nil {
+		if _, err = redisDB.Ping(ctx).Result(); err != nil {
 			logger.Log("message", "redis connection failed", "error", err, "source", "cmd/api")
 			closeRedis()
 			os.Exit(1)
@@ -260,18 +262,19 @@ func main() {
 		tokenapi.WithRepoManager(repoMngr),
 	)
 
+	lmt := httpapi.NewRateLimiter(redisDB)
 	router := mux.NewRouter()
 	router.HandleFunc("/healthcheck", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
 
-	loginapi.SetupHTTPHandler(loginAPI, router, tokenSvc, logger)
-	signupapi.SetupHTTPHandler(signupAPI, router, tokenSvc, logger)
-	deviceapi.SetupHTTPHandler(deviceAPI, router, tokenSvc, logger)
-	contactapi.SetupHTTPHandler(contactAPI, router, tokenSvc, logger)
-	totpapi.SetupHTTPHandler(totpAPI, router, tokenSvc, logger)
-	tokenapi.SetupHTTPHandler(tokenAPI, router, tokenSvc, logger)
+	loginapi.SetupHTTPHandler(loginAPI, router, tokenSvc, logger, lmt)
+	signupapi.SetupHTTPHandler(signupAPI, router, tokenSvc, logger, lmt)
+	deviceapi.SetupHTTPHandler(deviceAPI, router, tokenSvc, logger, lmt)
+	contactapi.SetupHTTPHandler(contactAPI, router, tokenSvc, logger, lmt)
+	totpapi.SetupHTTPHandler(totpAPI, router, tokenSvc, logger, lmt)
+	tokenapi.SetupHTTPHandler(tokenAPI, router, tokenSvc, logger, lmt)
 
 	server := http.Server{
 		Addr: viper.GetString("api.http-addr"),
@@ -291,8 +294,6 @@ func main() {
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  30 * time.Second,
 	}
-
-	ctx, cancel := context.WithCancel(context.Background())
 
 	smsLib := twilio.NewClient(twilio.WithDefaults(
 		viper.GetString("twilio.account-sid"),

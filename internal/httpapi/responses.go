@@ -56,6 +56,26 @@ func GetRefreshToken(r *http.Request) string {
 	return token
 }
 
+// GetIP Retrieves the client IP address
+func GetIP(r *http.Request) string {
+	var ip string
+
+	ip = r.Header.Get("X-Forwarded-For")
+	if ip != "" && strings.Contains(ip, ",") {
+		ip = strings.Split(ip, ",")[0]
+	}
+
+	if ip == "" {
+		ip = r.Header.Get("X-Real-IP")
+	}
+
+	if ip == "" {
+		ip = r.RemoteAddr
+	}
+
+	return ip
+}
+
 // JSONResponse writes a response body. If a struct is provided
 // and we are unable to marshal it, we return an internal error.
 func JSONResponse(w http.ResponseWriter, v interface{}, statusCode int) {

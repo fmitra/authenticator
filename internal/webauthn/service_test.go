@@ -30,7 +30,7 @@ func setSession(ctx context.Context, userID string, redisDB Rediser) error {
 		return err
 	}
 
-	return redisDB.WithContext(ctx).Set(key, b, time.Second).Err()
+	return redisDB.Set(ctx, key, b, time.Second).Err()
 }
 
 func TestWebAuthnSvc_ConfiguresService(t *testing.T) {

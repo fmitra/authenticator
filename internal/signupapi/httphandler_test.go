@@ -15,6 +15,7 @@ import (
 	"github.com/gorilla/mux"
 
 	auth "github.com/fmitra/authenticator"
+	"github.com/fmitra/authenticator/internal/httpapi"
 	"github.com/fmitra/authenticator/internal/otp"
 	"github.com/fmitra/authenticator/internal/postgres"
 	"github.com/fmitra/authenticator/internal/test"
@@ -236,7 +237,7 @@ func TestSignUpAPI_SignUp(t *testing.T) {
 				t.Fatal("failed to create request:", err)
 			}
 
-			SetupHTTPHandler(svc, router, tokenSvc, logger)
+			SetupHTTPHandler(svc, router, tokenSvc, logger, &httpapi.MockLimiterFactory{})
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)
@@ -334,7 +335,7 @@ func TestSignUpAPI_SignUpExistingUser(t *testing.T) {
 		t.Fatal("failed to create request:", err)
 	}
 
-	SetupHTTPHandler(svc, router, tokenSvc, logger)
+	SetupHTTPHandler(svc, router, tokenSvc, logger, &httpapi.MockLimiterFactory{})
 
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
@@ -472,7 +473,7 @@ func TestSignUpAPI_VerifyCode(t *testing.T) {
 			test.SetAuthHeaders(req)
 
 			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
-			SetupHTTPHandler(svc, router, tokenSvc, logger)
+			SetupHTTPHandler(svc, router, tokenSvc, logger, &httpapi.MockLimiterFactory{})
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)
@@ -553,7 +554,7 @@ func TestSignUpAPI_VerifyCodeSuccess(t *testing.T) {
 	test.SetAuthHeaders(req)
 
 	logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
-	SetupHTTPHandler(svc, router, tokenSvc, logger)
+	SetupHTTPHandler(svc, router, tokenSvc, logger, &httpapi.MockLimiterFactory{})
 
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)

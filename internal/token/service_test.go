@@ -653,7 +653,7 @@ func TestTokenSvc_InvalidatesOldTokensWithOTP(t *testing.T) {
 		t.Fatal("failed to create token:", err)
 	}
 
-	ts, err := db.WithContext(ctx).Get(invalidationKey(token.Id)).Int64()
+	ts, err := db.Get(ctx, invalidationKey(token.Id)).Int64()
 	if err != nil {
 		t.Fatal("no cached token found:", err)
 	}

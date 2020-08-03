@@ -10,7 +10,7 @@ import (
 
 	webauthnProto "github.com/duo-labs/webauthn/protocol"
 	webauthnLib "github.com/duo-labs/webauthn/webauthn"
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 
 	auth "github.com/fmitra/authenticator"
 )
@@ -25,9 +25,8 @@ type Webauthner interface {
 
 // Rediser is an interface to go-redis.
 type Rediser interface {
-	Get(key string) *redis.StringCmd
-	Set(key string, value interface{}, expiration time.Duration) *redis.StatusCmd
-	WithContext(ctx context.Context) *redis.Client
+	Get(ctx context.Context, key string) *redis.StringCmd
+	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
 	Close() error
 }
 
@@ -188,7 +187,7 @@ func (w *WebAuthn) FinishLogin(ctx context.Context, user *auth.User, r *http.Req
 
 func (w *WebAuthn) retrieveSession(ctx context.Context, user *auth.User) (*webauthnLib.SessionData, error) {
 	sessionKey := newSessionKey(user.ID)
-	b, err := w.db.WithContext(ctx).Get(sessionKey).Bytes()
+	b, err := w.db.Get(ctx, sessionKey).Bytes()
 	if err != nil {
 		return nil, fmt.Errorf("%v: %w", err, auth.ErrWebAuthn("webauthn session not started"))
 	}
@@ -215,7 +214,7 @@ func (w *WebAuthn) prepareChallenge(ctx context.Context, user *auth.User, sessio
 
 	sessionKey := newSessionKey(user.ID)
 	expiresIn := time.Minute * 5
-	err = w.db.WithContext(ctx).Set(sessionKey, sessionBytes, expiresIn).Err()
+	err = w.db.Set(ctx, sessionKey, sessionBytes, expiresIn).Err()
 	if err != nil {
 		return nil, fmt.Errorf("failed to store webauthn login session: %w", err)
 	}

@@ -13,6 +13,7 @@ import (
 	"github.com/gorilla/mux"
 
 	auth "github.com/fmitra/authenticator"
+	"github.com/fmitra/authenticator/internal/httpapi"
 	"github.com/fmitra/authenticator/internal/postgres"
 	"github.com/fmitra/authenticator/internal/test"
 )
@@ -57,7 +58,7 @@ func TestTokenAPI_Verify(t *testing.T) {
 			test.SetAuthHeaders(req)
 
 			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
-			SetupHTTPHandler(svc, router, tokenSvc, logger)
+			SetupHTTPHandler(svc, router, tokenSvc, logger, &httpapi.MockLimiterFactory{})
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)
@@ -96,7 +97,7 @@ func TestTokenAPI_Revoke(t *testing.T) {
 	test.SetAuthHeaders(req)
 
 	logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
-	SetupHTTPHandler(svc, router, tokenSvc, logger)
+	SetupHTTPHandler(svc, router, tokenSvc, logger, &httpapi.MockLimiterFactory{})
 
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
@@ -162,7 +163,7 @@ func TestTokenAPI_Refresh(t *testing.T) {
 	test.SetAuthHeaders(req)
 
 	logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
-	SetupHTTPHandler(svc, router, tokenSvc, logger)
+	SetupHTTPHandler(svc, router, tokenSvc, logger, &httpapi.MockLimiterFactory{})
 
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
