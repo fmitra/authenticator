@@ -231,8 +231,8 @@ func (o *OTP) encrypt(s string) (string, error) {
 
 	stream := cipher.NewCFBEncrypter(block, iv)
 	stream.XORKeyStream(ciphertext[aes.BlockSize:], []byte(s))
-	return fmt.Sprintf("%s:%s",
-		strconv.Itoa(secret.Version),
+	return fmt.Sprintf("%v:%s",
+		secret.Version,
 		base64.StdEncoding.EncodeToString(ciphertext),
 	), nil
 }

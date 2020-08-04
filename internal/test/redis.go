@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"strconv"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -16,7 +15,7 @@ import (
 func NewRedisDB() (*redis.Client, error) {
 	rand.Seed(time.Now().UnixNano())
 	dbNo := rand.Intn(16)
-	redisURL := fmt.Sprintf("redis://:swordfish@localhost:6379/%s", strconv.Itoa(dbNo))
+	redisURL := fmt.Sprintf("redis://:swordfish@localhost:6379/%v", dbNo)
 
 	redisConfig, err := redis.ParseURL(redisURL)
 	if err != nil {

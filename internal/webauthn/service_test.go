@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"testing"
 	"time"
 
@@ -86,7 +85,7 @@ func TestWebAuthnSvc_BeginSignUp(t *testing.T) {
 
 			ctx := context.Background()
 			user := &auth.User{
-				ID: fmt.Sprintf("begin-signup-user-%s", strconv.Itoa(idx)),
+				ID: fmt.Sprintf("begin-signup-user-%v", idx),
 			}
 			credentials, err := webauthn.BeginSignUp(ctx, user)
 			if tc.hasError && err == nil {
@@ -231,7 +230,7 @@ func TestWebAuthnSvc_BeginLogin(t *testing.T) {
 			ctx := context.Background()
 
 			user := &auth.User{
-				ID: fmt.Sprintf("begin-login-user-%s", strconv.Itoa(idx)),
+				ID: fmt.Sprintf("begin-login-user-%v", idx),
 			}
 			b, err := webauthn.BeginLogin(ctx, user)
 			if tc.hasError && err == nil {

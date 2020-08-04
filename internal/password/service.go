@@ -3,7 +3,6 @@ package password
 
 import (
 	"fmt"
-	"strconv"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -46,17 +45,13 @@ func (p *Password) Validate(user *auth.User, password string) error {
 func (p *Password) OKForUser(password string) error {
 	if len(password) < p.minLength {
 		return auth.ErrInvalidField(
-			fmt.Sprintf("password must be at least %s characters long", strconv.Itoa(
-				p.minLength,
-			)),
+			fmt.Sprintf("password must be at least %v characters long", p.minLength),
 		)
 	}
 
 	if len(password) > p.maxLength {
 		return auth.ErrInvalidField(
-			fmt.Sprintf("password cannot be longer than %s characters", strconv.Itoa(
-				p.maxLength,
-			)),
+			fmt.Sprintf("password cannot be longer than %v characters", p.maxLength),
 		)
 	}
 
