@@ -69,12 +69,16 @@ string's hash. The hash value (the `client ID`) should be securely stored on the
 authentication, the client ID is set as a secure cookie on the browser. It is additionally
 available as part of the response payload so mobile clients can store it themselves.
 
-### Revocation
+### Revocation and Invalidation
 
-Token revocation is an inherit problem with JWT tokens as revocation relies on an expiry
-date. In order to accomplish revocation without a session store, we instead maintain a [blacklist](https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.html#blacklist-storage).
+Older tokens may be explicitly revoked by a user or automatically invalidated by us
+(for example, when refreshing a token). Handling this is an inherent problem with
+JWT tokens as revocation typlically relies on setting a short enough expiry period
+for service owners to consider the risk minimal. This allows us to make use of one
+of the major benefits of JWT tokens by allowing simple validation without a session store.
 
-Tokens are blacklisted in a fast storage (here Redis is used) and removed upon expiry.
+For this project, I've opted to take the middle ground and support revocation using
+a fast storage (here Redis is used) and maintaing a [blacklist](https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.html#blacklist-storage) of Token IDs.
 
 ### Auditability
 
