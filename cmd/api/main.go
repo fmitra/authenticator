@@ -73,6 +73,7 @@ func main() {
 		fs.Duration("token.refresh-expires-in", time.Hour*24*15, "Refresh token expiry time")
 		fs.String("token.issuer", "authenticator", "JWT token issuer")
 		fs.String("token.secret", "", "JWT token secret")
+		fs.Int("webauthn.max-devices", 5, "Maximum amount of devices for registration")
 		fs.String("webauthn.display-name", "Authenticator", "Webauthn display name")
 		fs.String("webauthn.domain", "authenticator.local", "Public client domain")
 		fs.String("webauthn.request-origin", "authenticator.local", "Origin URL for client requests")
@@ -211,6 +212,7 @@ func main() {
 		webauthn.WithDomain(viper.GetString("webauthn.domain")),
 		webauthn.WithRequestOrigin(viper.GetString("webauthn.request-origin")),
 		webauthn.WithRepoManager(repoMngr),
+		webauthn.WithMaxDevices(viper.GetInt("webauthn.max-devices")),
 	)
 	if err != nil {
 		logger.Log("message", "failed to build webauthn service", "error", err, "source", "cmd/api")

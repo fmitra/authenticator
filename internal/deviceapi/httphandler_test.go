@@ -1,8 +1,10 @@
 package deviceapi
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -574,6 +576,295 @@ func TestDeviceAPI_Remove(t *testing.T) {
 				t.Error("IsDeviceAllowed does not match", cmp.Diff(
 					tc.isDeviceAllowed,
 					user.IsDeviceAllowed,
+				))
+			}
+		})
+	}
+}
+
+func TestDeviceAPI_List(t *testing.T) {
+	tt := []struct {
+		name            string
+		statusCode      int
+		authHeader      bool
+		errMessage      string
+		tokenValidateFn func() (*auth.Token, error)
+		deviceFn        func() ([]*auth.Device, error)
+	}{
+		{
+			name:       "Authentication error with no token",
+			statusCode: http.StatusUnauthorized,
+			authHeader: false,
+			errMessage: "User is not authenticated",
+			tokenValidateFn: func() (*auth.Token, error) {
+				return &auth.Token{UserID: "user-id", State: auth.JWTAuthorized}, nil
+			},
+			deviceFn: func() ([]*auth.Device, error) {
+				return []*auth.Device{
+					{},
+				}, nil
+			},
+		},
+		{
+			name:       "Authentication error with bad token",
+			statusCode: http.StatusUnauthorized,
+			authHeader: true,
+			errMessage: "Bad token",
+			tokenValidateFn: func() (*auth.Token, error) {
+				return nil, auth.ErrInvalidToken("bad token")
+			},
+			deviceFn: func() ([]*auth.Device, error) {
+				return []*auth.Device{
+					{},
+				}, nil
+			},
+		},
+		{
+			name:       "Device query error",
+			statusCode: http.StatusInternalServerError,
+			authHeader: true,
+			errMessage: "An internal error occurred",
+			tokenValidateFn: func() (*auth.Token, error) {
+				return &auth.Token{UserID: "user-id", State: auth.JWTAuthorized}, nil
+			},
+			deviceFn: func() ([]*auth.Device, error) {
+				return nil, fmt.Errorf("whoops")
+			},
+		},
+		{
+			name:       "Successful request",
+			statusCode: http.StatusOK,
+			authHeader: true,
+			errMessage: "",
+			tokenValidateFn: func() (*auth.Token, error) {
+				return &auth.Token{UserID: "user-id", State: auth.JWTAuthorized}, nil
+			},
+			deviceFn: func() ([]*auth.Device, error) {
+				return []*auth.Device{
+					{},
+				}, nil
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			router := mux.NewRouter()
+			webauthnSvc := &test.WebAuthnService{}
+			repoMngr := &test.RepositoryManager{
+				DeviceFn: func() auth.DeviceRepository {
+					return &test.DeviceRepository{
+						ByUserIDFn: tc.deviceFn,
+					}
+				},
+			}
+			tokenSvc := &test.TokenService{
+				ValidateFn: tc.tokenValidateFn,
+			}
+			svc := NewService(
+				WithLogger(&test.Logger{}),
+				WithWebAuthn(webauthnSvc),
+				WithRepoManager(repoMngr),
+			)
+
+			req, err := http.NewRequest("GET", "/api/v1/device", nil)
+			if err != nil {
+				t.Fatal("failed to create request:", err)
+			}
+
+			if tc.authHeader {
+				test.SetAuthHeaders(req)
+			}
+
+			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
+			SetupHTTPHandler(svc, router, tokenSvc, logger, &httpapi.MockLimiterFactory{})
+
+			rr := httptest.NewRecorder()
+			router.ServeHTTP(rr, req)
+
+			if rr.Code != tc.statusCode {
+				t.Errorf("incorrect status code, want %v got %v", tc.statusCode, rr.Code)
+			}
+
+			err = test.ValidateErrMessage(tc.errMessage, rr.Body)
+			if err != nil {
+				t.Error(err)
+			}
+
+			if tc.errMessage != "" {
+				return
+			}
+
+			var resp listResponse
+			err = json.NewDecoder(rr.Body).Decode(&resp)
+			if err != nil {
+				t.Fatal("cannot decode response", err)
+			}
+
+			if len(resp.Devices) != 1 {
+				t.Errorf("incorrect devices returned, want 1, got %v", len(resp.Devices))
+			}
+		})
+	}
+}
+
+func TestDeviceAPI_Rename(t *testing.T) {
+	tt := []struct {
+		user            auth.User
+		devices         []*auth.Device
+		name            string
+		errMessage      string
+		devicePath      string
+		statusCode      int
+		tokenValidateFn func() (*auth.Token, error)
+		deviceName      string
+		authHeader      bool
+	}{
+		{
+			name:       "Authentication error with no token",
+			statusCode: http.StatusUnauthorized,
+			authHeader: false,
+			errMessage: "User is not authenticated",
+			deviceName: "Device",
+			tokenValidateFn: func() (*auth.Token, error) {
+				return &auth.Token{UserID: "user-id", State: auth.JWTAuthorized}, nil
+			},
+			user: auth.User{
+				Password: "swordfish",
+				Email: sql.NullString{
+					String: "jane@example.com",
+					Valid:  true,
+				},
+				IsVerified:      true,
+				IsDeviceAllowed: true,
+			},
+			devicePath: "/api/v1/device/%s",
+		},
+		{
+			name:       "Device name is changed",
+			statusCode: http.StatusOK,
+			authHeader: true,
+			errMessage: "",
+			deviceName: "Device 2",
+			tokenValidateFn: func() (*auth.Token, error) {
+				return &auth.Token{UserID: "user-id", State: auth.JWTAuthorized}, nil
+			},
+			user: auth.User{
+				Password: "swordfish",
+				Email: sql.NullString{
+					String: "jane@example.com",
+					Valid:  true,
+				},
+				IsDeviceAllowed: true,
+				IsVerified:      true,
+			},
+			devicePath: "/api/v1/device/%s",
+		},
+		{
+			name:       "Device not found",
+			statusCode: http.StatusBadRequest,
+			authHeader: true,
+			errMessage: "Device does not exist",
+			deviceName: "Device",
+			tokenValidateFn: func() (*auth.Token, error) {
+				return &auth.Token{UserID: "user-id", State: auth.JWTAuthorized}, nil
+			},
+			user: auth.User{
+				Password: "swordfish",
+				Email: sql.NullString{
+					String: "jane@example.com",
+					Valid:  true,
+				},
+				IsDeviceAllowed: true,
+				IsVerified:      true,
+			},
+			devicePath: "/api/v1/device/does-not-exist%s",
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
+			pgDB, err := test.NewPGDB()
+			if err != nil {
+				t.Fatal("failed to create test database:", err)
+			}
+			defer pgDB.DropDB()
+
+			repoMngr := postgres.TestClient(pgDB.DB)
+			err = repoMngr.User().Create(ctx, &tc.user)
+			if err != nil {
+				t.Fatal("failed to create user:", err)
+			}
+
+			device := &auth.Device{
+				UserID:    tc.user.ID,
+				ClientID:  []byte(""),
+				PublicKey: []byte(""),
+				AAGUID:    []byte(""),
+				SignCount: 0,
+				Name:      "Device",
+			}
+			if err = repoMngr.Device().Create(ctx, device); err != nil {
+				t.Fatal("failed to create device:", err)
+			}
+
+			router := mux.NewRouter()
+			webauthnSvc := &test.WebAuthnService{}
+			tokenSvc := &test.TokenService{
+				ValidateFn: func() (*auth.Token, error) {
+					return &auth.Token{
+						UserID: tc.user.ID,
+						State:  auth.JWTAuthorized,
+					}, nil
+				},
+			}
+			svc := NewService(
+				WithLogger(&test.Logger{}),
+				WithWebAuthn(webauthnSvc),
+				WithRepoManager(repoMngr),
+				WithTokenService(tokenSvc),
+			)
+
+			request := bytes.NewBuffer([]byte(
+				fmt.Sprintf(`{"name": "%s"}`, tc.deviceName),
+			))
+			req, err := http.NewRequest(
+				"PATCH",
+				fmt.Sprintf(tc.devicePath, device.ID),
+				request,
+			)
+			if err != nil {
+				t.Fatal("failed to create request:", err)
+			}
+
+			if tc.authHeader {
+				test.SetAuthHeaders(req)
+			}
+
+			SetupHTTPHandler(svc, router, tokenSvc, logger, &httpapi.MockLimiterFactory{})
+
+			rr := httptest.NewRecorder()
+			router.ServeHTTP(rr, req)
+
+			if rr.Code != tc.statusCode {
+				t.Errorf("incorrect status code, want %v got %v", tc.statusCode, rr.Code)
+			}
+
+			err = test.ValidateErrMessage(tc.errMessage, rr.Body)
+			if err != nil {
+				t.Error(err)
+			}
+
+			device, err = repoMngr.Device().ByID(ctx, device.ID)
+			if err != nil {
+				t.Error("failed to check device:", err)
+			}
+
+			if !cmp.Equal(tc.deviceName, device.Name) {
+				t.Error("device name does not match", cmp.Diff(
+					tc.deviceName, device.Name,
 				))
 			}
 		})

@@ -35,6 +35,9 @@ type rediser interface {
 // library and wraps the service's domain entities to provide compatibility
 // with the third party library.
 type WebAuthn struct {
+	// maxDevices is the maximum amount of devices we allow a user
+	// to register.
+	maxDevices int
 	// displayName is the site display name.
 	displayName string
 	// domain is the domain of the site.
@@ -54,6 +57,17 @@ type WebAuthn struct {
 
 // BeginSignUp attempts to register a new WebAuthn capable device for a user.
 func (w *WebAuthn) BeginSignUp(ctx context.Context, user *auth.User) ([]byte, error) {
+	devices, err := w.repoMngr.Device().ByUserID(ctx, user.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check devices: %w", err)
+	}
+
+	if len(devices) >= w.maxDevices {
+		return nil, auth.ErrWebAuthn(fmt.Sprintf(
+			"you cannot register more than %v devices", w.maxDevices,
+		))
+	}
+
 	wu := User{User: user}
 
 	credentialOptions, session, err := w.lib.BeginRegistration(&wu)

@@ -41,4 +41,22 @@ func SetupHTTPHandler(svc auth.DeviceAPI, router *mux.Router, tokenSvc auth.Toke
 		httpHandler := httpapi.ToHandlerFunc(handler, http.StatusOK)
 		router.HandleFunc("/api/v1/device/{deviceID}", httpHandler).Methods("Delete")
 	}
+	{
+		handler = httpapi.AuthMiddleware(svc.Rename, tokenSvc, auth.JWTAuthorized)
+		handler = httpapi.RateLimitMiddleware(handler, lmt.NewLimiter(
+			"DeviceAPI.Rename", httpapi.PerMinute, int64(20),
+		))
+		handler = httpapi.ErrorLoggingMiddleware(handler, logger)
+		httpHandler := httpapi.ToHandlerFunc(handler, http.StatusOK)
+		router.HandleFunc("/api/v1/device/{deviceID}", httpHandler).Methods("Patch")
+	}
+	{
+		handler = httpapi.AuthMiddleware(svc.List, tokenSvc, auth.JWTAuthorized)
+		handler = httpapi.RateLimitMiddleware(handler, lmt.NewLimiter(
+			"DeviceAPI.List", httpapi.PerMinute, int64(60),
+		))
+		handler = httpapi.ErrorLoggingMiddleware(handler, logger)
+		httpHandler := httpapi.ToHandlerFunc(handler, http.StatusOK)
+		router.HandleFunc("/api/v1/device", httpHandler).Methods("Get")
+	}
 }

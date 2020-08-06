@@ -58,6 +58,10 @@ func decodeSignupRequest(r *http.Request) (*signupRequest, error) {
 		err error
 	)
 
+	if r == nil || r.Body == nil {
+		return nil, auth.ErrBadRequest("no request body received")
+	}
+
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %w", err, auth.ErrBadRequest("invalid JSON request"))
@@ -77,6 +81,10 @@ func decodeSignupVerifyRequest(r *http.Request) (*signupVerifyRequest, error) {
 		req signupVerifyRequest
 		err error
 	)
+
+	if r == nil || r.Body == nil {
+		return nil, auth.ErrBadRequest("no request body received")
+	}
 
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {

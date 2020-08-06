@@ -79,8 +79,10 @@ func TestWebAuthnSvc_BeginSignUp(t *testing.T) {
 				BeginRegistrationFn: tc.libFn,
 			}
 			webauthn := &WebAuthn{
-				lib: &lib,
-				db:  redisDB,
+				maxDevices: 5,
+				repoMngr:   &test.RepositoryManager{},
+				lib:        &lib,
+				db:         redisDB,
 			}
 
 			ctx := context.Background()

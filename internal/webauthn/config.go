@@ -6,9 +6,13 @@ import (
 	auth "github.com/fmitra/authenticator"
 )
 
+const defaultMaxDevices = 5
+
 // NewService returns a new WebAuthn validator.
 func NewService(options ...ConfigOption) (auth.WebAuthnService, error) {
-	s := WebAuthn{}
+	s := WebAuthn{
+		maxDevices: defaultMaxDevices,
+	}
 
 	for _, opt := range options {
 		opt(&s)
@@ -63,5 +67,13 @@ func WithRequestOrigin(origin string) ConfigOption {
 func WithRepoManager(repoMngr auth.RepositoryManager) ConfigOption {
 	return func(s *WebAuthn) {
 		s.repoMngr = repoMngr
+	}
+}
+
+// WithMaxDevices sets the maximum amount of devices a user
+// may register.
+func WithMaxDevices(max int) ConfigOption {
+	return func(s *WebAuthn) {
+		s.maxDevices = max
 	}
 }

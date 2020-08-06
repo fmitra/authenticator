@@ -25,6 +25,8 @@
   * [Initiate device registration](#initiate-device)
   * [Verify device](#verify-device)
   * [Remove device](#remove-device)
+  * [Rename device](#rename-device)
+  * [Retrieve devices](#retrieve-devices)
 
 * [Token API](#token-api)
 
@@ -517,6 +519,83 @@ for authentication. On success, a refreshed JWT token is returned to the user.
   "error": {
     "code": "bad_request,
     "message": "No device found"
+  }
+}
+```
+
+### <a name="rename-device">Rename device [PATCH /api/v1/device/:device_id]</a>
+
+A user may set a name on a device by initiating a POST request for the device
+ID (retrieveable from teh device list endpoint.
+
+* Request (application/json)
+
+  * Headers
+
+      * Authorization: `Bearer <jwtToken>`
+      * Cookie: `CLIENTID=<clientID>`
+
+  * Parameters
+
+      * name (required, string) - New name for the device
+
+* Response 200 (application/json)
+
+```
+{
+  "device": {
+    "id": "01EEVD47S5V1GZPV1XWB89NW1W",
+    "name": "Yubikey 4C",
+    "createdAt": "2020-08-04T00:14:50.68491Z",
+    "updatedAt": "2020-08-04T00:14:50.68491Z"
+  }
+}
+```
+
+* Response 400 (application/json)
+
+```
+{
+  "error": {
+    "code": "bad_request,
+    "message": "No device found"
+  }
+}
+```
+
+### <a name="retrieve-devices">Retrieve devices [GET /api/v1/device]</a>
+
+Retrieve all devices available to be used for 2FA on the account.
+The device list includes a device ID which may be used for device
+removal and renaming requests.
+
+* Request (application/json)
+
+  * Headers
+
+      * Authorization: `Bearer <jwtToken>`
+      * Cookie: `CLIENTID=<clientID>`
+
+* Response 200 (application/json)
+
+```
+{
+  "devices": [{
+    "id": "01EEVD47S5V1GZPV1XWB89NW1W",
+    "name": "Yubikey 4C",
+    "createdAt": "2020-08-04T00:14:50.68491Z",
+    "updatedAt": "2020-08-04T00:14:50.68491Z"
+  }]
+}
+```
+
+* Response 401 (application/json)
+
+```
+{
+  "error": {
+    "code": "invalid_token",
+    "message": "User is not authenticated"
   }
 }
 ```

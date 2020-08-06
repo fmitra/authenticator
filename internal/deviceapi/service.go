@@ -2,6 +2,7 @@
 package deviceapi
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -127,4 +128,64 @@ func (s *service) Remove(w http.ResponseWriter, r *http.Request) (interface{}, e
 	}
 
 	return &tokenLib.Response{Token: signedToken}, nil
+}
+
+// List returns all active devices for a user.
+func (s *service) List(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+	ctx := r.Context()
+	userID := httpapi.GetUserID(r)
+
+	devices, err := s.repoMngr.Device().ByUserID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user devices: %w", err)
+	}
+
+	resp := &listResponse{}
+	resp.Create(devices)
+	return resp, nil
+}
+
+// Rename renames a Device for a user.
+func (s *service) Rename(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+	ctx := r.Context()
+	deviceID := strings.TrimPrefix(r.URL.Path, "/api/v1/device/")
+
+	req, err := decodeRenameRequest(r)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = s.repoMngr.Device().ByID(ctx, deviceID)
+	if err != nil {
+		return nil, fmt.Errorf("%v: %w", err, auth.ErrBadRequest("device does not exist"))
+	}
+
+	client, err := s.repoMngr.NewWithTransaction(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("cannot start txn: %w", err)
+	}
+
+	entity, err := client.WithAtomic(func() (interface{}, error) {
+		device, err := client.Device().GetForUpdate(ctx, deviceID)
+		if err != nil {
+			return nil, fmt.Errorf("cannot retrieve device: %w", err)
+		}
+
+		device.Name = req.Name
+		err = client.Device().Update(ctx, device)
+		if err != nil {
+			return nil, fmt.Errorf("device update failed: %w", err)
+		}
+
+		return device, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	device := entity.(*auth.Device)
+	resp := &singleResponse{}
+	resp.Create(device)
+
+	return resp, nil
 }

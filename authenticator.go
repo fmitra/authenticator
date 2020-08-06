@@ -467,6 +467,10 @@ type DeviceAPI interface {
 	Create(w http.ResponseWriter, r *http.Request) (interface{}, error)
 	// Remove removes a Device associated with a User.
 	Remove(w http.ResponseWriter, r *http.Request) (interface{}, error)
+	// List returns all active devices for a User.
+	List(w http.ResponseWriter, r *http.Request) (interface{}, error)
+	// Rename renames a Device for a User.
+	Rename(w http.ResponseWriter, r *http.Request) (interface{}, error)
 }
 
 // TokenAPI provides HTTP handlers to manage a User's tokens.
