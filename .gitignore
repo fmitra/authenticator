@@ -1,5 +1,6 @@
 coverage.txt
 config.json
+docker-compose.yml
 
 .DS_Store
 .idea

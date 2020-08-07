@@ -23,3 +23,16 @@ services:
     command: redis-server --requirepass swordfish
     networks:
       - authenticator
+
+  authenticator:
+    build: .
+    volumes:
+      - ./config.json:/etc/authenticator/config.json
+    command: api --config=/etc/authenticator/config.json
+    ports:
+      - 8081:8081
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - authenticator

@@ -104,45 +104,116 @@ additional security methods and do not penalize them by offering a fallback.
 It was left out as an authentication protocol for this service as it would add significant
 complexity to client side auth flow  and competes with building adoption for WebAuthn.
 
-## Pending
-
-Following features are still being planned out
-
-* Password reset
-* Passwordless authentication
-* Retrieval of login history and old JWT token IDs
-* Retrieval of registered FIDO devices
-
 ## Development
 
-For a default development set up:
+### Getting Started
 
-**Generate default config**
+**1. Generate default config**
+
+`config.json` and a corresponding `docker-compose.yml` file will be created. It assumes
+you intend to run the client and backend on `authenticator.local`.
 
 ```
+cd authenticator
 make dev
 ```
 
-**Start Postgres and Redis**
+**2. Start the project and dependencies**
+
+By default the project will be exposed on port `8081`.
 
 ```
+cd authenticator
 docker-compose up -d
 ```
 
-**Build and run the project**
+You can check the project is up and running via the healthcheck endpoint
+
+```
+curl http://localhost:8081/healthcheck
+```
+
+If you would like to build and run the project without docker, you can compile
+the binary directly and pass the location of your configuration file:
 
 ```
 go build ./cmd/api
 ./api --config=./config.json
 ```
 
-**Test and lint the project**
+**3. Setup database**
+
+If this is your first time running the project, you'll need to set up the initial
+DB schema found in [schema.go](./schema.go).
+
+```
+docker-compose exec postgres psql -U auth -d authenticator_test
+```
+
+### Test and Lint
 
 Make sure [golangci-lint](https://golangci-lint.run/usage/install/) is installed prior to running the linter.
 
 ```
 make test
 make lint
+```
+
+### Load Testing
+
+[Artillery.io](https://artillery.io/docs/) is used for load testing. In depth tests
+are not set up yet but we can get a general idea of performance on [token validation](./loadtest/token-verify.yml)
+with a Redis backed throttle.
+
+First install Artillery ([Node.js](https://nodejs.org) is a prerequisite)
+
+```
+npm install -g artillery
+artillery -V
+```
+
+Set the target domain and run the tests.
+
+```
+export AUTHENTICATOR_DOMAIN=http://138.65.75.135
+artillery run loadtest/token-verify.yml
+```
+
+## Performance
+
+An indepth review has not been completed yet. Although an initial test on a *Digital Ocean
+droplet $5 droplet (1GB/1CPU, 25GB SSD) with PostgreSQL and Redis running together on the same
+instance* shows we can reasonably expect handle around `200` concurrent users per second while
+maintaining a response time of around `300ms` for 95% of requests on the single DO instance.
+
+Ramping up to `800` concurrent users per second on the same DO instance over a 7 minute period
+shows degregation in response times to `500ms` for 95% of requests with a `0.004%` error rate.
+
+Example report:
+
+* Server: Digital Ocean (1GB/1CPU, 25GB SSD)
+* Environment: Application, PostgreSQL, Redis, running dockerized on the single instance
+* Conditions: Maximum 800req/sec, average 167req/sec over 7 minutes
+
+```
+Summary report @ 15:01:23(-0400) 2020-08-07
+  Scenarios launched:  71063
+  Scenarios completed: 71060
+  Requests completed:  71060
+  Mean response/sec: 167.23
+  Response time (msec):
+    min: 250.1
+    max: 4032.2
+    median: 296.2
+    p95: 496.3
+    p99: 1529.3
+  Scenario counts:
+    0: 71063 (100%)
+  Codes:
+    401: 425
+    429: 70635
+  Errors:
+    ECONNRESET: 3
 ```
 
 ## Alternatives
@@ -164,3 +235,12 @@ is less mature than it's competitor and more expensive at low tier plans.
 * [Passwordless Authentication](https://auth0.com/passwordless)
 
 * [Token refresh](https://auth0.com/learn/refresh-tokens)
+
+## Pending
+
+Following features are still being planned out
+
+* Password reset
+* Passwordless authentication
+* Retrieval of login history and old JWT token IDs
+* Retrieval of registered FIDO devices

@@ -1,0 +1,33 @@
+config:
+  target: '{{ $processEnvironment.AUTHENTICATOR_DOMAIN }}'
+  tls:
+    # Ignore self signed certs for development
+    rejectUnauthorized: false
+  phases:
+    - duration: 60
+      arrivalRate: 5
+    - duration: 60
+      arrivalRate: 5
+      rampTo: 20
+    - duration: 60
+      arrivalRate: 20
+      rampTo: 50
+    - duration: 60
+      arrivalRate: 50
+      rampTo: 100
+    - duration: 60
+      arrivalRate: 100
+      rampTo: 200
+    - duration: 60
+      arrivalRate: 200
+      rampTo: 400
+    - duration: 60
+      arrivalRate: 400
+      rampTo: 800
+  defaults:
+    headers:
+      Authorization: 'Bearer eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTY2NzcyMTgsImp0aSI6IjAxRUYwTVg0Sk1SQU5aOURKVDFGMDlOVFFDIiwiaWF0IjoxNTk2Njc2MDE4LCJpc3MiOiJhdXRoZW50aWNhdG9yIiwiY2xpZW50X2lkIjoiYjdkNDIxZDhiYjI4ZmUzNTg1NTBmZDczYzkwOGY3MjMxMmZhMjgxZWU3NTE2ZmJmZGI0ZTRjOGU5ZjJjNTFiMDBmMDhlOWRjZjU3ZDA4NzkyOWQxZDJiZmM3MDZjMzEwM2VkOWUyNjgzNTZjZDdhZjJhMjIzYzg2MmUwNWIzYjUiLCJ1c2VyX2lkIjoiMDFFRThXRFg2N0NZOFg2SjExRjNEWVpRN0giLCJlbWFpbCI6ImZyYW5jaXNAZnJhbmNpc21pdHJhLmNvbSIsInBob25lX251bWJlciI6IiIsInN0YXRlIjoiYXV0aG9yaXplZCIsInJlZnJlc2hfdG9rZW4iOiI4OTA1YzExZGExYTRkZjk4YmM1YmE0ZGE3NTc2MmQzYzBkYjA1NTA0NDdiYTk0YWQ5MTAyZDVmNWY4MGZiNDVkYzA4N2EzN2E4MjNjNGE1MjFiZmJmMDdlNmM2MzM1Nzc3N2Q5Y2M3NGY2MzU2ZGJkMjdmMWY0MDkyNjgxNWRjYiIsInRmYV9vcHRpb25zIjpbIm90cF9lbWFpbCIsInRvdHAiLCJkZXZpY2UiXSwiZGVmYXVsdF90ZmEiOiJkZXZpY2UifQ.VVqfYA0krc4fqgTaZYkHUAQQGVgcu6YjiGSta032V2WQU7yi0xnEPe_b-6RdBwQbBljkLh3OohYDxw4o8Ay3ew'
+scenarios:
+  - flow:
+    - post:
+        url: '/api/v1/token/verify'

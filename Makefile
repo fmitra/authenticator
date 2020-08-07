@@ -1,5 +1,6 @@
 dev:
 	cp config.example.json config.json
+	cp docker-compose.example.yml docker-compose.yml
 
 fmt:
 	gofmt -w -s ./
