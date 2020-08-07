@@ -184,16 +184,81 @@ artillery run loadtest/token-verify.yml
 An indepth review has not been completed yet. Although an initial test on a *Digital Ocean
 droplet $5 droplet (1GB/1CPU, 25GB SSD) with PostgreSQL and Redis running together on the same
 instance* shows we can reasonably expect handle around `200` concurrent users per second while
-maintaining a response time of around `300ms` for 95% of requests on the single DO instance.
+maintaining a response time of around `300ms` for end users for 95% of requests on the
+single DO instance.
 
 Ramping up to `800` concurrent users per second on the same DO instance over a 7 minute period
 shows degregation in response times to `500ms` for 95% of requests with a `0.004%` error rate.
 
-Example report:
+Example report overview:
 
 * Server: Digital Ocean (1GB/1CPU, 25GB SSD)
+* Server Location: New York
+* Load Test Client Location: New York
 * Environment: Application, PostgreSQL, Redis, running dockerized on the single instance
 * Conditions: Maximum 800req/sec, average 167req/sec over 7 minutes
+
+Report: Average 5req/sec
+
+```
+Report @ 14:43:47(-0400) 2020-08-07
+Elapsed time: 1 minute, 10 seconds
+  Scenarios launched:  56
+  Scenarios completed: 56
+  Requests completed:  56
+  Mean response/sec: 5.61
+  Response time (msec):
+    min: 252.3
+    max: 288.3
+    median: 267.8
+    p95: 283.9
+    p99: 288.3
+  Codes:
+    401: 10
+    429: 46
+```
+
+Report: Average 200req/sec
+
+```
+Report @ 14:59:38(-0400) 2020-08-07
+Elapsed time: 5 minutes, 20 seconds
+  Scenarios launched:  2430
+  Scenarios completed: 2420
+  Requests completed:  2420
+  Mean response/sec: 243.34
+  Response time (msec):
+    min: 253.3
+    max: 1729.4
+    median: 278.9
+    p95: 320.3
+    p99: 727.5
+  Codes:
+    401: 10
+    429: 2410
+```
+
+Report: Request ramp to 800req/sec
+
+```
+Report @ 15:01:18(-0400) 2020-08-07
+Elapsed time: 7 minutes, 0 seconds
+  Scenarios launched:  7045
+  Scenarios completed: 7009
+  Requests completed:  7009
+  Mean response/sec: 705.91
+  Response time (msec):
+    min: 266.4
+    max: 3362.7
+    median: 359.3
+    p95: 507.6
+    p99: 1585.1
+  Codes:
+    401: 10
+    429: 6999
+```
+
+Report: Summary
 
 ```
 Summary report @ 15:01:23(-0400) 2020-08-07
