@@ -2,7 +2,7 @@ sudo: required
 
 language: go
 go:
-  - "1.11"
+  - "1.14"
 
 go_import_path: github.com/fmitra/authenticator
 
@@ -16,9 +16,11 @@ jobs:
   include:
     - stage: test
       script:
+        - wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.27.0
+        - make dev
         - docker-compose up -d
-        - make lint
         - make test
+        - make lint
       after_success:
         - bash <(curl -s https://codecov.io/bash)
     - stage: build
