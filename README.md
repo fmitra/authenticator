@@ -14,6 +14,7 @@ A generic user authentication service supporting FIDO U2F, TOTP, Email, and SMS.
   * [Revocation/Invalidation](#revocation)
   * [Auditability](#auditability)
   * [Design Rationale](#rationale)
+  * [Components](#components)
 
 * [Development](#development)
 
@@ -117,16 +118,41 @@ again to retrieve a new JWT token and accompanying refresh token.
 provide CSRF token support and allow us to rely solely on the contents of a JWT token
 for authenticaiton. [Fingerprinting](https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.html#how-to-prevent_1) the token with a securely stored value is instead
 used to mitigate risks of XSS attacks that may occur by allowing clients to save their
-tokens in other storages.
+tokens in other storages. It's use case is similar but allows us to complete validation
+without storing the additional token.
 
-**2FA**: 2FA delivery via email and SMS is disabled after User's enable a TOTP
-appicaiton or a FIDO U2F key as the secondary delivery method provides a less
-secure fallback. We expect users to be aware of the pros/cons of enabling
-additional security methods and do not penalize them by offering a fallback.
+**Token invalidation**: While not typical in JWT support, we support token invalidation
+as it provides an additional layer of security and allows us to manage OTP codes without
+persisting them to a DB as we can now use the token as a transport mechanism for the OTP
+code (OTP hashes are embeded in the token). The cost to support invalidation was shown
+to increase validation time by around `3ms`.
+
+**OTP Message delivery**: OTP codes may be delivered through email or SMS. SMS uses
+the [Twilio API](./internal/twilio/twilio.go) however any other API wrapper that is set up to adhere to the same interface may
+be swapped in. As this is an MVP project, email delivery uses Go's standard library.
+Because OTP codes are short lived, and users may request new codes on delivery failure,
+they are only stored in an [in-memory queue](./internal/msgrepo/service.go) during sending as it is acceptable for messages
+to be lost (e.g. application is restarted) with no attempts made to re-send it. We validate
+OTP codes by comparing it to an embeded hash in each JWT token. The generation of a new token
+automatically invalidates an old token with an embeded OTP hash.
+
+**2FA**: Device 2FA via a valid FIDO U2F device (through Webauthn API) is set as
+the default 2FA method when enabled, followed by TOTP code generation and finally delivery
+via Email or SMS. To maintain usability, we do not automatically disable one 2FA option
+when another is enabled. If users desires to disable a less secure method after enabling
+a new 2FA method, they are expected to explicitly disable it themsleves. The Client UI
+should budget for this and guide users through this flow.
 
 **SRP**: [SRP](https://github.com/fmitra/srp) is an authentication protocol to mitigate MITM attacks.
 It was left out as an authentication protocol for this service as it would add significant
 complexity to client side auth flow  and competes with building adoption for WebAuthn.
+
+### <a name="components">Components</a>
+
+* PostgreSQL: Storage for users, login history, authorized FIDO devices
+* Redis: Blacklist for invalidated tokens, Webauthn session management, API ratelimiting
+* Twilio API: OTP code delivery via SMS
+* Go stdlib net/smtp: OTP code delivery via Email
 
 ## <a name="development">Development</a>
 
@@ -207,9 +233,9 @@ artillery run loadtest/token-verify.yml
 
 An indepth review has not been completed yet. Although an initial test on a *Digital Ocean
 droplet $5 droplet (1GB/1CPU, 25GB SSD) with PostgreSQL and Redis running together on the same
-instance* shows we can reasonably expect handle around `200` concurrent users per second while
-maintaining a response time of around `300ms` for end users for 95% of requests on the
-single DO instance.
+instance* for token validation shows we can reasonably expect handle around `200` concurrent
+requests per second while maintaining a response time of around `300ms` for end users for 95% of
+requests on the single DO instance.
 
 Ramping up to `800` concurrent users per second on the same DO instance over a 7 minute period
 shows degregation in response times to `500ms` for 95% of requests with a `0.004%` error rate.
