@@ -353,8 +353,18 @@ is less mature than it's competitor and more expensive at low tier plans.
 
 ## <a name="pending">Pending</a>
 
-Following features are still being planned out
+Following features are still pending and will be implemented in order:
 
-* Password reset
-* Passwordless authentication
-* Retrieval of login history
+* **Retrieval of login history:** A simple, paginated login history API will be provided
+so users may be revoke authenticated sessions. The revocation API is already implemented.
+
+* **Password reset:** Password reset will be inspired by the advice provided from [OWASP](https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html).
+Users will be required to complete 2FA, after which a password reset email will be
+sent with a time sensitive code to change their password.
+
+* **User enumeration:** User enumeration prevention can be improved once password reset is enabled.
+User lookup errors on the signup flow should trigger the 2FA step on password reset. This strategy
+is currently employed by Facebook (as of 2020). At the moment we simply return a generic error.
+
+* **Passwordless authentication:** As discussed above in this document, passwordless authentication
+is one of the planned features and will be implemented as an optional system wide configuration.
