@@ -174,10 +174,10 @@ func (s *service) respond(ctx context.Context, w http.ResponseWriter, _ *auth.Us
 		}
 
 		msg := &auth.Message{
-			Type: auth.OTPLogin,
+			Type:     auth.OTPLogin,
 			Delivery: h.DeliveryMethod,
-			Vars: map[string]string{"code": jwtToken.Code},
-			Address: h.Address,
+			Vars:     map[string]string{"code": jwtToken.Code},
+			Address:  h.Address,
 		}
 		if err = s.message.Send(ctx, msg); err != nil {
 			return nil, err

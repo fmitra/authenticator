@@ -2,6 +2,7 @@ package mail
 
 import (
 	"context"
+	"fmt"
 	"net/smtp"
 )
 
@@ -13,7 +14,13 @@ type service struct {
 }
 
 // Email delivers an email to an email address.
-func (s *service) Email(ctx context.Context, email string, message string) error {
-	content := []byte(message)
+func (s *service) Email(ctx context.Context, email, subject, message string) error {
+	mimeHeaders := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";"
+	content := []byte(
+		fmt.Sprintf("To: %s\r\n", email) +
+			fmt.Sprintf("Subject: %s\r\n", subject) +
+			fmt.Sprintf("%s\n\n", mimeHeaders) +
+			message,
+	)
 	return s.mailFn(s.serverAddr, s.auth, s.fromAddr, []string{email}, content)
 }

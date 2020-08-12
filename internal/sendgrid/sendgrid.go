@@ -18,11 +18,10 @@ type service struct {
 }
 
 // Email delivers an email to an email address.
-func (s *service) Email(ctx context.Context, email string, message string) error {
+func (s *service) Email(ctx context.Context, email, subject, message string) error {
 	from := mail.NewEmail(s.fromName, s.fromAddr)
 	to := mail.NewEmail("", email)
-	// TODO Enable support for subject lines
-	msg := mail.NewSingleEmail(from, "2FA Code", to, message, message)
+	msg := mail.NewSingleEmail(from, subject, to, message, message)
 	client := sendgrid.NewSendClient(s.apiKey)
 	resp, err := client.Send(msg)
 	if err != nil {

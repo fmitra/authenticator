@@ -242,6 +242,8 @@ type Token struct {
 type Message struct {
 	// Type describes the classification of a Message.
 	Type MessageType
+	// Subject is a human readable subject describe the Message.
+	Subject string
 	// Delivery type of the message (e.g. phone or email).
 	Delivery DeliveryMethod
 	// Vars contains key/value variables to populate
@@ -514,7 +516,7 @@ type UserAPI interface {
 // Emailer exposes an email API.
 type Emailer interface {
 	// Email sends an email to an email address
-	Email(ctx context.Context, email string, message string) error
+	Email(ctx context.Context, email, subject, message string) error
 }
 
 // SMSer exposes an SMS API.

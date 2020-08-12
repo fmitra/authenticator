@@ -3,8 +3,8 @@ package msgpublisher
 import (
 	"context"
 	"fmt"
-	"testing"
 	"strings"
+	"testing"
 
 	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/test"
@@ -77,9 +77,9 @@ func TestMsgPublisher_Send(t *testing.T) {
 			ctx := context.Background()
 			publisherSvc := NewService(&messageRepo)
 			err := publisherSvc.Send(ctx, &auth.Message{
-				Type: auth.OTPLogin,
+				Type:     auth.OTPLogin,
 				Delivery: tc.deliveryMethod,
-				Address: tc.address,
+				Address:  tc.address,
 				Vars: map[string]string{
 					"code": "111",
 				},

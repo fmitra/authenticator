@@ -16,7 +16,7 @@ func TestMail_SendsEmail(t *testing.T) {
 		},
 	}))
 	ctx := context.Background()
-	if err := mailSvc.Email(ctx, "jane@example.com", "hello world"); err != nil {
+	if err := mailSvc.Email(ctx, "jane@example.com", "Hello", "hello world"); err != nil {
 		t.Error("expected nil error, received:", err)
 	}
 }

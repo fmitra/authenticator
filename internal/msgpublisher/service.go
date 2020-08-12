@@ -4,8 +4,8 @@ package msgpublisher
 import (
 	"context"
 	"fmt"
-	"time"
 	"strings"
+	"time"
 
 	"github.com/go-kit/kit/log"
 
@@ -15,11 +15,12 @@ import (
 
 // service is an implementation of auth.MessagingService.
 type service struct {
-	logger      log.Logger
-	messageRepo auth.MessageRepository
-	expireAfter time.Duration
-	smsTemplates map[auth.MessageType]string
+	logger         log.Logger
+	messageRepo    auth.MessageRepository
+	expireAfter    time.Duration
+	smsTemplates   map[auth.MessageType]string
 	emailTemplates map[auth.MessageType]string
+	subjects       map[auth.MessageType]string
 }
 
 // Send sends a message to a User. Behind the scenes, a message is stored
@@ -45,7 +46,7 @@ func (s *service) setMessageFields(msg *auth.Message) error {
 
 	// Message content was set by caller. Do not overwrite.
 	if msg.Content != "" {
-		 return nil
+		return nil
 	}
 
 	template := s.template(msg.Type, msg.Delivery)
@@ -63,6 +64,7 @@ func (s *service) setMessageFields(msg *auth.Message) error {
 	}
 
 	msg.Content = template
+	msg.Subject = s.subjects[msg.Type]
 	return nil
 }
 
@@ -80,9 +82,9 @@ func (s *service) template(t auth.MessageType, d auth.DeliveryMethod) string {
 
 func (s *service) createTemplates() {
 	s.smsTemplates = map[auth.MessageType]string{
-		auth.OTPLogin: "Your login code is {{code}}",
-		auth.OTPSignup: "Your signup code is {{code}}",
-		auth.OTPResend: "Youre new code is {{code}}",
+		auth.OTPLogin:   "Your login code is {{code}}",
+		auth.OTPSignup:  "Your signup code is {{code}}",
+		auth.OTPResend:  "Youre new code is {{code}}",
 		auth.OTPAddress: "Use the code {{code}} to verify your new contact address",
 	}
 
@@ -103,5 +105,12 @@ func (s *service) createTemplates() {
 			<span>Code: <strong>{{code}}</strong></span>
 			<p>Enter the code above to verify your new contact address</p>
 		`,
+	}
+
+	s.subjects = map[auth.MessageType]string{
+		auth.OTPAddress: "Verify your contact details",
+		auth.OTPLogin:   "Your login verification code",
+		auth.OTPResend:  "You've requested a new verification code",
+		auth.OTPSignup:  "Your signup verification code",
 	}
 }

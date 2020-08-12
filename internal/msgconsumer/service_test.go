@@ -14,7 +14,7 @@ import (
 
 type emailMock struct {
 	callCount int
-	EmailFn   func(ctx context.Context, email, message string) error
+	EmailFn   func(ctx context.Context, email, subject, message string) error
 }
 
 type smsMock struct {
@@ -22,10 +22,10 @@ type smsMock struct {
 	SMSFn     func(ctx context.Context, phoneNumber, message string) error
 }
 
-func (m *emailMock) Email(ctx context.Context, email, message string) error {
+func (m *emailMock) Email(ctx context.Context, email, subject, message string) error {
 	m.callCount++
 	if m.EmailFn != nil {
-		return m.EmailFn(ctx, email, message)
+		return m.EmailFn(ctx, email, subject, message)
 	}
 	return nil
 }
@@ -41,7 +41,8 @@ func (m *smsMock) SMS(ctx context.Context, phoneNumber, message string) error {
 func TestMsgConsumer_ProcessMessage(t *testing.T) {
 	tt := []struct {
 		name         string
-		messageFn    func(ch chan<- bool) func(ctx context.Context, addr, message string) error
+		emailFn      func(ch chan<- bool) func(ctx context.Context, addr, sub, message string) error
+		smsFn        func(ch chan<- bool) func(ctx context.Context, addr, message string) error
 		publishFn    func(ch chan<- bool) func(ctx context.Context, msg *auth.Message) error
 		recentFn     func(ctx context.Context) (<-chan *auth.Message, <-chan error)
 		publishCount int
@@ -53,8 +54,14 @@ func TestMsgConsumer_ProcessMessage(t *testing.T) {
 			publishCount: 0,
 			smsCount:     0,
 			emailCount:   0,
-			messageFn: func(ch chan<- bool) func(ctx context.Context, addr, message string) error {
+			smsFn: func(ch chan<- bool) func(ctx context.Context, addr, message string) error {
 				return func(ctx context.Context, addr, message string) error {
+					ch <- true
+					return nil
+				}
+			},
+			emailFn: func(ch chan<- bool) func(ctx context.Context, addr, sub, message string) error {
+				return func(ctx context.Context, addr, sub, message string) error {
 					ch <- true
 					return nil
 				}
@@ -86,8 +93,14 @@ func TestMsgConsumer_ProcessMessage(t *testing.T) {
 			publishCount: 0,
 			smsCount:     1,
 			emailCount:   0,
-			messageFn: func(ch chan<- bool) func(ctx context.Context, addr, message string) error {
+			smsFn: func(ch chan<- bool) func(ctx context.Context, addr, message string) error {
 				return func(ctx context.Context, addr, message string) error {
+					ch <- true
+					return nil
+				}
+			},
+			emailFn: func(ch chan<- bool) func(ctx context.Context, addr, sub, message string) error {
+				return func(ctx context.Context, addr, sub, message string) error {
 					ch <- true
 					return nil
 				}
@@ -118,8 +131,14 @@ func TestMsgConsumer_ProcessMessage(t *testing.T) {
 			publishCount: 0,
 			smsCount:     0,
 			emailCount:   1,
-			messageFn: func(ch chan<- bool) func(ctx context.Context, addr, message string) error {
+			smsFn: func(ch chan<- bool) func(ctx context.Context, addr, message string) error {
 				return func(ctx context.Context, addr, message string) error {
+					ch <- true
+					return nil
+				}
+			},
+			emailFn: func(ch chan<- bool) func(ctx context.Context, addr, sub, message string) error {
+				return func(ctx context.Context, addr, sub, message string) error {
 					ch <- true
 					return nil
 				}
@@ -150,8 +169,14 @@ func TestMsgConsumer_ProcessMessage(t *testing.T) {
 			publishCount: 1,
 			smsCount:     0,
 			emailCount:   1,
-			messageFn: func(ch chan<- bool) func(ctx context.Context, addr, message string) error {
+			smsFn: func(ch chan<- bool) func(ctx context.Context, addr, message string) error {
 				return func(ctx context.Context, addr, message string) error {
+					ch <- true
+					return fmt.Errorf("whoops")
+				}
+			},
+			emailFn: func(ch chan<- bool) func(ctx context.Context, addr, sub, message string) error {
+				return func(ctx context.Context, addr, sub, message string) error {
 					ch <- true
 					return fmt.Errorf("whoops")
 				}
@@ -191,10 +216,10 @@ func TestMsgConsumer_ProcessMessage(t *testing.T) {
 
 			ctx := context.Background()
 			smsLib := smsMock{
-				SMSFn: tc.messageFn(smsChan),
+				SMSFn: tc.smsFn(smsChan),
 			}
 			emailLib := emailMock{
-				EmailFn: tc.messageFn(emailChan),
+				EmailFn: tc.emailFn(emailChan),
 			}
 			messageRepo := test.MessageRepository{
 				PublishFn: tc.publishFn(publishChan),

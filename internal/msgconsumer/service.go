@@ -77,7 +77,7 @@ func (s *service) processMessage(ctx context.Context, msg *auth.Message) {
 	if msg.Delivery == auth.Phone {
 		err = s.smsLib.SMS(ctx, msg.Address, msg.Content)
 	} else if msg.Delivery == auth.Email {
-		err = s.emailLib.Email(ctx, msg.Address, msg.Content)
+		err = s.emailLib.Email(ctx, msg.Address, msg.Subject, msg.Content)
 	}
 
 	if err == nil {

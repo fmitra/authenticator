@@ -63,10 +63,10 @@ func (s *service) CheckAddress(w http.ResponseWriter, r *http.Request) (interfac
 	}
 
 	msg := &auth.Message{
-		Type: auth.OTPAddress,
+		Type:     auth.OTPAddress,
 		Delivery: h.DeliveryMethod,
-		Vars: map[string]string{"code": token.Code},
-		Address: h.Address,
+		Vars:     map[string]string{"code": token.Code},
+		Address:  h.Address,
 	}
 	if err = s.message.Send(ctx, msg); err != nil {
 		return nil, err
@@ -265,9 +265,9 @@ func (s *service) Send(w http.ResponseWriter, r *http.Request) (interface{}, err
 	}
 
 	msg := &auth.Message{
-		Type: auth.OTPResend,
-		Vars: map[string]string{"code": token.Code},
-		Address: h.Address,
+		Type:     auth.OTPResend,
+		Vars:     map[string]string{"code": token.Code},
+		Address:  h.Address,
 		Delivery: h.DeliveryMethod,
 	}
 	if err = s.message.Send(ctx, msg); err != nil {
