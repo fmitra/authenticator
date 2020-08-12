@@ -36,7 +36,13 @@ focus on building your product instead.
 For an overview of the API, refer to the [documentation here](docs/api_v1.md)
 
 For an example clientside implementation of some of the core API's provided here,
-refer to the [client repository](https://github.com/fmitra/authenticator-client)
+refer to the [client repository](https://github.com/fmitra/authenticator-client).
+
+Although there are [missing features](#pending), the most noteworthy of which is password reset,
+this project is fully functional. It was originally written as an opportunity to
+explore the recent addition of the Webauthn browser spec and snowballed into
+a fully featured authenticator under the premise that it could one day be used
+for future hobby projects.
 
 ### <a name="authentication-tokens">Authentication Tokens</a>
 
@@ -129,7 +135,7 @@ to increase validation time by around `3ms`.
 
 **OTP Message delivery**: OTP codes may be delivered through email or SMS. SMS uses
 the [Twilio API](./internal/twilio/twilio.go) however any other API wrapper that is set up to adhere to the same interface may
-be swapped in. As this is an MVP project, email delivery uses Go's standard library.
+be swapped in. Email delivery may be completed through [Sendgrid](./internal/sendgrid/sendgrid.go) or Go's standard `net/smtp` library.
 Because OTP codes are short lived, and users may request new codes on delivery failure,
 they are only stored in an [in-memory queue](./internal/msgrepo/service.go) during sending as it is acceptable for messages
 to be lost (e.g. application is restarted) with no attempts made to re-send it. We validate
@@ -152,16 +158,22 @@ complexity to client side auth flow  and competes with building adoption for Web
 * PostgreSQL: Storage for users, login history, authorized FIDO devices
 * Redis: Blacklist for invalidated tokens, Webauthn session management, API ratelimiting
 * Twilio API: OTP code delivery via SMS
-* Go stdlib net/smtp: OTP code delivery via Email
+* Sendgrid API: OTP code delivery via Email (optional)
+* Go stdlib net/smtp: OTP code delivery via Email (default)
 
 ## <a name="development">Development</a>
 
 ### <a name="getting-started">Getting Started</a>
 
+In order to complete send OTP codes through SMS or email, you will need a [Twilio](https://www.twilio.com/)
+API key as well as either email credentials to be used with Go's `net/smtp` library or
+a [Sendgrid](https://sendgrid.com/) API key.
+
 **1. Generate default config**
 
 `config.json` and a corresponding `docker-compose.yml` file will be created. It assumes
-you intend to run the client and backend on `authenticator.local`.
+you intend to run the client and backend on `authenticator.local`. Once you have a config file,
+make any necessary changes. The update any necessary  (e.g. add API keys).
 
 ```
 cd authenticator

@@ -2,6 +2,8 @@ package twilio
 
 import (
 	"strings"
+
+	auth "github.com/fmitra/authenticator"
 )
 
 // defaultBaseURL sets the default API version for all Twilio requests.
@@ -19,7 +21,7 @@ type Config struct {
 type ConfigOption func(*client)
 
 // NewClient returns a Twilio client.
-func NewClient(configuration ConfigOption) Twilio {
+func NewClient(configuration ConfigOption) auth.SMSer {
 	c := client{}
 	configuration(&c)
 	return &c

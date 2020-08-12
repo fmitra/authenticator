@@ -10,7 +10,7 @@ import (
 const defaultWorkers = 4
 
 // NewService returns a new Consumer
-func NewService(r auth.MessageRepository, smsLib SMSer, emailLib Emailer, options ...ConfigOption) Consumer {
+func NewService(r auth.MessageRepository, smsLib auth.SMSer, emailLib auth.Emailer, options ...ConfigOption) Consumer {
 	s := service{
 		logger:       log.NewNopLogger(),
 		totalWorkers: defaultWorkers,

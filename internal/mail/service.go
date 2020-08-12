@@ -5,11 +5,6 @@ import (
 	"net/smtp"
 )
 
-// Emailer exposes an API to send email messages.
-type Emailer interface {
-	Email(ctx context.Context, email string, message string) error
-}
-
 type service struct {
 	serverAddr string
 	fromAddr   string

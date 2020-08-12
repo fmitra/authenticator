@@ -22,6 +22,7 @@ import (
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
+	auth "github.com/fmitra/authenticator"
 	"github.com/fmitra/authenticator/internal/contactapi"
 	"github.com/fmitra/authenticator/internal/deviceapi"
 	"github.com/fmitra/authenticator/internal/httpapi"
@@ -33,6 +34,7 @@ import (
 	"github.com/fmitra/authenticator/internal/otp"
 	"github.com/fmitra/authenticator/internal/password"
 	"github.com/fmitra/authenticator/internal/postgres"
+	"github.com/fmitra/authenticator/internal/sendgrid"
 	"github.com/fmitra/authenticator/internal/signupapi"
 	"github.com/fmitra/authenticator/internal/token"
 	"github.com/fmitra/authenticator/internal/tokenapi"
@@ -85,6 +87,10 @@ func main() {
 		fs.String("mail.auth.username", "", "Username for mailing service")
 		fs.String("mail.auth.password", "", "Password for mailing service")
 		fs.String("mail.auth.hostname", "", "Hostname for mailing service")
+		fs.String("sendgrid.api-key", "", "Sendgrid API Key for mailing services")
+		fs.String("sendgrid.from-addr", "", "Origin email address for outgoing email")
+		fs.String("sendgrid.from-name", "", "Origin name for outgoing email")
+		fs.String("maillib", "", "Email library to use. If not set, it will us net/smtp")
 
 		fs.StringVar(&configPath, "config", "", "Path to the config file")
 		err = fs.Parse(os.Args[1:])
@@ -304,7 +310,12 @@ func main() {
 		viper.GetString("twilio.sms-sender"),
 	))
 
-	emailLib := mail.NewService(mail.WithDefaults(
+	sendGrid := sendgrid.NewClient(
+		viper.GetString("sendgrid.api-key"),
+		viper.GetString("sendgrid.from-addr"),
+		viper.GetString("sendgrid.from-name"),
+	)
+	stdMailer := mail.NewService(mail.WithDefaults(
 		viper.GetString("mail.server-addr"),
 		viper.GetString("mail.from-addr"),
 		smtp.PlainAuth(
@@ -314,6 +325,13 @@ func main() {
 			viper.GetString("mail.auth.hostname"),
 		),
 	))
+
+	var emailLib auth.Emailer
+	if viper.GetString("maillib") == "sendgrid" {
+		emailLib = sendGrid
+	} else {
+		emailLib = stdMailer
+	}
 
 	msgd := msgconsumer.NewService(
 		messageRepo,

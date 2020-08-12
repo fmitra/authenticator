@@ -2,10 +2,12 @@ package mail
 
 import (
 	"net/smtp"
+
+	auth "github.com/fmitra/authenticator"
 )
 
 // NewService returns a new mailing service.
-func NewService(configuration ConfigOption) Emailer {
+func NewService(configuration ConfigOption) auth.Emailer {
 	s := service{}
 	configuration(&s)
 	return &s

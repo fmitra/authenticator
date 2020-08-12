@@ -491,3 +491,15 @@ type UserAPI interface {
 	// UpdatePassword change's a User's password.
 	UpdatePassword(w http.ResponseWriter, r *http.Request) (interface{}, error)
 }
+
+// Emailer exposes an email API.
+type Emailer interface {
+	// Email sends an email to an email address
+	Email(ctx context.Context, email string, message string) error
+}
+
+// SMSer exposes an SMS API.
+type SMSer interface {
+	// SMS sends an SMS to an phone number
+	SMS(ctx context.Context, phoneNumber string, message string) error
+}

@@ -16,22 +16,12 @@ type Consumer interface {
 	Run(ctx context.Context) error
 }
 
-// SMSer exposes an API to send SMS messages.
-type SMSer interface {
-	SMS(ctx context.Context, phoneNumber string, message string) error
-}
-
-// Emailer exposes an API to send email messages.
-type Emailer interface {
-	Email(ctx context.Context, email string, message string) error
-}
-
 // Service consumes messages to be delivered in a parallel through
 // goroutines.
 type service struct {
 	logger       log.Logger
-	smsLib       SMSer
-	emailLib     Emailer
+	smsLib       auth.SMSer
+	emailLib     auth.Emailer
 	totalWorkers int
 	messageRepo  auth.MessageRepository
 }

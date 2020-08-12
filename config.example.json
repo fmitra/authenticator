@@ -39,10 +39,16 @@
     "domain": "authenticator.local",
     "request-origin": "https://authenticator.local"
   },
+  "maillib": "sendgrid",
   "twilio": {
     "account-sid": "11768d65c6c3759f7920",
     "token": "91551df20178afdbbf691b18504c9196ac6f2167",
     "sms-sender": "+15555555555"
+  },
+  "sendgrid": {
+    "api-key": "DTfWjHgEO4cF7kjhCNbT6O2MpFY",
+    "from-addr": "stage@francismitra.com",
+    "from-name": "Support"
   },
   "mail": {
     "server-addr": "localhost:8080",

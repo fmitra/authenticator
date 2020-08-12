@@ -1,3 +1,4 @@
+// Package twilio exposes Twilio's REST API.
 package twilio
 
 import (
@@ -9,12 +10,6 @@ import (
 	"mime/multipart"
 	"net/http"
 )
-
-// Twilio exposes Twilio's REST API.
-type Twilio interface {
-	// SMS sends an SMS message to a phone number.
-	SMS(ctx context.Context, phoneNumber string, message string) error
-}
 
 // client is a consumer of the Twilio API.
 type client struct {
