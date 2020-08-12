@@ -626,7 +626,7 @@ func (m *Rediser) Close() error {
 }
 
 // Send mock.
-func (m *MessagingService) Send(ctx context.Context, message, addr string, method auth.DeliveryMethod) error {
+func (m *MessagingService) Send(ctx context.Context, msg *auth.Message) error {
 	m.Calls.Send++
 	if m.SendFn != nil {
 		return m.SendFn()

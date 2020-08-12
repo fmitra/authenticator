@@ -23,6 +23,9 @@ type DeliveryMethod string
 // 2FA.
 type TFAOptions string
 
+// MessageType describes a classification of a Message
+type MessageType string
+
 const (
 	// OTPEmail allows a user to complete TFA with an OTP
 	// code delivered via email.
@@ -52,6 +55,17 @@ const (
 	// JWTAuthorized represents a the state of a user after completing
 	// the final step of login or signup.
 	JWTAuthorized TokenState = "authorized"
+)
+
+const (
+	// OTPAddress is a message containing an OTP code for contact verification
+	OTPAddress MessageType = "otp_address"
+	// OTPResend is a message containing an OTP code
+	OTPResend MessageType = "otp_resend"
+	// OTPLogin is a message containing an OTP code for login.
+	OTPLogin MessageType = "otp_login"
+	// OTPSignup is a message containing an OTP code for signup.
+	OTPSignup MessageType = "otp_signup"
 )
 
 // User represents a user who is registered with the service.
@@ -226,8 +240,13 @@ type Token struct {
 
 // Message is a message to be delivered to a user.
 type Message struct {
+	// Type describes the classification of a Message.
+	Type MessageType
 	// Delivery type of the message (e.g. phone or email).
 	Delivery DeliveryMethod
+	// Vars contains key/value variables to populate
+	// templated content.
+	Vars map[string]string
 	// Content of the message.
 	Content string
 	// Delivery address of the user (e.g. phone or email).
@@ -391,7 +410,7 @@ type OTPService interface {
 // MessagingService sends messages through email or SMS.
 type MessagingService interface {
 	// Send sends a message to a user.
-	Send(ctx context.Context, message, addr string, method DeliveryMethod) error
+	Send(ctx context.Context, msg *Message) error
 }
 
 // LoginAPI provides HTTP handlers for user authentication.

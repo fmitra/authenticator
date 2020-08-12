@@ -23,6 +23,8 @@ func NewService(r auth.MessageRepository, options ...ConfigOption) auth.Messagin
 		opt(&s)
 	}
 
+	s.createTemplates()
+
 	return &s
 }
 

@@ -47,7 +47,7 @@
   },
   "sendgrid": {
     "api-key": "DTfWjHgEO4cF7kjhCNbT6O2MpFY",
-    "from-addr": "stage@francismitra.com",
+    "from-addr": "jane@example.com",
     "from-name": "Support"
   },
   "mail": {

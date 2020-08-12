@@ -62,7 +62,13 @@ func (s *service) CheckAddress(w http.ResponseWriter, r *http.Request) (interfac
 		return nil, fmt.Errorf("invalid OTP created: %w", err)
 	}
 
-	if err = s.message.Send(ctx, token.Code, h.Address, h.DeliveryMethod); err != nil {
+	msg := &auth.Message{
+		Type: auth.OTPAddress,
+		Delivery: h.DeliveryMethod,
+		Vars: map[string]string{"code": token.Code},
+		Address: h.Address,
+	}
+	if err = s.message.Send(ctx, msg); err != nil {
 		return nil, err
 	}
 
@@ -258,7 +264,13 @@ func (s *service) Send(w http.ResponseWriter, r *http.Request) (interface{}, err
 		return nil, fmt.Errorf("invalid OTP created: %w", err)
 	}
 
-	if err = s.message.Send(ctx, token.Code, h.Address, h.DeliveryMethod); err != nil {
+	msg := &auth.Message{
+		Type: auth.OTPResend,
+		Vars: map[string]string{"code": token.Code},
+		Address: h.Address,
+		Delivery: h.DeliveryMethod,
+	}
+	if err = s.message.Send(ctx, msg); err != nil {
 		return nil, err
 	}
 

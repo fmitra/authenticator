@@ -62,6 +62,7 @@ func (s *service) processMessage(ctx context.Context, msg *auth.Message) {
 		"source", "msgconsumer.processMessage",
 		"address", msg.Address,
 		"delivery", msg.Delivery,
+		"type", msg.Type,
 		"delivery_attempts", msg.DeliveryAttempts,
 		"expires_at", msg.ExpiresAt,
 	)
@@ -81,6 +82,11 @@ func (s *service) processMessage(ctx context.Context, msg *auth.Message) {
 
 	if err == nil {
 		level.Info(logger).Log("message", "message sent")
+		// Enable in config.json: api.debug
+		level.Debug(logger).Log(
+			"content", msg.Content,
+			"message", "message contents",
+		)
 		return
 	}
 
@@ -96,12 +102,7 @@ func (s *service) processMessage(ctx context.Context, msg *auth.Message) {
 		)
 	} else {
 		level.Info(logger).Log(
-			"message", "message sent",
-		)
-		// Enable in config.json: api.debug
-		level.Debug(logger).Log(
-			"content", msg.Content,
-			"message", "message contents",
+			"message", "message sent back to queue",
 		)
 	}
 }

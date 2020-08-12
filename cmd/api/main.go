@@ -117,8 +117,10 @@ func main() {
 	}
 
 	if viper.GetBool("api.debug") {
+		logger.Log("message", "enabling debug messaging", "source", "cmd/api")
 		logger = level.NewFilter(logger, level.AllowDebug())
 	} else {
+		logger.Log("message", "debug messaging is disabled", "source", "cmd/api")
 		logger = level.NewFilter(logger, level.AllowInfo())
 	}
 
