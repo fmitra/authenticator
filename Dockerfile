@@ -1,5 +1,4 @@
 FROM golang:1.14-alpine3.11 as builder
-ENV GO111MODULE=on
 WORKDIR /build-directory
 COPY . .
 RUN apk add --no-cache git

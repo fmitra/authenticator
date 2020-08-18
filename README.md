@@ -1,3 +1,5 @@
+![Build](https://github.com/fmitra/authenticator/workflows/Build/badge.svg) [![codecov](https://codecov.io/gh/fmitra/authenticator/branch/master/graph/badge.svg?token=MRMXT9NJI3)](https://codecov.io/gh/fmitra/authenticator)
+
 # authenticator
 
 A generic user authentication service supporting FIDO U2F, TOTP, Email, and SMS.
@@ -186,7 +188,7 @@ By default the project will be exposed on port `8081`.
 
 ```
 cd authenticator
-docker-compose up -d
+docker-compose -f docker-compose.stage.yml up -d
 ```
 
 You can check the project is up and running via the healthcheck endpoint
@@ -217,6 +219,7 @@ docker-compose exec postgres psql -U auth -d authenticator_test
 Make sure [golangci-lint](https://golangci-lint.run/usage/install/) is installed prior to running the linter.
 
 ```
+docker-compose -f docker-compose.test.yml
 make test
 make lint
 ```

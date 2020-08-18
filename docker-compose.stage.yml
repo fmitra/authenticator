@@ -1,0 +1,41 @@
+version: '3'
+
+networks:
+  authenticator:
+    driver: bridge
+
+services:
+  postgres:
+    image: postgres:11.2
+    restart: unless-stopped
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=auth
+      - POSTGRES_PASSWORD=swordfish
+      - POSTGRES_DB=authenticator_test
+    networks:
+      - authenticator
+
+  redis:
+    image: redis:5.0.4
+    restart: unless-stopped
+    ports:
+      - 6379:6379
+    command: redis-server --requirepass swordfish
+    networks:
+      - authenticator
+
+  authenticator:
+    build: .
+    restart: unless-stopped
+    volumes:
+      - ./config.json:/etc/authenticator/config.json
+    command: api --config=/etc/authenticator/config.json
+    ports:
+      - 8081:8081
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - authenticator

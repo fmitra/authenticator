@@ -6,6 +6,7 @@ networks:
 
 services:
   postgres:
+    restart: unless-stopped
     image: postgres:11.2
     ports:
       - 5432:5432
@@ -17,22 +18,10 @@ services:
       - authenticator
 
   redis:
+    restart: unless-stopped
     image: redis:5.0.4
     ports:
       - 6379:6379
     command: redis-server --requirepass swordfish
-    networks:
-      - authenticator
-
-  authenticator:
-    build: .
-    volumes:
-      - ./config.json:/etc/authenticator/config.json
-    command: api --config=/etc/authenticator/config.json
-    ports:
-      - 8081:8081
-    depends_on:
-      - postgres
-      - redis
     networks:
       - authenticator
