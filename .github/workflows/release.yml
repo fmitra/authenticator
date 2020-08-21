@@ -10,8 +10,9 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     steps:
-    - name: Get release tag
+    - name: Checkout code
       uses: actions/checkout@v2
+    - name: Get release code
       run: echo ::set-env name=RELEASE_VERSION::$(echo ${GITHUB_REF:10})
     - name: Build and push image
       uses: docker/build-push-action@v1
