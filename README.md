@@ -1,4 +1,4 @@
-![Build](https://github.com/fmitra/authenticator/workflows/Build/badge.svg) [![codecov](https://codecov.io/gh/fmitra/authenticator/branch/master/graph/badge.svg?token=MRMXT9NJI3)](https://codecov.io/gh/fmitra/authenticator)
+![Build](https://github.com/fmitra/authenticator/workflows/Build/badge.svg) [![Report Card](https://goreportcard.com/badge/github.com/fmitra/authenticator)](https://goreportcard.com/badge/github.com/fmitra/authenticator) [![codecov](https://codecov.io/gh/fmitra/authenticator/branch/master/graph/badge.svg?token=MRMXT9NJI3)](https://codecov.io/gh/fmitra/authenticator)
 
 # authenticator
 
