@@ -14,16 +14,13 @@ type totpRequest struct {
 }
 
 func decodeTOTPRequest(r *http.Request) (*totpRequest, error) {
-	var (
-		req totpRequest
-		err error
-	)
+	var req totpRequest
 
 	if r == nil || r.Body == nil {
 		return nil, auth.ErrBadRequest("no request body received")
 	}
 
-	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return nil, fmt.Errorf("%v: %w", err, auth.ErrBadRequest("invalid JSON request"))
 	}
 

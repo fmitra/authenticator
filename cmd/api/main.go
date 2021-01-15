@@ -27,6 +27,7 @@ import (
 	"github.com/fmitra/authenticator/internal/deviceapi"
 	"github.com/fmitra/authenticator/internal/httpapi"
 	"github.com/fmitra/authenticator/internal/loginapi"
+	"github.com/fmitra/authenticator/internal/loginhistoryapi"
 	"github.com/fmitra/authenticator/internal/mail"
 	"github.com/fmitra/authenticator/internal/msgconsumer"
 	"github.com/fmitra/authenticator/internal/msgpublisher"
@@ -273,6 +274,11 @@ func main() {
 		tokenapi.WithRepoManager(repoMngr),
 	)
 
+	loginHistoryAPI := loginhistoryapi.NewService(
+		loginhistoryapi.WithRepoManager(repoMngr),
+		loginhistoryapi.WithLogger(logger),
+	)
+
 	lmt := httpapi.NewRateLimiter(redisDB)
 	router := mux.NewRouter()
 	router.HandleFunc("/healthcheck", func(w http.ResponseWriter, r *http.Request) {
@@ -286,6 +292,7 @@ func main() {
 	contactapi.SetupHTTPHandler(contactAPI, router, tokenSvc, logger, lmt)
 	totpapi.SetupHTTPHandler(totpAPI, router, tokenSvc, logger, lmt)
 	tokenapi.SetupHTTPHandler(tokenAPI, router, tokenSvc, logger, lmt)
+	loginhistoryapi.SetupHTTPHandler(loginHistoryAPI, router, tokenSvc, logger, lmt)
 
 	server := http.Server{
 		Addr: viper.GetString("api.http-addr"),

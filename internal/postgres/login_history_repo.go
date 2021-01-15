@@ -38,7 +38,7 @@ func (r *LoginHistoryRepository) ByUserID(ctx context.Context, userID string, li
 		offset,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("query failed: %w", err)
 	}
 	defer rows.Close()
 
@@ -50,12 +50,12 @@ func (r *LoginHistoryRepository) ByUserID(ctx context.Context, userID string, li
 			&login.CreatedAt, &login.UpdatedAt,
 		)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 		logins = append(logins, &login)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("completed with error: %w", err)
 	}
 
 	return logins, nil

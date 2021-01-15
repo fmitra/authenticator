@@ -33,16 +33,13 @@ type sendRequest struct {
 }
 
 func decodeSendRequest(r *http.Request) (*sendRequest, error) {
-	var (
-		req sendRequest
-		err error
-	)
+	var req sendRequest
 
 	if r == nil || r.Body == nil {
 		return nil, auth.ErrBadRequest("no request body received")
 	}
 
-	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return nil, fmt.Errorf("%v: %w", err, auth.ErrBadRequest("invalid JSON request"))
 	}
 
@@ -54,16 +51,13 @@ func decodeSendRequest(r *http.Request) (*sendRequest, error) {
 }
 
 func decodeDeliveryRequest(r *http.Request) (*deliveryRequest, error) {
-	var (
-		req deliveryRequest
-		err error
-	)
+	var req deliveryRequest
 
 	if r == nil || r.Body == nil {
 		return nil, auth.ErrBadRequest("no request body received")
 	}
 
-	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return nil, fmt.Errorf("%v: %w", err, auth.ErrBadRequest("invalid JSON request"))
 	}
 
@@ -85,16 +79,13 @@ func decodeDeliveryRequest(r *http.Request) (*deliveryRequest, error) {
 }
 
 func decodeDeactivateRequest(r *http.Request) (*deactivateRequest, error) {
-	var (
-		req deactivateRequest
-		err error
-	)
+	var req deactivateRequest
 
 	if r == nil || r.Body == nil {
 		return nil, auth.ErrBadRequest("no request body received")
 	}
 
-	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return nil, fmt.Errorf("%v: %w", err, auth.ErrBadRequest("invalid JSON request"))
 	}
 
@@ -106,16 +97,13 @@ func decodeDeactivateRequest(r *http.Request) (*deactivateRequest, error) {
 }
 
 func decodeVerifyRequest(r *http.Request) (*verifyRequest, error) {
-	var (
-		req verifyRequest
-		err error
-	)
+	var req verifyRequest
 
 	if r == nil || r.Body == nil {
 		return nil, auth.ErrBadRequest("no request body received")
 	}
 
-	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return nil, fmt.Errorf("%v: %w", err, auth.ErrBadRequest("invalid JSON request"))
 	}
 

@@ -53,17 +53,13 @@ func (r *signupRequest) ToUser() *auth.User {
 }
 
 func decodeSignupRequest(r *http.Request) (*signupRequest, error) {
-	var (
-		req signupRequest
-		err error
-	)
+	var req signupRequest
 
 	if r == nil || r.Body == nil {
 		return nil, auth.ErrBadRequest("no request body received")
 	}
 
-	err = json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return nil, fmt.Errorf("%v: %w", err, auth.ErrBadRequest("invalid JSON request"))
 	}
 
@@ -77,17 +73,13 @@ func decodeSignupRequest(r *http.Request) (*signupRequest, error) {
 }
 
 func decodeSignupVerifyRequest(r *http.Request) (*signupVerifyRequest, error) {
-	var (
-		req signupVerifyRequest
-		err error
-	)
+	var req signupVerifyRequest
 
 	if r == nil || r.Body == nil {
 		return nil, auth.ErrBadRequest("no request body received")
 	}
 
-	err = json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return nil, fmt.Errorf("%v: %w", err, auth.ErrBadRequest("invalid JSON request"))
 	}
 

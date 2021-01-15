@@ -48,6 +48,10 @@
   * [Remove address](#remove-address)
   * [Resend OTP to address](#resend-otp)
 
+* [Login Histor API](#login-history-api)
+
+  * [Get login history](#get-login-history)
+
 ## <a name="overview">Overview</a>
 
 This document details all available HTTP API endpoints exposed by the service to manage
@@ -1004,6 +1008,54 @@ User's who are already authenticated and are re-requesting an OTP should use
   "error": {
     "code": "bad_request",
     "message": "deliveryMethod must be `phone` or `email`"
+  }
+}
+```
+
+## <a name="login-history-api">Login History API</a>
+
+Provides an endpoint to retrieve historical login history. Token ID's
+are exposed in this endpoint to be used for revocation if required.
+
+### <a name="get-login-history">Get login history [GET /api/v1/login-history]</a>
+
+Retrieve a paginated list of historical user login h istory.
+
+* Request (application/json)
+
+  * Query Parameters
+
+      * limit (optional, number) - Maximum amount of records to retrieve. Defaults to 10
+      * offset (optional, number) - Starting point of query. Defaults to 0
+
+  * Headers
+
+      * Authorization: `Bearer <jwtToken>`
+      * Cookie: `CLIENTID=<clientID>`
+
+* Response 200 (application/json)
+
+```json
+{
+  "loginHistory": [
+    {
+      "tokenId": "01EF7XJ0FXBYV3PFBCVA5HENW9",
+      "isRevoked": false,
+      "expiresAt": "2021-01-31T16:52:52Z",
+      "createdAt": "2021-01-16T16:52:52.658972Z",
+      "updatedAt": "2021-01-16T16:52:52.658972Z"
+    }
+  ]
+}
+```
+
+* Response 400 (application/json)
+
+```json
+{
+  "error": {
+    "code": "bad_request",
+    "message": "Pagination param should be a number"
   }
 }
 ```

@@ -205,10 +205,11 @@ go build ./cmd/api
 ./api --config=./config.json
 ```
 
-**3. Setup database**
+**3. Setup and access the database**
 
 If this is your first time running the project, you'll need to set up the initial
-DB schema found in [schema.go](./schema.go).
+DB schema found in [schema.go](./schema.go). You can connect with `psql` through
+the `docker-compose` to create the tables specified in `schema.go`.
 
 ```
 docker-compose exec postgres psql -U auth -d authenticator_test
@@ -369,9 +370,6 @@ is less mature than it's competitor and more expensive at low tier plans.
 ## <a name="pending">Pending</a>
 
 Following features are still pending and will be implemented in order:
-
-* **Retrieval of login history:** A simple, paginated login history API will be provided
-so users may be revoke authenticated sessions. The revocation API is already implemented.
 
 * **Password reset:** Password reset will be inspired by the advice provided from [OWASP](https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html).
 Users will be required to complete 2FA, after which a password reset email will be

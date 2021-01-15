@@ -41,6 +41,8 @@ func (c *Client) createQueries() {
 			SELECT user_id, token_id, is_revoked, expires_at, created_at, updated_at
 			FROM login_history
 			WHERE user_id = $1
+			ORDER BY created_at
+			DESC
 			LIMIT $2
 			OFFSET $3;
 		`,

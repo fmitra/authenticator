@@ -14,17 +14,13 @@ type renameRequest struct {
 }
 
 func decodeRenameRequest(r *http.Request) (*renameRequest, error) {
-	var (
-		req renameRequest
-		err error
-	)
+	var req renameRequest
 
 	if r == nil || r.Body == nil {
 		return nil, auth.ErrBadRequest("no request body received")
 	}
 
-	err = json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return nil, fmt.Errorf("%v: %w", err, auth.ErrBadRequest("invalid JSON request"))
 	}
 

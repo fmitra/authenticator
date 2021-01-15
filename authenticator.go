@@ -178,17 +178,17 @@ type Device struct {
 // LoginHistory represents a login associated with a user.
 type LoginHistory struct {
 	// TokenID is the ID of a JWT token.
-	TokenID string
+	TokenID string `json:"tokenId"`
 	// UserID is the User's ID associated with the login record.
-	UserID string
+	UserID string `json:"-"`
 	// IsRevoked is a boolean indicating the token has
 	// been revoked. Tokens are invalidated through
 	// expiry or revocation.
-	IsRevoked bool
+	IsRevoked bool `json:"isRevoked"`
 	// ExpiresAt is the expiry time of the JWT token.
-	ExpiresAt time.Time
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ExpiresAt time.Time `json:"expiresAt"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // Token is a token that provides proof of User authentication.
@@ -511,6 +511,12 @@ type TokenAPI interface {
 type UserAPI interface {
 	// UpdatePassword change's a User's password.
 	UpdatePassword(w http.ResponseWriter, r *http.Request) (interface{}, error)
+}
+
+// LoginHistoryAPI provides HTTP handlers to expose LoginHistory.
+type LoginHistoryAPI interface {
+	// List returns LoginHistory records
+	List(w http.ResponseWriter, r *http.Request) (interface{}, error)
 }
 
 // Emailer exposes an email API.
