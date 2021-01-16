@@ -14,6 +14,7 @@ import (
 // in teardown/setup methods.
 func NewRedisDB() (*redis.Client, error) {
 	rand.Seed(time.Now().UnixNano())
+	// nolint:gosec // crypto/rand not applicable for test package
 	dbNo := rand.Intn(16)
 	redisURL := fmt.Sprintf("redis://:swordfish@localhost:6379/%v", dbNo)
 

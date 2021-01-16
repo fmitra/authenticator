@@ -62,6 +62,7 @@ func delay(deliveryAttempts int) time.Duration {
 	rand.Seed(time.Now().UnixNano())
 
 	// Maximum 3 second jitter
+	// nolint:gosec // crypto/rand not necessary for jitter
 	jitter := time.Duration(rand.Intn(3000)) * time.Millisecond
 	minDelay := (time.Duration(deliveryAttempts) * time.Second) * 2
 	countdown := jitter + minDelay

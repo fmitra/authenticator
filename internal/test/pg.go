@@ -76,6 +76,7 @@ func randomDB() string {
 	b := make([]rune, length)
 	opts := []rune("abcdefghijklmnopqrstuvwxyz")
 	for i := range b {
+		// nolint:gosec // crypto/rand not applicable for test package
 		b[i] = opts[rand.Intn(len(opts))]
 	}
 

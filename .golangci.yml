@@ -1,19 +1,22 @@
 service:
-  golang-ci-lint-version: 1.15.x
+  golang-ci-lint-version: 1.35.x
 
 linters:
-  enable-all: true
-  disable:
-    - interfacer
-    - testpackage
-    - dupl
-    - wsl
-    - gocognit
-    - goerr113
-    - godot
-    - gomnd
-    - funlen
-    - godox
+  enable-all: false
+  enable:
+    - golint
+    - gosec
+    - goimports
+    - deadcode
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - structcheck
+    - typecheck
+    - unused
+    - varcheck
 
 linters-settings:
   errcheck:

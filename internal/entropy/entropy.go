@@ -26,6 +26,7 @@ func (r *safeMonotonicReader) MonotonicRead(ms uint64, p []byte) (err error) {
 
 // New returns a new MonotonicReader.
 func New() ulid.MonotonicReader {
+	// nolint:gosec // crypto/rand not necessary for ULID generation
 	monotonic := ulid.Monotonic(rand.New(
 		rand.NewSource(time.Now().UnixNano()),
 	), 0)
