@@ -117,12 +117,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Swap DefautCaller which defaults to 3 levels deep, to a 4 level
+	// deep caller in order to capture correct line numbers after
+	// we enable level logging.
+	logger = log.With(logger, "caller", log.Caller(4))
 	if viper.GetBool("api.debug") {
-		logger.Log("message", "enabling debug messaging", "source", "cmd/api")
 		logger = level.NewFilter(logger, level.AllowDebug())
+		logger.Log("message", "debug messaging is enabled", "source", "cmd/api")
 	} else {
-		logger.Log("message", "debug messaging is disabled", "source", "cmd/api")
 		logger = level.NewFilter(logger, level.AllowInfo())
+		logger.Log("message", "debug messaging is disabled", "source", "cmd/api")
 	}
 
 	passwordSvc := password.NewPassword(
