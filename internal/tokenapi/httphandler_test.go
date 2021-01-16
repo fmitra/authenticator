@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/go-kit/kit/log"
 	"github.com/google/go-cmp/cmp"
 	"github.com/gorilla/mux"
@@ -136,12 +137,32 @@ func TestTokenAPI_Refresh(t *testing.T) {
 		t.Fatal("failed to create user:", err)
 	}
 
+	// nolint:gosec // token ULID is not a real security credential
+	const tokenID = "01EF7XJ0FXBYV3PFBCVA5HENW9"
+	err = repoMngr.LoginHistory().Create(ctx, &auth.LoginHistory{
+		UserID:  user.ID,
+		TokenID: tokenID,
+		IPAddress: sql.NullString{
+			String: "",
+			Valid:  false,
+		},
+	})
+	if err != nil {
+		t.Fatal("failed to create login history:", err)
+	}
+
 	tokenSvc := &test.TokenService{
 		RefreshableFn: func() error {
 			return nil
 		},
 		ValidateFn: func() (*auth.Token, error) {
-			return &auth.Token{UserID: user.ID, State: auth.JWTAuthorized}, nil
+			return &auth.Token{
+				StandardClaims: jwt.StandardClaims{
+					Id: tokenID,
+				},
+				UserID: user.ID,
+				State:  auth.JWTAuthorized,
+			}, nil
 		},
 		CreateFn: func() (*auth.Token, error) {
 			return &auth.Token{}, nil
@@ -150,9 +171,12 @@ func TestTokenAPI_Refresh(t *testing.T) {
 			return "signed-token", nil
 		},
 	}
+	logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
+
 	svc := NewService(
 		WithTokenService(tokenSvc),
 		WithRepoManager(repoMngr),
+		WithLogger(logger),
 	)
 
 	req, err := http.NewRequest("POST", "/api/v1/token/refresh", nil)
@@ -160,11 +184,9 @@ func TestTokenAPI_Refresh(t *testing.T) {
 		t.Fatal("failed to create request:", err)
 	}
 
-	test.SetAuthHeaders(req)
-
-	logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
 	SetupHTTPHandler(svc, router, tokenSvc, logger, &httpapi.MockLimiterFactory{})
 
+	test.SetAuthHeaders(req)
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
 
@@ -195,5 +217,14 @@ func TestTokenAPI_Refresh(t *testing.T) {
 		t.Error("TokenService.Sign call count does not match", cmp.Diff(
 			tokenSvc.Calls.Sign, signCallCount,
 		))
+	}
+
+	token, err := repoMngr.LoginHistory().ByTokenID(ctx, tokenID)
+	if err != nil {
+		t.Errorf("failed to get token: %w", err)
+	}
+
+	if token.IPAddress.Valid != true {
+		t.Error("nullable IPAddress field should not be nil")
 	}
 }

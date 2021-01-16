@@ -233,7 +233,7 @@ func (s *service) Revoke(ctx context.Context, tokenID string) error {
 		return fmt.Errorf("%v: %w", err, auth.ErrBadRequest("invalid token ID"))
 	}
 	if err != nil {
-		return err
+		return fmt.Errorf("token lookup failed: %w", err)
 	}
 
 	tx, err := s.repoMngr.NewWithTransaction(ctx)

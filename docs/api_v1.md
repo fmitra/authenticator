@@ -1041,6 +1041,7 @@ Retrieve a paginated list of historical user login h istory.
     {
       "tokenId": "01EF7XJ0FXBYV3PFBCVA5HENW9",
       "isRevoked": false,
+      "ipAddress": "127.0.0.1",
       "expiresAt": "2021-01-31T16:52:52Z",
       "createdAt": "2021-01-16T16:52:52.658972Z",
       "updatedAt": "2021-01-16T16:52:52.658972Z"

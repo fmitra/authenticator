@@ -33,12 +33,12 @@ type Client struct {
 func (c *Client) createQueries() {
 	c.loginHistoryQ = map[string]string{
 		"byTokenID": `
-			SELECT user_id, token_id, is_revoked, expires_at, created_at, updated_at
+			SELECT user_id, token_id, ip_address, is_revoked, expires_at, created_at, updated_at
 			FROM login_history
 			WHERE token_id = $1;
 		`,
 		"byUserID": `
-			SELECT user_id, token_id, is_revoked, expires_at, created_at, updated_at
+			SELECT user_id, token_id, ip_address, is_revoked, expires_at, created_at, updated_at
 			FROM login_history
 			WHERE user_id = $1
 			ORDER BY created_at
@@ -47,20 +47,20 @@ func (c *Client) createQueries() {
 			OFFSET $3;
 		`,
 		"forUpdate": `
-			SELECT user_id, token_id, is_revoked, expires_at, created_at, updated_at
+			SELECT user_id, token_id, ip_address, is_revoked, expires_at, created_at, updated_at
 			FROM login_history
 			WHERE token_id = $1;
 		`,
 		"update": `
 			UPDATE login_history
-			SET is_revoked=$2, updated_at=$3
+			SET ip_address=$2, is_revoked=$3, updated_at=$4
 			WHERE token_id = $1;
 		`,
 		"insert": `
 			INSERT INTO login_history (
-				user_id, token_id, is_revoked, expires_at
+				user_id, token_id, ip_address, is_revoked, expires_at
 			)
-			VALUES ($1, $2, $3, $4)
+			VALUES ($1, $2, $3, $4, $5)
 			RETURNING created_at, updated_at;
 		`,
 	}

@@ -185,6 +185,10 @@ type LoginHistory struct {
 	// been revoked. Tokens are invalidated through
 	// expiry or revocation.
 	IsRevoked bool `json:"isRevoked"`
+	// IPAddress is the most recent address associated
+	// with the login. This value may change
+	// if a token was refreshed.
+	IPAddress sql.NullString `json:"ipAddress"`
 	// ExpiresAt is the expiry time of the JWT token.
 	ExpiresAt time.Time `json:"expiresAt"`
 	CreatedAt time.Time `json:"createdAt"`

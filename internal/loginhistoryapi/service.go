@@ -21,8 +21,6 @@ func (s *service) List(w http.ResponseWriter, r *http.Request) (interface{}, err
 	ctx := r.Context()
 	userID := httpapi.GetUserID(r)
 
-	// TODO Update token service to create LoginHistory records (refactor signup/login)
-	// TODO Update token service to refresh the history record
 	pr, err := decodePaginatedRequest(r)
 	if err != nil {
 		return nil, err

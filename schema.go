@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS login_history (
 	token_id VARCHAR(26) PRIMARY KEY,
 	user_id VARCHAR(26) REFERENCES auth_user(id) NOT NULL,
 	is_revoked BOOLEAN DEFAULT false,
+	ip_address VARCHAR(45) NULL,
 	expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
 	created_at TIMESTAMP WITH TIME ZONE DEFAULT current_timestamp,
 	updated_at TIMESTAMP WITH TIME ZONE DEFAULT current_timestamp

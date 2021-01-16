@@ -102,8 +102,12 @@ func (s *service) Verify(w http.ResponseWriter, r *http.Request) (interface{}, e
 	}
 
 	loginHistory := &auth.LoginHistory{
-		UserID:    userID,
-		TokenID:   jwtToken.Id,
+		UserID:  userID,
+		TokenID: jwtToken.Id,
+		IPAddress: sql.NullString{
+			String: httpapi.GetIP(r),
+			Valid:  true,
+		},
 		ExpiresAt: s.token.RefreshableTill(ctx, jwtToken, jwtToken.RefreshToken),
 	}
 	if err = s.repoMngr.LoginHistory().Create(ctx, loginHistory); err != nil {

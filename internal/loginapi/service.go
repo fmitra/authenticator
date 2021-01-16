@@ -101,8 +101,12 @@ func (s *service) VerifyDevice(w http.ResponseWriter, r *http.Request) (interfac
 	}
 
 	loginHistory := &auth.LoginHistory{
-		UserID:    userID,
-		TokenID:   jwtToken.Id,
+		UserID:  userID,
+		TokenID: jwtToken.Id,
+		IPAddress: sql.NullString{
+			String: httpapi.GetIP(r),
+			Valid:  true,
+		},
 		ExpiresAt: s.token.RefreshableTill(ctx, jwtToken, jwtToken.RefreshToken),
 	}
 	if err = s.repoMngr.LoginHistory().Create(ctx, loginHistory); err != nil {
@@ -145,8 +149,12 @@ func (s *service) VerifyCode(w http.ResponseWriter, r *http.Request) (interface{
 	}
 
 	loginHistory := &auth.LoginHistory{
-		UserID:    userID,
-		TokenID:   jwtToken.Id,
+		UserID:  userID,
+		TokenID: jwtToken.Id,
+		IPAddress: sql.NullString{
+			String: httpapi.GetIP(r),
+			Valid:  true,
+		},
 		ExpiresAt: s.token.RefreshableTill(ctx, jwtToken, jwtToken.RefreshToken),
 	}
 	if err = s.repoMngr.LoginHistory().Create(ctx, loginHistory); err != nil {

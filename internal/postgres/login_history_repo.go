@@ -18,7 +18,7 @@ func (r *LoginHistoryRepository) ByTokenID(ctx context.Context, tokenID string) 
 	login := auth.LoginHistory{}
 	row := r.client.queryRowContext(ctx, r.client.loginHistoryQ["byTokenID"], tokenID)
 	err := row.Scan(
-		&login.UserID, &login.TokenID, &login.IsRevoked, &login.ExpiresAt,
+		&login.UserID, &login.TokenID, &login.IPAddress, &login.IsRevoked, &login.ExpiresAt,
 		&login.CreatedAt, &login.UpdatedAt,
 	)
 	if err != nil {
@@ -46,7 +46,7 @@ func (r *LoginHistoryRepository) ByUserID(ctx context.Context, userID string, li
 	for rows.Next() {
 		login := auth.LoginHistory{}
 		err := rows.Scan(
-			&login.UserID, &login.TokenID, &login.IsRevoked, &login.ExpiresAt,
+			&login.UserID, &login.TokenID, &login.IPAddress, &login.IsRevoked, &login.ExpiresAt,
 			&login.CreatedAt, &login.UpdatedAt,
 		)
 		if err != nil {
@@ -68,6 +68,7 @@ func (r *LoginHistoryRepository) Create(ctx context.Context, login *auth.LoginHi
 		r.client.loginHistoryQ["insert"],
 		login.UserID,
 		login.TokenID,
+		login.IPAddress,
 		login.IsRevoked,
 		login.ExpiresAt,
 	)
@@ -86,6 +87,7 @@ func (r *LoginHistoryRepository) Update(ctx context.Context, login *auth.LoginHi
 		ctx,
 		r.client.loginHistoryQ["update"],
 		login.TokenID,
+		login.IPAddress,
 		login.IsRevoked,
 		login.UpdatedAt,
 	)
@@ -108,7 +110,7 @@ func (r *LoginHistoryRepository) GetForUpdate(ctx context.Context, tokenID strin
 	login := auth.LoginHistory{}
 	row := r.client.queryRowContext(ctx, r.client.loginHistoryQ["forUpdate"], tokenID)
 	err := row.Scan(
-		&login.UserID, &login.TokenID, &login.IsRevoked, &login.ExpiresAt,
+		&login.UserID, &login.TokenID, &login.IPAddress, &login.IsRevoked, &login.ExpiresAt,
 		&login.CreatedAt, &login.UpdatedAt,
 	)
 	if err != nil {

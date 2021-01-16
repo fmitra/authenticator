@@ -2,6 +2,8 @@
 package tokenapi
 
 import (
+	"database/sql"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -64,6 +66,31 @@ func (s *service) Refresh(w http.ResponseWriter, r *http.Request) (interface{}, 
 	signedToken, err := s.token.Sign(ctx, token)
 	if err != nil {
 		return nil, err
+	}
+
+	tx, err := s.repoMngr.NewWithTransaction(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = tx.WithAtomic(func() (interface{}, error) {
+		lh, err := tx.LoginHistory().GetForUpdate(ctx, httpapi.GetToken(r).Id)
+		if err != nil {
+			return nil, err
+		}
+
+		lh.IPAddress = sql.NullString{
+			String: httpapi.GetIP(r),
+			Valid:  true,
+		}
+		if err = tx.LoginHistory().Update(ctx, lh); err != nil {
+			return nil, err
+		}
+
+		return lh, nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update login history record: %w", err)
 	}
 
 	return &tokenLib.Response{Token: signedToken}, nil
